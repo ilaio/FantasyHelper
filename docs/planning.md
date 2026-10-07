@@ -158,7 +158,19 @@ The user’s own remaining budget does not replace this factor. Inflation descri
 
 ## 6. Task list
 
-Each task is one vertical slice. The next task starts only after the current one is checked the way its “Done when” line says. Commands are run by the user. The agent asks for a command and waits.
+Each task is one vertical slice. The next task starts only after the current one is checked the way its “Done when” line says, and only after that next task has been planned in detail with the user. Commands are run by the user. The agent asks for a command and waits.
+
+The writeups below stay as the generic approach until that conversation. Layout choices, such as the `src/fantasyhelper` package path, are confirmed there rather than treated as final.
+
+### Open conversations
+
+Raise these before the task they affect. They do not change the text above until we decide.
+
+- **Task 1.** Folder and package naming, including whether `src/fantasyhelper` is the layout we want.
+- **Before Task 3.** Whether current-season stats belong in this draft stage, or wait for day-to-day features.
+- **Before league setup (Task 4).** Whether the user can create more than one league with the settings we already have, including a demo league or a demo draft inside a league.
+- **Before the price list (Task 5).** Other ways to calculate z-scores. The method in section 4 stays until that conversation. The user will bring specific concerns then.
+- **Before the price list is shown.** Whether the player table includes season averages next to the scores.
 
 ### Task 0 — Preparation files
 

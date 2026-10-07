@@ -8,7 +8,9 @@ These guidelines keep the draft assistant small, testable, and aligned with `doc
 
 We build one task from the planning file at a time, in order, unless we explicitly reorder that file.
 
-A task is finished only when its “Done when” check has been performed. For a screen, that means using the app. For stored data, that means looking at the database. For a formula, that means comparing it to a known example.
+Before writing code for a task, plan that task with the user. The generic task in the planning file is the starting point, not the final design. The conversation confirms the approach, settles layout and naming choices that the task will lock in, and checks which functionality and data belong in this task versus a later one. Open items for that conversation are listed in `docs/planning.md`. Update the task in the planning file with what was agreed, then implement.
+
+A task is finished only when its “Done when” check has been performed. For a screen, that means using the app. For stored data, that means looking at the database. For a formula, that means comparing it to a known example. After that check, plan the next task the same way before starting it.
 
 When a task changes behavior, update the requirements or the plan in the same piece of work. These files are part of the task, not a cleanup step for later.
 
@@ -122,4 +124,4 @@ Ask the user before:
 - Introducing accounts, networking beyond the stats API, or anything that leaves the machine.
 - Changing a formula that draft decisions will depend on.
 
-Do not ask for permission to follow the current task as written.
+Once the pre-task conversation has settled the task, implement that agreement. Do not reopen settled product text in the requirements file unless the conversation changed it.
