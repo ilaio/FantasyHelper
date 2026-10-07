@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: Task 0. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 1. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -8,16 +8,20 @@ The app is one local Python program. The interface, the draft rules, and the dat
 
 ```text
 FantasyHelper/
-  docs/                  requirements, planning, guidelines
-  README.md              how to run the app locally (written when there is an app)
+  app.py                 streamlit entry: streamlit run app.py
   src/fantasyhelper/
     ui/                  Streamlit screens
-    valuation/           z-scores, punts, dollar values, inflation
-    draft/               budget, keepers, sales, nominations, category balance
-    data/                download public stats, read and write SQLite
-  data/                  local database file, not committed
-  .env                   API key, not committed
+    valuation/           added with the price-list tasks
+    draft/               added with the draft tasks
+    stats/               added with the stats tasks (name confirmed in Task 2)
+  data/                  local database directory, not committed
+  pyproject.toml         package install and pinned dependencies
+  docs/                  requirements, planning, guidelines
+  README.md              how to run the app locally
+  .env                   API key, added when the first fetch needs it
 ```
+
+The package lives at `src/fantasyhelper/`. `src` keeps the importable code separate from the README, docs, and database directory. The app is installed with `pip install -e .` so `app.py` can import `fantasyhelper` from that location. `valuation/`, `draft/`, and the stats-access package are created in the tasks that fill them. The stats-access package is not named `data`, because `data/` at the repo root is the database directory.
 
 Responsibilities stay separated:
 
@@ -53,6 +57,8 @@ One user, one machine, two kinds of rows: reference data (players, teams, stats)
 The draft assistant is a local working screen: settings, a table, a few inputs, a budget summary. Streamlit serves that with one process and one command.
 
 A separate React app and a FastAPI server would add a second runtime, a build step, and an API contract. That split pays off when there is a second client or a remote user. This stage has neither. Valuation and draft state will not import Streamlit, so a different interface can replace `ui/` later without rewriting prices or the database.
+
+Streamlit’s usage statistics are turned off for this project in `.streamlit/config.toml` (`browser.gatherUsageStats = false`). Restart the app after changing that file.
 
 ### balldontlie as the stats source
 
@@ -160,13 +166,13 @@ The user’s own remaining budget does not replace this factor. Inflation descri
 
 Each task is one vertical slice. The next task starts only after the current one is checked the way its “Done when” line says, and only after that next task has been planned in detail with the user. Commands are run by the user. The agent asks for a command and waits.
 
-The writeups below stay as the generic approach until that conversation. Layout choices, such as the `src/fantasyhelper` package path, are confirmed there rather than treated as final.
+The writeups below stay as the generic approach until that conversation. Confirmed choices are written into the task and into the sections above.
 
 ### Open conversations
 
 Raise these before the task they affect. They do not change the text above until we decide.
 
-- **Task 1.** Folder and package naming, including whether `src/fantasyhelper` is the layout we want.
+- **Task 2.** What to name the stats-access package. It will not be `data`, because that directory is the database. `stats` is the current placeholder.
 - **Before Task 3.** Whether current-season stats belong in this draft stage, or wait for day-to-day features.
 - **Before league setup (Task 4).** Whether the user can create more than one league with the settings we already have, including a demo league or a demo draft inside a league.
 - **Before the price list (Task 5).** Other ways to calculate z-scores. The method in section 4 stays until that conversation. The user will bring specific concerns then.
@@ -182,9 +188,17 @@ Status: done.
 
 ### Task 1 — Project skeleton
 
-Add the Python project layout, dependency file, `data/` ignored by git, and a README section that says how to create a virtual environment, install dependencies, set the API key, and start the app. The app can be a single screen that opens and states that no league is loaded.
+Agreed layout and scope:
+
+- Package at `src/fantasyhelper/`. No empty `valuation/`, `draft/`, or stats packages yet.
+- `app.py` calls one screen: the app name, and the line “No league is loaded yet.”
+- `pyproject.toml` pins Streamlit only and installs the package in editable mode. Pandas, NumPy, and the API client wait for the tasks that use them.
+- README run steps: create `.venv`, activate it, `pip install -e .`, `streamlit run app.py`, open the local URL.
+- `/data/` is gitignored. The directory and the API key wait until Task 2, when the app first stores data and calls the stats source.
 
 Done when: the user can run the documented commands and see that screen in the browser.
+
+Status: done. The user ran the app and saw the title and the empty-league line. `.streamlit/config.toml` turns Streamlit usage statistics off for this project.
 
 ### Task 2 — Database and season load
 
