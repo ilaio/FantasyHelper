@@ -1,6 +1,6 @@
 # Development guidelines
 
-Status: Task 0. Living document. Add a rule when we learn one. Do not collect rules we are not willing to follow.
+Status: Task 1. Living document. Add a rule when we learn one. Do not collect rules we are not willing to follow.
 
 These guidelines keep the draft assistant small, testable, and aligned with `docs/requirements.md` and `docs/planning.md`.
 
@@ -100,6 +100,8 @@ Visual design stays plain. No theme work unless a screen is hard to use.
 ## 9. Dependencies and configuration
 
 Add a dependency only when a task needs it. Prefer the standard library, then the tools already chosen: Python, pandas, numpy, SQLite, Streamlit, and the HTTP client required to call the stats API.
+
+Tools for this stage are free, widely used, and under our control. A tool has to let us turn off anything that sends our data or usage data to a third party. Calls that leave the machine are limited to ones the current task needs, such as downloading public stats. Streamlit stays the interface. Its usage statistics are off in `.streamlit/config.toml`. Whether a tool could later run outside a local machine is a low-priority preference, checked only when the other requirements are already met.
 
 Pin versions in the project dependency file once Task 1 creates it, so the user’s machine and later work install the same stack.
 
