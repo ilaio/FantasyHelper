@@ -28,7 +28,7 @@ They are a manager in a season-long rotisserie league that drafts by auction. Th
 What they do:
 
 - Set up the league once: budget, team count, roster size, categories, and the season.
-- Let the app load players, teams, and stats.
+- Let the app import the prepared stat and projection files, then look through the imported players.
 - Choose one or two categories to punt, or choose none.
 - Enter their keepers and locked prices before the draft. Enter other teams’ keepers so those players leave the pool.
 - During the draft, record each sale: player, price, and whether the player went to them or to someone else.
@@ -40,7 +40,7 @@ What they do not do:
 - Connect this app to Yahoo, ESPN, or any league host.
 - Rely on the app for live injury alerts.
 
-If the project is later opened up to other people, accounts, hosting, and shared data will be redesigned then. Until that decision, one installation is one user. League entries stay on this machine. Public player stats come from files the user saves locally. The app does not download them.
+If the project is later opened up to other people, accounts, hosting, and shared data will be redesigned then. Until that decision, one installation is one user. League entries stay on this machine. Stat and projection numbers come from prepared files already on this machine. The app does not download them.
 
 ## 3. Scope
 
@@ -55,14 +55,14 @@ If the project is later opened up to other people, accounts, hosting, and shared
 
 - Snake drafts, points leagues, and head-to-head formats.
 - Lineups, waivers, streaming, and trades.
-- Projections from a paid or custom model.
-- Position-eligibility rules (PG, SG, and so on).
+- Our own projection model. Prepared projection files from other people can be imported and shown before that.
+- Enforcing position eligibility when a player is added to the roster. Position text is stored and shown before that.
 - Automatic draft sync from a league host.
 - Multi-user access.
 
 ### Explicitly out of this stage
 
-Live injury workflows. A status flag may be stored and shown when the stats source provides one. The app will not alert, auto-skip, or reprice a player because of an injury. The manager already has that information when they bid.
+Live injury workflows. The prepared files do not carry an injury flag. The app will not alert, auto-skip, or reprice a player because of an injury. The manager already has that information when they bid. Expected games and minutes on a projection are the place those files account for missed time.
 
 ## 4. League rules the app assumes
 
@@ -91,29 +91,32 @@ Standard 9 categories:
 
 An 8-category league is the same list without turnovers. The user can turn a category off. We will not invent extra categories in this stage.
 
-Roster needs in this stage mean open spots and category balance. The assistant does not enforce position eligibility. That keeps the draft screen about the build the user is drafting, which is categories and budget.
+Roster needs in this stage mean open spots and category balance. The assistant does not enforce position eligibility. Projection files may list more than one position, and that text is shown with the player. The draft screen stays about categories and budget.
 
 ## 5. Data and when it is loaded
 
-Three kinds of data, three timings.
+Prepared files, then typed draft results. The app does not fetch either one.
 
-### Once per season
+### Prepared files, on launch
 
-Players, teams, and the last two regular seasons of counting stats.
+`data/inbox/` holds the only files the app reads. A file that is already recorded as imported is skipped. A new file is imported. There is no network call and no daily refresh.
 
-The user saves those seasons as CSV files from Basketball-Reference. The app imports the files into the local database once. Importing them again in the same season is not required. A new season means a new file saved by the user, then imported.
+Two kinds of files belong there:
 
-The newer of the two seasons is the valuation baseline. The older season is kept so a later price list can fall back to it when a player barely played, for example because of an injury. That fallback rule is decided with the price list, not during the import.
+- One stats file per season, named `stats-<season>.csv`, such as `stats-2025-26.csv`. Counting stats in that file are season totals. Seasons older than the last two may be present. They are imported and can be selected on screen. Prices do not have to use them.
+- Any number of projection files for a season, named `projection-<season>-<source>.csv`, such as `projection-2026-27-bonus.csv`. Counting stats in that file are per game. A projection is for the season it names. When that season is over, those files can stay on disk and simply not be selected. The next season needs its own projection files.
 
-### On launch, at most daily
+The newer saved season is the valuation baseline. An older saved season is available so a later price list can fall back to it when a player barely played. That fallback rule is decided with the price list, not during the import.
 
-Current-season stats, if this stage includes them, arrive the same way: a file the user adds. There is no network refresh and no background scheduler. Whether a current-season file belongs in the draft stage is still an open planning question. The draft assistant works from the two saved seasons when that file is absent.
+A player is the same person across files when a normalized form of the name matches. The files do not share an id. The app builds that key when it creates a player and when it compares a new file with players it already has. The key turns accented letters into plain English letters, lowercases the name, removes periods and apostrophes, and turns spaces into hyphens. `Jokić` and `Jokic` meet. Deleting the accented letter instead would split them.
+
+That key will not fix every spelling. `Trey Murphy` and `Trey Murphy III` stay different until a short alias list says they are the same person. A name that matches nobody is still imported: a rookie may exist only on a projection, and an old player may exist only on a past season. Two different players in one file must not collapse to one key. That file is refused and the clash is shown.
 
 ### During the draft, typed by the user
 
 Picks and prices. Which players were kept, and for how much. Who bought a nominated player.
 
-The stat files do not know this league. The draft on screen is whatever the user has entered.
+The prepared files do not know this league. The draft on screen is whatever the user has entered.
 
 ## 6. Solutions
 
@@ -183,11 +186,13 @@ Auction prices drift from a model because the room spends faster or slower than 
 - Save the profile on this machine.
 - Changing a setting that affects money or categories refreshes the price list.
 
-### Season data
+### Prepared data
 
-- Import the two local season files, once, into the database.
-- Show when that import last succeeded.
-- Stay usable when a current-season file is absent.
+- Import every accepted file in `data/inbox/` that has not been imported before.
+- Skip a file that was already imported, even if the app is opened again.
+- Show the imported players in a table. The user selects which dataset to view: a season’s stats, or one projection.
+- On a projection, show that file’s rank and dollar figure as the file’s own numbers.
+- Stay usable when a season or a projection file is absent. The datasets that did import are still shown.
 
 ### Price list
 
@@ -229,7 +234,7 @@ Auction prices drift from a model because the room spends faster or slower than 
 ### First launch of a season
 
 1. User opens the app and enters league settings.
-2. App imports the local season files if those seasons are not loaded yet.
+2. App imports any new files in `data/inbox/`. Files already imported are skipped.
 3. User sees a base price list.
 
 ### Before the draft
@@ -256,7 +261,7 @@ Auction prices drift from a model because the room spends faster or slower than 
 
 A user can, on one machine, with instructions from the README:
 
-- Import two seasons of player totals from local files.
+- Import prepared stat and projection files from `data/inbox/`, skip files already imported, and browse the players by dataset.
 - Set a 9-category or 8-category auction league.
 - Get a base price list and a price list with one or two punted categories.
 - Enter keepers and see budget and roster effects.
@@ -271,11 +276,12 @@ They cannot manage the season after the draft in this stage. That is a later sco
 These are product decisions, so implementation should follow them unless we change this file.
 
 - One local user. No accounts.
-- Public stats are local Basketball-Reference CSV files. The app does not download them, and the files are not committed.
-- The last two regular seasons are stored. The newer season is the valuation baseline. The older season is available for a low-games fallback, decided with the price list.
-- Current-season stats, if added later, are another local file. They do not replace the baseline in this stage.
-- No projection model.
-- No position eligibility.
+- The app reads prepared files from `data/inbox/` and does not download them. The files are not committed.
+- One stats file per season. Several projection files per season are allowed. Older seasons may be imported and left unselected.
+- The newer saved season is the valuation baseline. An older season is available for a low-games fallback, decided with the price list.
+- Players are matched by a normalized name, plus a short alias list. The source files do not share an id.
+- Projection rank and dollars can be shown for comparison. They are not our prices. We do not build our own projection model in this stage.
+- Position text is stored and shown. The draft does not enforce position eligibility in this stage.
 - Punt means drop that category and recompute, for one or two categories.
 - Max bid reserves $1 for every spot still open after the player being bid on.
 - Other teams’ keepers come off the board even when their price is blank.

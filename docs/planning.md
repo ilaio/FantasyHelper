@@ -13,20 +13,20 @@ FantasyHelper/
     ui/                  Streamlit screens
     valuation/           added with the price-list tasks
     draft/               added with the draft tasks
-    stats/               reads the local season files and writes SQLite
+    stats/               reads data/inbox and writes SQLite
   data/                  local only, not committed
-    external/            Basketball-Reference CSV files the user saves
+    inbox/               prepared stat and projection CSV files
     fantasyhelper.sqlite3
   pyproject.toml         package install and pinned dependencies
   docs/                  requirements, planning, guidelines
   README.md              how to run the app locally
 ```
 
-The package lives at `src/fantasyhelper/`. `src` keeps the importable code separate from the README, docs, and database directory. The app is installed with `pip install -e .` so `app.py` can import `fantasyhelper` from that location. `valuation/` and `draft/` are created in the tasks that fill them. The `stats` package reads files and writes SQLite. It is not named `data`, because `data/` at the repo root holds the local files and the database.
+The package lives at `src/fantasyhelper/`. `src` keeps the importable code separate from the README, docs, and database directory. The app is installed with `pip install -e .` so `app.py` can import `fantasyhelper` from that location. `valuation/` and `draft/` are created in the tasks that fill them. The `stats` package reads `data/inbox/` and writes SQLite. It is not named `data`, because `data/` at the repo root holds the inbox and the database. Turning a raw download into an inbox file happens outside the app.
 
 Responsibilities stay separated:
 
-- **Data** fetches public stats and stores them. It does not decide what a player is worth.
+- **Data** imports prepared files and stores them. It does not decide what a player is worth.
 - **Valuation** is pure calculation. Given a player table, league settings, and a punt, it returns prices. It does not know whether the user clicked a button.
 - **Draft** holds the league’s entered facts: settings, keepers, sales, money, spots. It asks valuation for prices.
 - **UI** collects input and displays results. It does not hide formulas in widget callbacks. If a number is on screen, a function in `valuation` or `draft` produced it, and that function can be checked without the UI.
@@ -61,26 +61,42 @@ A separate React app and a FastAPI server would add a second runtime, a build st
 
 Streamlit’s usage statistics are turned off for this project in `.streamlit/config.toml` (`browser.gatherUsageStats = false`). Restart the app after changing that file.
 
-### Local season files
+### Inbox files
 
-Public stats come from two CSV files the user saves from Basketball-Reference season-totals pages. The app does not download them and does not call a stats API. The files stay under `data/external/` and are not committed. Credit Basketball-Reference where the app shows that the numbers came from these files.
+The app reads `data/inbox/` and nothing else for player data. It does not download files and does not convert raw workbooks or HTML. A file whose name is already in `import_log` is skipped. A file with the wrong name or the wrong header is refused, and the other files still import. Replacing the contents of a file that was already imported does not reload it. A changed file needs a new name, or the old log row has to be removed on purpose.
 
-Checked files, both valid:
+Stats files are named `stats-<season>.csv`. One file per season. A second stats file for a season that is already imported is refused. Counting stats and minutes are season totals. The current inbox files are `stats-2024-25.csv` (569 players) and `stats-2025-26.csv` (582 players). Older season files use the same shape and may be added later.
 
-| File | Season | Data rows | Players | Combined rows |
-| --- | --- | --- | --- | --- |
-| `data/external/2024-25.csv` | 2024–25 regular season | 735 | 569 | 77 players on two teams, 4 on three |
-| `data/external/2025-26.csv` | 2025–26 regular season | 733 | 582 | 66 on two teams, 5 on three, 1 on four |
+Projection files are named `projection-<season>-<source>.csv`. Several sources for one season are normal. Counting stats are per game. `games` is expected games played. The current inbox files are `projection-2026-27-bonus.csv`, `projection-2026-27-josh.csv`, and `projection-2026-27-fantasyedge.csv`.
 
-Both files share one header, 33 columns, no repeated header rows, and no broken rows. Games run from 1 to 82. All 30 franchises appear. Counting stats on a combined row equal the sum of that player’s team rows. 464 players appear in both seasons.
+Stats columns, in order:
 
-The combined row is labeled `2TM`, `3TM`, or `4TM`, not `TOT`. It is the season total. The last team row under it is the team they finished with. `Player-additional` is the stable player id (`gilgesh01`). Names are not the id. Position is on each row and can differ across a player’s teams. Use the position on the combined row.
+`name`, `team`, `positions`, `games`, `minutes`, `points`, `threes`, `rebounds`, `assists`, `steals`, `blocks`, `turnovers`, `fg_pct`, `fga`, `ft_pct`, `fta`
 
-Columns kept from each file: `Player`, `Player-additional`, `Team`, `Pos`, `G`, `MP`, `FG`, `FGA`, `3P`, `FT`, `FTA`, `TRB`, `AST`, `STL`, `BLK`, `TOV`, `PTS`.
+Projection columns, in order:
 
-Columns dropped: `Rk`, `Age`, `GS`, `FG%`, `3PA`, `3P%`, `2P`, `2PA`, `2P%`, `eFG%`, `FT%`, `ORB`, `DRB`, `PF`, `Trp-Dbl`, `Awards`. Percentages are computed later from makes and attempts.
+`name`, `team`, `positions`, `games`, `minutes_per_game`, `points_per_game`, `threes_per_game`, `rebounds_per_game`, `assists_per_game`, `steals_per_game`, `blocks_per_game`, `turnovers_per_game`, `fg_pct`, `fga_per_game`, `ft_pct`, `fta_per_game`, `source_rank`, `source_dollars`
 
-For a player with several rows in one season, store the combined row’s counting stats and position. Store the team abbreviation from the last team row. A player with one row is stored as that row.
+`fg_pct` and `ft_pct` are decimals with three digits after the decimal, so `0.553` is 55.3%. A blank percentage means the player had no attempts. It is not zero. Makes are not a column. `source_rank` and `source_dollars` belong to that projection. They are not our prices. Category values from a projection are not in the file.
+
+`positions` on a projection may be several codes joined by slashes, such as `PG/SG`. On a stats file it is the single position from that season. `team` is the abbreviation that file used. The same player can have a different team on a projection than on a past season. Those abbreviations are stored as written. This task does not merge `CHO` with `CHA` or `BRK` with `BKN`.
+
+Each inbox file is already one row per player. The app does not look for combined team rows.
+
+### Player identity
+
+The match key is built in code. It is not a column in the file.
+
+1. Turn accented letters into their plain English letters. `č` becomes `c`.
+2. Lowercase.
+3. Remove periods and apostrophes.
+4. Turn every remaining run of spaces or punctuation into one hyphen, and trim hyphens from the ends.
+
+`Nikola Jokić` and `Nikola Jokic` both become `nikola-jokic`. `O.G. Anunoby` becomes `og-anunoby`. `Shai Gilgeous-Alexander` becomes `shai-gilgeous-alexander`.
+
+A new key creates a player. The display name kept is the name from the file that created the player. A later file that matches the key adds rows and does not rename the player. The same key twice inside one file refuses that file.
+
+An alias list in the project maps an alternate key to the canonical key before the match. The starting aliases are `trey-murphy` to `trey-murphy-iii`, `alex-sarr` to `alexandre-sarr`, and `cam-johnson` to `cameron-johnson`. A player who still matches nothing is stored anyway.
 
 ### No hosting
 
@@ -90,15 +106,15 @@ The user starts the app on localhost. The README will contain the commands when 
 
 Names can change when we create the schema. The contents should not grow beyond this without a reason.
 
-**teams** — `abbreviation` text, primary key. The 30 franchise codes in the files (`CHO` for Charlotte, `BRK` for Brooklyn). No numeric team id and no full name in these files.
+**players** — internal id, `name_key` unique, `name` as first imported. Aliases are not extra players. They point at a key this table already uses.
 
-**players** — `id` text, primary key, the `Player-additional` value. `name` text.
+**season_stats** — one row per player per season. `player_id`, `season` (`2025-26`), `team`, `positions`, `games`, `minutes`, `points`, `threes`, `rebounds`, `assists`, `steals`, `blocks`, `turnovers`, `fg_pct`, `fga`, `ft_pct`, `fta`. Primary key `(player_id, season)`. Percentages may be blank. Counting stats are season totals.
 
-**season_stats** — one row per player per season. `player_id`, `season_start_year` (`2024` or `2025`), `team_abbreviation`, `position`, `games`, `minutes`, `fgm`, `fga`, `fg3m`, `ftm`, `fta`, `pts`, `reb`, `ast`, `stl`, `blk`, `tov`. Primary key `(player_id, season_start_year)`. Percentages are computed from makes and attempts, not stored.
+**projections** — one row per player per season per source. The same counting fields as per-game columns, plus `games`, `source_rank`, and `source_dollars`. Primary key `(player_id, season, source)`.
 
-**import_log** — `season_start_year`, `source_file`, `imported_at`. Unique on `season_start_year`. A second launch skips a season that already has a row.
+**import_log** — `file_name` unique, `kind` (`stats` or `projection`), `season`, `source` or blank, `imported_at`. A file name in this table is skipped on the next launch.
 
-**status_flags** — not created in Task 2. These files have no injury or status column.
+**status_flags** — not created in Task 2. Inbox files have no injury column.
 
 **league** — one row: name, season, team count, budget, roster size, which categories are on, which are punted (0–2).
 
@@ -116,7 +132,7 @@ This is the method Task 6 and Task 7 implement. It is the standard rotisserie ap
 
 The comparison pool is the top group of players by a simple total of counting production, large enough to cover the league: `teams × roster spots`, plus a small bench of extra names so the edge of the pool is not brittle. The exact extra count is set in Task 6 and written back here once we see a real list. Players below that pool have no auction price.
 
-Rates use per-game averages so a player who missed games is not punished twice. Percentages use season makes and attempts.
+Rates use per-game averages so a player who missed games is not punished twice. The stored percentage inputs are `fg_pct`, `ft_pct`, and the attempt columns. Makes are not stored. How those inputs become the volume-aware score is settled with the price list.
 
 ### Counting categories
 
@@ -130,7 +146,7 @@ Turnovers are multiplied by −1 after that, so a low-turnover player gets a pos
 
 FG% and FT% use a volume-aware impact, then that impact is turned into a z-score across the pool:
 
-- League average percentage from the pool’s total makes and attempts.
+- League average percentage from the pool’s stored percentages, weighted by attempts.
 - A player’s impact is `(player percentage − league percentage) × player attempts`.
 - That impact is z-scored like a counting stat.
 
@@ -208,17 +224,18 @@ Done when: the user can run the documented commands and see that screen in the b
 
 Status: done. The user ran the app and saw the title and the empty-league line. `.streamlit/config.toml` turns Streamlit usage statistics off for this project.
 
-### Task 2 — Database and season import
+### Task 2 — Import inbox files and show them
 
 Agreed source and scope:
 
-- Read `data/external/2024-25.csv` and `data/external/2025-26.csv`. Do not download them. Do not add an HTTP client.
-- Create `teams`, `players`, `season_stats`, and `import_log` only. League settings, keepers, sales, and status flags wait.
-- Apply the column rules and the `2TM` / `3TM` / `4TM` rule in section 2.
-- The `stats` package reads the files and writes `data/fantasyhelper.sqlite3`. The screen still says that no league is loaded, and it shows the imported player counts for both seasons.
-- Skip a season that already has an `import_log` row. A missing file or a bad header is an error on screen. Do not invent rows. Importing stats does not touch keepers or sales once those tables exist.
+- Read only `data/inbox/`. Do not download files. Do not add an HTTP client. Do not read raw downloads.
+- Import `stats-2024-25.csv`, `stats-2025-26.csv`, and the three `projection-2026-27-*.csv` files. Create `players`, `season_stats`, `projections`, and `import_log`. League settings, keepers, sales, and status flags wait.
+- Build `name_key` in code, apply the starting aliases, and refuse a file that contains one key twice.
+- Skip a file name already in `import_log`. Refuse a second stats file for a season that is already imported. A bad name or a bad header is an error for that file only.
+- The screen says that no league is loaded, lists the imported datasets, and shows a player table for the one the user selects. A projection table includes that file’s rank and dollars, labeled as the file’s figures.
+- Importing does not touch keepers or sales once those tables exist.
 
-Done when: the user opens the app, sees both seasons’ player counts, opens it again without a second import, and can query SQLite for games, minutes, and the counting stats, including makes and attempts. A traded player has one row per season, with the combined totals and the finishing team.
+Done when: the user opens the app, selects each imported dataset, and sees that dataset’s players and columns. Opening the app again does not import the same files again. SQLite shows one player for a name that appears in both a stats file and a projection, two season rows for a player who played both seasons, and separate projection rows for Bonus, Josh, and Fantasy Edge. A player who exists only on a projection is still in the table.
 
 Status: planned. Not started.
 
@@ -295,5 +312,6 @@ We do not need a large automated suite before there is logic. Once valuation and
 - **Percentage math.** Easy to z-score the raw percentage and overvalue low-volume shooters. The hand-computed example in Task 5 should include one low-volume shooter and one high-volume shooter.
 - **Off-by-one max bid.** The last roster spot may spend the final dollar. The formula in section 5 is the one to test.
 - **Preseason emptiness.** Current-season refresh must be allowed to succeed with no games.
-- **CSV shape.** Task 2 imports the checked files. A later file with a different header stops and reports the error instead of guessing columns.
+- **CSV shape.** Task 2 imports the inbox files described in section 2. A file with a different header is refused instead of guessing columns.
+- **Name match.** Normalization plus the three starting aliases will miss other spellings. Those players import as separate people until an alias is added. A key clash inside one file refuses that file.
 - **Streamlit reruns.** Widgets rerun the script often. Draft writes must be idempotent: saving the same sale twice must not double-charge. The database is the source of truth, not widget state.
