@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: Task 1. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 2 planned. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -13,15 +13,16 @@ FantasyHelper/
     ui/                  Streamlit screens
     valuation/           added with the price-list tasks
     draft/               added with the draft tasks
-    stats/               added with the stats tasks (name confirmed in Task 2)
-  data/                  local database directory, not committed
+    stats/               reads the local season files and writes SQLite
+  data/                  local only, not committed
+    external/            Basketball-Reference CSV files the user saves
+    fantasyhelper.sqlite3
   pyproject.toml         package install and pinned dependencies
   docs/                  requirements, planning, guidelines
   README.md              how to run the app locally
-  .env                   API key, added when the first fetch needs it
 ```
 
-The package lives at `src/fantasyhelper/`. `src` keeps the importable code separate from the README, docs, and database directory. The app is installed with `pip install -e .` so `app.py` can import `fantasyhelper` from that location. `valuation/`, `draft/`, and the stats-access package are created in the tasks that fill them. The stats-access package is not named `data`, because `data/` at the repo root is the database directory.
+The package lives at `src/fantasyhelper/`. `src` keeps the importable code separate from the README, docs, and database directory. The app is installed with `pip install -e .` so `app.py` can import `fantasyhelper` from that location. `valuation/` and `draft/` are created in the tasks that fill them. The `stats` package reads files and writes SQLite. It is not named `data`, because `data/` at the repo root holds the local files and the database.
 
 Responsibilities stay separated:
 
@@ -33,7 +34,7 @@ Responsibilities stay separated:
 The database file is the memory of the app. Closing the window does not forget the draft.
 
 ```text
-public stats  -->  SQLite  -->  valuation  -->  prices
+local CSV files  -->  SQLite  -->  valuation  -->  prices
                        ^              ^
                        |              |
                   user entries     draft state (budget, roster, balance)
@@ -60,19 +61,26 @@ A separate React app and a FastAPI server would add a second runtime, a build st
 
 Streamlit’s usage statistics are turned off for this project in `.streamlit/config.toml` (`browser.gatherUsageStats = false`). Restart the app after changing that file.
 
-### balldontlie as the stats source
+### Local season files
 
-We need teams, players, and season averages. balldontlie’s free tier is the right first source: it is a public API aimed at this data, it does not require a paid subscription for the basic player and season-average endpoints, and it keeps us from scraping sites.
+Public stats come from two CSV files the user saves from Basketball-Reference season-totals pages. The app does not download them and does not call a stats API. The files stay under `data/external/` and are not committed. Credit Basketball-Reference where the app shows that the numbers came from these files.
 
-The fetch code will sit behind one module. The rest of the app reads SQLite, not the API. If a field we need is missing or the free tier is too limited, we change that module. We do not add a second source until the first one has actually failed a task.
+Checked files, both valid:
 
-What we still confirm in Task 2, against the current docs and a real response:
+| File | Season | Data rows | Players | Combined rows |
+| --- | --- | --- | --- | --- |
+| `data/external/2024-25.csv` | 2024–25 regular season | 735 | 569 | 77 players on two teams, 4 on three |
+| `data/external/2025-26.csv` | 2025–26 regular season | 733 | 582 | 66 on two teams, 5 on three, 1 on four |
 
-- The exact season-average fields for the standard 9 categories, including field goals and free throws made and attempted (needed for percentages).
-- Whether any simple status flag exists on the free tier. If it does not, status stays empty and the draft still works.
-- The free-tier rate limit, so the once-per-season load stays inside it.
+Both files share one header, 33 columns, no repeated header rows, and no broken rows. Games run from 1 to 82. All 30 franchises appear. Counting stats on a combined row equal the sum of that player’s team rows. 464 players appear in both seasons.
 
-An API key goes in `.env`. The app reads it at fetch time. The key is never written into the database, the docs, or git.
+The combined row is labeled `2TM`, `3TM`, or `4TM`, not `TOT`. It is the season total. The last team row under it is the team they finished with. `Player-additional` is the stable player id (`gilgesh01`). Names are not the id. Position is on each row and can differ across a player’s teams. Use the position on the combined row.
+
+Columns kept from each file: `Player`, `Player-additional`, `Team`, `Pos`, `G`, `MP`, `FG`, `FGA`, `3P`, `FT`, `FTA`, `TRB`, `AST`, `STL`, `BLK`, `TOV`, `PTS`.
+
+Columns dropped: `Rk`, `Age`, `GS`, `FG%`, `3PA`, `3P%`, `2P`, `2PA`, `2P%`, `eFG%`, `FT%`, `ORB`, `DRB`, `PF`, `Trp-Dbl`, `Awards`. Percentages are computed later from makes and attempts.
+
+For a player with several rows in one season, store the combined row’s counting stats and position. Store the team abbreviation from the last team row. A player with one row is stored as that row.
 
 ### No hosting
 
@@ -82,15 +90,15 @@ The user starts the app on localhost. The README will contain the commands when 
 
 Names can change when we create the schema. The contents should not grow beyond this without a reason.
 
-**teams** — external id, name, abbreviation.
+**teams** — `abbreviation` text, primary key. The 30 franchise codes in the files (`CHO` for Charlotte, `BRK` for Brooklyn). No numeric team id and no full name in these files.
 
-**players** — external id, name, team, position string if the source has it (stored, unused by draft logic for now).
+**players** — `id` text, primary key, the `Player-additional` value. `name` text.
 
-**season_stats** — player, season, a scope of `prior` or `current`, games, and the counting stats needed for the 9 categories: PTS, REB, AST, STL, BLK, 3PM, TO, plus FGM, FGA, FTM, FTA. Percentages are computed from makes and attempts, not stored as the only source.
+**season_stats** — one row per player per season. `player_id`, `season_start_year` (`2024` or `2025`), `team_abbreviation`, `position`, `games`, `minutes`, `fgm`, `fga`, `fg3m`, `ftm`, `fta`, `pts`, `reb`, `ast`, `stl`, `blk`, `tov`. Primary key `(player_id, season_start_year)`. Percentages are computed from makes and attempts, not stored.
 
-**status_flags** — player, flag text, observed date. Optional. Empty is normal.
+**import_log** — `season_start_year`, `source_file`, `imported_at`. Unique on `season_start_year`. A second launch skips a season that already has a row.
 
-**fetch_log** — what was fetched (prior season, current season), season, time. Used to skip a repeat season load and to skip a same-day current refresh.
+**status_flags** — not created in Task 2. These files have no injury or status column.
 
 **league** — one row: name, season, team count, budget, roster size, which categories are on, which are punted (0–2).
 
@@ -172,8 +180,8 @@ The writeups below stay as the generic approach until that conversation. Confirm
 
 Raise these before the task they affect. They do not change the text above until we decide.
 
-- **Task 2.** What to name the stats-access package. It will not be `data`, because that directory is the database. `stats` is the current placeholder.
-- **Before Task 3.** Whether current-season stats belong in this draft stage, or wait for day-to-day features.
+- **Before Task 3.** Whether a current-season file belongs in this draft stage, or waits for day-to-day features. It would be another local CSV, not an API refresh.
+- **Before the price list (Task 5).** When a player’s newer season has too few games, whether prices use the older season instead. Both seasons are stored either way.
 - **Before league setup (Task 4).** Whether the user can create more than one league with the settings we already have, including a demo league or a demo draft inside a league.
 - **Before the price list (Task 5).** Other ways to calculate z-scores. The method in section 4 stays until that conversation. The user will bring specific concerns then.
 - **Before the price list is shown.** Whether the player table includes season averages next to the scores.
@@ -200,17 +208,25 @@ Done when: the user can run the documented commands and see that screen in the b
 
 Status: done. The user ran the app and saw the title and the empty-league line. `.streamlit/config.toml` turns Streamlit usage statistics off for this project.
 
-### Task 2 — Database and season load
+### Task 2 — Database and season import
 
-Create the tables from section 3 that hold teams, players, season stats, and the fetch log. Load teams, players, and prior-season stats for one season through balldontlie. Confirm the fields listed in section 2. Skip the load when the fetch log says this season’s prior stats are already present.
+Agreed source and scope:
 
-Done when: a second launch does not repeat the full download, and the user can inspect SQLite and see teams, players, and prior-season rows for the 9-category inputs (makes and attempts included).
+- Read `data/external/2024-25.csv` and `data/external/2025-26.csv`. Do not download them. Do not add an HTTP client.
+- Create `teams`, `players`, `season_stats`, and `import_log` only. League settings, keepers, sales, and status flags wait.
+- Apply the column rules and the `2TM` / `3TM` / `4TM` rule in section 2.
+- The `stats` package reads the files and writes `data/fantasyhelper.sqlite3`. The screen still says that no league is loaded, and it shows the imported player counts for both seasons.
+- Skip a season that already has an `import_log` row. A missing file or a bad header is an error on screen. Do not invent rows. Importing stats does not touch keepers or sales once those tables exist.
+
+Done when: the user opens the app, sees both seasons’ player counts, opens it again without a second import, and can query SQLite for games, minutes, and the counting stats, including makes and attempts. A traded player has one row per season, with the combined totals and the finishing team.
+
+Status: planned. Not started.
 
 ### Task 3 — Current-season refresh
 
-On launch, if today’s current-season refresh is not in the fetch log, update current-season stats and any status flag the source actually provides. If the source has no status field, store nothing and move on. If the season has no games yet, the refresh completes cleanly and prior-season prices remain available.
+If this stage includes a current season, import another local CSV the same way as Task 2. There is no daily network refresh. If the file is absent, the two saved seasons remain available.
 
-Done when: the user can launch twice in one day and see a single current-season fetch for that day, and can query the new rows.
+Done when: decided only if this task stays in the draft stage.
 
 ### Task 4 — League settings
 
@@ -279,5 +295,5 @@ We do not need a large automated suite before there is logic. Once valuation and
 - **Percentage math.** Easy to z-score the raw percentage and overvalue low-volume shooters. The hand-computed example in Task 5 should include one low-volume shooter and one high-volume shooter.
 - **Off-by-one max bid.** The last roster spot may spend the final dollar. The formula in section 5 is the one to test.
 - **Preseason emptiness.** Current-season refresh must be allowed to succeed with no games.
-- **API shape.** Task 2 confirms fields before any valuation depends on them.
+- **CSV shape.** Task 2 imports the checked files. A later file with a different header stops and reports the error instead of guessing columns.
 - **Streamlit reruns.** Widgets rerun the script often. Draft writes must be idempotent: saving the same sale twice must not double-charge. The database is the source of truth, not widget state.

@@ -66,11 +66,11 @@ One league profile. One draft. Do not build a league switcher until the requirem
 
 ## 6. Data and secrets
 
-- The API key lives in `.env` or the local secrets file already covered by `.gitignore`. Never commit it, never paste it into docs, never store it in SQLite.
-- The database file stays local and uncommitted. It is the user’s draft.
-- Fetch public stats on the schedule in the requirements: prior season once, current season at most daily on launch. Do not call the API from a valuation function or from every widget rerun.
-- If the API is down or a field is missing, keep the last good local data and say so on screen. Do not invent stats.
-- Deleting or resetting draft entries is an explicit user action. A refresh of stats must not wipe keepers or sales.
+- An API key, if a later task needs one, lives in `.env` or the local secrets file already covered by `.gitignore`. Never commit it, never paste it into docs, never store it in SQLite.
+- The database file and the season CSV files stay local and uncommitted. The database is the user’s draft. The CSV files are the user’s copy of the public stats.
+- Import those files once per season. Do not download them, and do not read them from a valuation function on every widget rerun.
+- If a file is missing or a column we keep is absent, keep the last good local data and say so on screen. Do not invent stats.
+- Deleting or resetting draft entries is an explicit user action. Importing stats must not wipe keepers or sales.
 
 ## 7. Calculations
 
@@ -99,9 +99,9 @@ Visual design stays plain. No theme work unless a screen is hard to use.
 
 ## 9. Dependencies and configuration
 
-Add a dependency only when a task needs it. Prefer the standard library, then the tools already chosen: Python, pandas, numpy, SQLite, Streamlit, and the HTTP client required to call the stats API.
+Add a dependency only when a task needs it. Prefer the standard library, then the tools already chosen: Python, pandas, numpy, SQLite, and Streamlit. Reading the season files uses the standard library. Do not add an HTTP client for stats.
 
-Tools for this stage are free, widely used, and under our control. A tool has to let us turn off anything that sends our data or usage data to a third party. Calls that leave the machine are limited to ones the current task needs, such as downloading public stats. Streamlit stays the interface. Its usage statistics are off in `.streamlit/config.toml`. Whether a tool could later run outside a local machine is a low-priority preference, checked only when the other requirements are already met.
+Tools for this stage are free, widely used, and under our control. A tool has to let us turn off anything that sends our data or usage data to a third party. Calls that leave the machine wait until a task needs one. Season stats are local files, so importing them does not. Streamlit stays the interface. Its usage statistics are off in `.streamlit/config.toml`. Whether a tool could later run outside a local machine is a low-priority preference, checked only when the other requirements are already met.
 
 Pin versions in the project dependency file once Task 1 creates it, so the user’s machine and later work install the same stack.
 

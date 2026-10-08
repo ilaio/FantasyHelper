@@ -40,7 +40,7 @@ What they do not do:
 - Connect this app to Yahoo, ESPN, or any league host.
 - Rely on the app for live injury alerts.
 
-If the project is later opened up to other people, accounts, hosting, and shared data will be redesigned then. Until that decision, one installation is one user, and nothing they enter is sent anywhere except to the stats source when the app downloads public player data.
+If the project is later opened up to other people, accounts, hosting, and shared data will be redesigned then. Until that decision, one installation is one user. League entries stay on this machine. Public player stats come from files the user saves locally. The app does not download them.
 
 ## 3. Scope
 
@@ -99,23 +99,21 @@ Three kinds of data, three timings.
 
 ### Once per season
 
-Players, teams, and prior-season stats.
+Players, teams, and the last two regular seasons of counting stats.
 
-This is the baseline for prices. Auction drafts usually happen before the new season has meaningful stats, so last season is the valuation source. Loading it again in the same season should not be required. A new season, or a manual refresh, loads it again.
+The user saves those seasons as CSV files from Basketball-Reference. The app imports the files into the local database once. Importing them again in the same season is not required. A new season means a new file saved by the user, then imported.
+
+The newer of the two seasons is the valuation baseline. The older season is kept so a later price list can fall back to it when a player barely played, for example because of an injury. That fallback rule is decided with the price list, not during the import.
 
 ### On launch, at most daily
 
-Current-season stats and simple status flags, when the source has them.
-
-This keeps the database from going stale if the user opens the app during the season. On draft day, before games are played, this refresh may return little or nothing. The draft assistant still works from prior-season stats.
-
-There is no background scheduler. Opening the app is the refresh.
+Current-season stats, if this stage includes them, arrive the same way: a file the user adds. There is no network refresh and no background scheduler. Whether a current-season file belongs in the draft stage is still an open planning question. The draft assistant works from the two saved seasons when that file is absent.
 
 ### During the draft, typed by the user
 
 Picks and prices. Which players were kept, and for how much. Who bought a nominated player.
 
-The stats source does not know this league. The draft on screen is whatever the user has entered.
+The stat files do not know this league. The draft on screen is whatever the user has entered.
 
 ## 6. Solutions
 
@@ -187,10 +185,9 @@ Auction prices drift from a model because the room spends faster or slower than 
 
 ### Season data
 
-- Download players, teams, and prior-season stats for the selected season, once.
-- Show when that download last succeeded.
-- On a later launch, refresh current-season stats and status flags if they were not refreshed today.
-- Stay usable when current-season stats are empty.
+- Import the two local season files, once, into the database.
+- Show when that import last succeeded.
+- Stay usable when a current-season file is absent.
 
 ### Price list
 
@@ -232,7 +229,7 @@ Auction prices drift from a model because the room spends faster or slower than 
 ### First launch of a season
 
 1. User opens the app and enters league settings.
-2. App downloads players, teams, and prior-season stats if that season is not loaded yet.
+2. App imports the local season files if those seasons are not loaded yet.
 3. User sees a base price list.
 
 ### Before the draft
@@ -259,7 +256,7 @@ Auction prices drift from a model because the room spends faster or slower than 
 
 A user can, on one machine, with instructions from the README:
 
-- Load a season of player data.
+- Import two seasons of player totals from local files.
 - Set a 9-category or 8-category auction league.
 - Get a base price list and a price list with one or two punted categories.
 - Enter keepers and see budget and roster effects.
@@ -274,7 +271,9 @@ They cannot manage the season after the draft in this stage. That is a later sco
 These are product decisions, so implementation should follow them unless we change this file.
 
 - One local user. No accounts.
-- Prior-season stats are the valuation baseline. Current-season stats are stored and shown. They do not replace the baseline in this stage.
+- Public stats are local Basketball-Reference CSV files. The app does not download them, and the files are not committed.
+- The last two regular seasons are stored. The newer season is the valuation baseline. The older season is available for a low-games fallback, decided with the price list.
+- Current-season stats, if added later, are another local file. They do not replace the baseline in this stage.
 - No projection model.
 - No position eligibility.
 - Punt means drop that category and recompute, for one or two categories.
