@@ -1,6 +1,6 @@
 # Development guidelines
 
-Status: Task 1. Living document. Add a rule when we learn one. Do not collect rules we are not willing to follow.
+Status: Task 2. Living document. Add a rule when we learn one. Do not collect rules we are not willing to follow.
 
 These guidelines keep the draft assistant small, testable, and aligned with `docs/requirements.md` and `docs/planning.md`.
 
@@ -55,7 +55,7 @@ A Streamlit control that writes state must survive a rerun and an app restart. I
 
 Follow the layout in the planning file.
 
-- `data/` talks to the API and to SQLite.
+- `stats/` reads `data/inbox/` and writes SQLite. It does not decide what a player is worth.
 - `valuation/` turns stat tables into z-scores and prices. No Streamlit imports. No reading environment variables.
 - `draft/` applies keepers, sales, budget, nominations, and balance. It may call valuation. It does not render widgets.
 - `ui/` renders and forwards user actions. It is thin.
@@ -66,11 +66,11 @@ One league profile. One draft. Do not build a league switcher until the requirem
 
 ## 6. Data and secrets
 
-- The API key lives in `.env` or the local secrets file already covered by `.gitignore`. Never commit it, never paste it into docs, never store it in SQLite.
-- The database file stays local and uncommitted. It is the user’s draft.
-- Fetch public stats on the schedule in the requirements: prior season once, current season at most daily on launch. Do not call the API from a valuation function or from every widget rerun.
-- If the API is down or a field is missing, keep the last good local data and say so on screen. Do not invent stats.
-- Deleting or resetting draft entries is an explicit user action. A refresh of stats must not wipe keepers or sales.
+- An API key, if a later task needs one, lives in `.env` or the local secrets file already covered by `.gitignore`. Never commit it, never paste it into docs, never store it in SQLite.
+- The database file and the inbox CSV files stay local and uncommitted. The database is the user’s draft. The inbox files are the prepared stat and projection data.
+- Import a file once, by file name. Do not download data, and do not read the inbox from a valuation function on every widget rerun.
+- If a file is missing or a required column is absent, keep the last good local data and say so on screen. Do not invent stats. Do not treat a blank percentage as zero.
+- Deleting or resetting draft entries is an explicit user action. Importing files must not wipe keepers or sales.
 
 ## 7. Calculations
 
@@ -78,7 +78,7 @@ Match `docs/planning.md` sections 4 and 5. If the formula needs to change, chang
 
 In particular:
 
-- Percentages use makes, attempts, and volume-aware impact.
+- Percentages use the stored percentage, attempts, and volume-aware impact. Makes are not a stored column.
 - Turnovers are reversed so fewer is better.
 - A punt recomputes the total and the dollar scale. It does not subtract from a finished price.
 - Max bid leaves $1 for each spot that remains after the current player. The final spot can use the last dollar.
@@ -99,9 +99,9 @@ Visual design stays plain. No theme work unless a screen is hard to use.
 
 ## 9. Dependencies and configuration
 
-Add a dependency only when a task needs it. Prefer the standard library, then the tools already chosen: Python, pandas, numpy, SQLite, Streamlit, and the HTTP client required to call the stats API.
+Add a dependency only when a task needs it. Prefer the standard library, then the tools already chosen: Python, pandas, numpy, SQLite, and Streamlit. Reading the inbox files uses the standard library. Do not add an HTTP client for stats or projections.
 
-Tools for this stage are free, widely used, and under our control. A tool has to let us turn off anything that sends our data or usage data to a third party. Calls that leave the machine are limited to ones the current task needs, such as downloading public stats. Streamlit stays the interface. Its usage statistics are off in `.streamlit/config.toml`. Whether a tool could later run outside a local machine is a low-priority preference, checked only when the other requirements are already met.
+Tools for this stage are free, widely used, and under our control. A tool has to let us turn off anything that sends our data or usage data to a third party. Calls that leave the machine wait until a task needs one. Stat and projection files are local, so importing them does not. Streamlit stays the interface. Its usage statistics are off in `.streamlit/config.toml`. Whether a tool could later run outside a local machine is a low-priority preference, checked only when the other requirements are already met.
 
 Pin versions in the project dependency file once Task 1 creates it, so the user’s machine and later work install the same stack.
 
