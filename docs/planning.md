@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: Task 2 planned. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 2 implemented, waiting for the user’s check. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -234,10 +234,13 @@ Agreed source and scope:
 - Skip a file name already in `import_log`. Refuse a second stats file for a season that is already imported. A bad name or a bad header is an error for that file only.
 - The screen says that no league is loaded, lists the imported datasets, and shows a player table for the one the user selects. A projection table includes that file’s rank and dollars, labeled as the file’s figures.
 - Importing does not touch keepers or sales once those tables exist.
+- On a fresh database, stats files are imported before projection files, and each group is imported by file name. The stored display name is the name from the file that creates the player.
+- The scan reads `.csv` files in `data/inbox/` only. A csv with the wrong name is refused. Other files in that folder are left alone.
+- The player table uses readable column headers. On a projection, rank and dollars are headed "File rank" and "File dollars".
 
 Done when: the user opens the app, selects each imported dataset, and sees that dataset’s players and columns. Opening the app again does not import the same files again. SQLite shows one player for a name that appears in both a stats file and a projection, two season rows for a player who played both seasons, and separate projection rows for Bonus, Josh, and Fantasy Edge. A player who exists only on a projection is still in the table.
 
-Status: planned. Not started.
+Status: implemented. Waiting for the user to open the app, select each dataset, and check SQLite.
 
 ### Task 3 — Current-season refresh
 

@@ -1,6 +1,6 @@
 # Development guidelines
 
-Status: Task 1. Living document. Add a rule when we learn one. Do not collect rules we are not willing to follow.
+Status: Task 2. Living document. Add a rule when we learn one. Do not collect rules we are not willing to follow.
 
 These guidelines keep the draft assistant small, testable, and aligned with `docs/requirements.md` and `docs/planning.md`.
 
@@ -55,7 +55,7 @@ A Streamlit control that writes state must survive a rerun and an app restart. I
 
 Follow the layout in the planning file.
 
-- `data/` talks to the API and to SQLite.
+- `stats/` reads `data/inbox/` and writes SQLite. It does not decide what a player is worth.
 - `valuation/` turns stat tables into z-scores and prices. No Streamlit imports. No reading environment variables.
 - `draft/` applies keepers, sales, budget, nominations, and balance. It may call valuation. It does not render widgets.
 - `ui/` renders and forwards user actions. It is thin.
