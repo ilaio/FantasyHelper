@@ -182,9 +182,9 @@ Auction prices drift from a model because the room spends faster or slower than 
 
 ### League setup
 
-- Create, edit, and remove local leagues. One league is open.
+- Create, edit, and remove local leagues. One league is open during a visit.
 - Each league has a name, season, team count, budget, roster size, and active categories.
-- Save the leagues on this machine. The open league stays open after a restart.
+- Save the leagues on this machine. A refresh keeps the open league and the selected dataset. A new visit starts on the first active league and the first dataset.
 - Removing a league hides it. That league’s draft entries stay.
 - Changing a setting that affects money or categories refreshes the price list.
 
@@ -278,7 +278,7 @@ They cannot manage the season after the draft in this stage. That is a later sco
 These are product decisions, so implementation should follow them unless we change this file.
 
 - One local user. No accounts.
-- More than one league can be saved. One is open. Players and imported files are shared. Removing a league hides it and leaves its draft entries in place.
+- More than one league can be saved. One is open during a visit. That choice lasts until the app stops. Players and imported files are shared. Removing a league hides it and leaves its draft entries in place.
 - The app reads prepared files from `data/inbox/` and does not download them. The files are not committed.
 - One stats file per season. Several projection files per season are allowed. Older seasons may be imported and left unselected.
 - The valuation baseline is the newer completed season, currently 2025-26. A file for the season in progress can be browsed and is not the baseline. An older completed season is available for a low-games fallback, decided with the price list.

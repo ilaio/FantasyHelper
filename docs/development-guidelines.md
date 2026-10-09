@@ -49,7 +49,7 @@ Design the task so that check is enough. Avoid work that can only be verified by
 
 Pure functions for prices, max bid, inflation, and balance are preferred, because they can be checked with a small example that does not need the full UI. The planning file calls for those examples on the math tasks.
 
-A Streamlit control that writes state must survive a rerun and an app restart. If the only copy of a bid is in memory, the task is not done.
+A Streamlit control that writes a draft entry must survive a rerun and an app restart. If the only copy of a bid is in memory, the task is not done. Which league is open, and which dataset is on screen, last only while the app is running.
 
 ## 5. Where code goes
 
@@ -63,7 +63,7 @@ Follow the layout in the planning file.
 
 The database holds inputs. Prices, money left, max bid, and balance are computed from those inputs when the screen loads.
 
-Several leagues can be saved, and one is open. Players and imported files are shared. Hiding a league leaves its keepers, sales, and punts in the database.
+Several leagues can be saved. During a visit, one is open, held in the running app rather than on the league row. Players and imported files are shared. Hiding a league leaves its keepers, sales, and punts in the database.
 
 ## 6. Data and secrets
 

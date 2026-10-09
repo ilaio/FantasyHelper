@@ -15,7 +15,6 @@ from fantasyhelper.leagues.league import (
     create_league,
     default_settings,
     list_leagues,
-    open_league,
     remove_league,
     summary,
     update_league,
@@ -33,7 +32,7 @@ def render_league() -> None:
     league = _select_open(leagues)
     st.write(summary(league))
     _edit_form(league)
-    _remove_control(league)
+    _remove_control(league, leagues)
     if st.button("New league"):
         st.session_state["creating_league"] = True
         st.session_state["create_generation"] = st.session_state.get("create_generation", 0) + 1
@@ -42,18 +41,22 @@ def render_league() -> None:
 
 
 def _select_open(leagues: list[League]) -> League:
+    ids = [league.id for league in leagues]
     labels = {league.id: league.settings.name for league in leagues}
-    open_id = next(league.id for league in leagues if league.is_open)
+    pending = st.session_state.pop("open-league-pending", None)
+    if pending in ids:
+        st.session_state["open-league"] = pending
+    elif st.session_state.get("open-league") not in ids:
+        st.session_state.pop("open-league", None)
+    current = st.session_state.get("open-league")
+    index = ids.index(current) if current in ids else 0
     selected = st.selectbox(
         "Open league",
-        [league.id for league in leagues],
-        index=[league.id for league in leagues].index(open_id),
+        ids,
+        index=index,
         format_func=lambda league_id: labels[league_id],
         key="open-league",
     )
-    if selected != open_id:
-        open_league(selected)
-        st.session_state.pop("confirm_remove_id", None)
     return next(league for league in leagues if league.id == selected)
 
 
@@ -73,11 +76,6 @@ def _edit_form(league: League) -> None:
     st.rerun()
 
 
-def _reset_league_widgets() -> None:
-    st.session_state.pop("open-league", None)
-    st.session_state["create_generation"] = st.session_state.get("create_generation", 0) + 1
-
-
 def _create_form(*, show_cancel: bool) -> None:
     if show_cancel and st.button("Cancel new league"):
         st.session_state["creating_league"] = False
@@ -90,17 +88,18 @@ def _create_form(*, show_cancel: bool) -> None:
     )
     if settings is None:
         return
-    errors = create_league(settings)
-    if errors:
-        for message in errors:
+    created = create_league(settings)
+    if not isinstance(created, int):
+        for message in created:
             st.error(message)
         return
     st.session_state["creating_league"] = False
-    _reset_league_widgets()
+    st.session_state["open-league-pending"] = created
+    st.session_state["create_generation"] = st.session_state.get("create_generation", 0) + 1
     st.rerun()
 
 
-def _remove_control(league: League) -> None:
+def _remove_control(league: League, leagues: list[League]) -> None:
     pending = st.session_state.get("confirm_remove_id")
     if pending not in (None, league.id):
         st.session_state.pop("confirm_remove_id", None)
@@ -111,10 +110,13 @@ def _remove_control(league: League) -> None:
             "Draft entries for this league stay."
         )
         if st.button("Remove league"):
+            remaining = [item.id for item in leagues if item.id != league.id]
             remove_league(league.id)
             st.session_state.pop("confirm_remove_id", None)
             st.session_state["creating_league"] = False
-            _reset_league_widgets()
+            st.session_state["create_generation"] = st.session_state.get("create_generation", 0) + 1
+            if remaining:
+                st.session_state["open-league-pending"] = remaining[0]
             st.rerun()
         if st.button("Keep league"):
             st.session_state.pop("confirm_remove_id", None)

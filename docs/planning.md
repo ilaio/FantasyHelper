@@ -117,7 +117,7 @@ Names can change when we create the schema. The contents should not grow beyond 
 
 **status_flags** — not created in Task 2. Inbox files have no injury column.
 
-**leagues** — many rows. `name` unique among active leagues, `season` (`2026-27`), `team_count`, `budget`, `roster_size`, one flag per scoring category, and `status` (`active` or `deleted`). The chooser loads active rows. One active row is open. Punt flags arrive with Task 6. Removing a league sets `status` to `deleted`. Its keepers and sales stay.
+**leagues** — many rows. `name` unique among active leagues, `season` (`2026-27`), `team_count`, `budget`, `roster_size`, one flag per scoring category, and `status` (`active` or `deleted`). The chooser loads active rows. Which league is open, and which dataset is showing, last for the running app. A new visit starts on the first active league and the first dataset. Punt flags arrive with Task 6. Removing a league sets `status` to `deleted`. Its keepers and sales stay.
 
 **keepers** — belong to one league (`league_id`). Player, price or null, `mine` or `other`. They stay when the league is hidden.
 
@@ -254,7 +254,7 @@ Status: deferred.
 
 Agreed source and scope:
 
-- Many leagues. Create, edit, and remove them. One league is open, and that choice survives a restart.
+- Many leagues. Create, edit, and remove them. One league is open during a visit. A refresh of the running app keeps that league and the selected dataset. Closing the app and opening it again starts on the first active league and the first dataset.
 - Each league stores a name, season, teams, budget, roster size, and which of the 9 categories are on. The name is unique among active leagues. A new league starts as `My league`, `2026-27`, 12 teams, $200, 13 spots, and all 9 categories.
 - Season is the season being drafted, in the `YYYY-YY` shape. It does not change the 2025-26 price baseline.
 - Teams are a whole number from 2 to 30. Budget is whole dollars from 1 to 10000. Roster spots are a whole number from 1 to 30. At least one category stays on. A bad entry is refused and is not saved.
@@ -264,7 +264,7 @@ Agreed source and scope:
 - A second league is how a demo draft is kept. There is no separate demo flag.
 - The player table stays on the screen.
 
-Done when: the user creates a league, changes a setting, restarts, and sees the same settings. The user creates a second league, switches between them, removes one, and the open league matches the active `leagues` rows. The removed row is still there with status `deleted`. Removing the last active league returns to the empty state.
+Done when: the user creates a league, changes a setting, restarts, and sees the same settings. The user creates a second league and switches to it; a refresh of the running app stays on that league and on the selected dataset. Closing the app and opening it again shows the first active league and the first dataset. Removing a league leaves the row with status `deleted`. Removing the last active league returns to the empty state.
 
 Status: implemented. Waiting for the user to check the app and SQLite.
 

@@ -46,13 +46,8 @@ _SCHEMA = (
         cat_fg_pct INTEGER NOT NULL,
         cat_ft_pct INTEGER NOT NULL,
         cat_to INTEGER NOT NULL,
-        is_open INTEGER NOT NULL,
         status TEXT NOT NULL
     )
-    """,
-    """
-    CREATE UNIQUE INDEX IF NOT EXISTS leagues_one_open
-    ON leagues(is_open) WHERE is_open = 1
     """,
     """
     CREATE UNIQUE INDEX IF NOT EXISTS leagues_active_name
@@ -74,7 +69,6 @@ class LeagueSettings:
 @dataclass(frozen=True)
 class League:
     id: int
-    is_open: bool
     settings: LeagueSettings
 
 
@@ -131,30 +125,33 @@ def summary(league: League) -> str:
 def list_leagues() -> list[League]:
     conn = _connect()
     try:
-        leagues = _load_all(conn)
-        if leagues and not any(league.is_open for league in leagues):
-            _transaction(conn, lambda: _mark_open(conn, leagues[0].id))
-            leagues = _load_all(conn)
+        return _load_all(conn)
     finally:
         conn.close()
-    return leagues
 
 
-def create_league(settings: LeagueSettings) -> tuple[str, ...]:
-    """Save a new league and open it. Returns errors, or an empty tuple."""
+def create_league(settings: LeagueSettings) -> int | tuple[str, ...]:
+    """Save a new league. Returns its id, or the reasons it was refused."""
     conn = _connect()
     try:
         taken = {league.settings.name for league in _load_all(conn)}
         errors = validate(settings, taken)
         if errors:
             return errors
+        new_id: int | None = None
+
+        def write() -> None:
+            nonlocal new_id
+            new_id = _insert(conn, settings)
+
         try:
-            _transaction(conn, lambda: _insert_open(conn, settings))
+            _transaction(conn, write)
         except sqlite3.IntegrityError:
             return (f"A league named {settings.name} already exists.",)
     finally:
         conn.close()
-    return ()
+    assert new_id is not None
+    return new_id
 
 
 def update_league(league_id: int, settings: LeagueSettings) -> tuple[str, ...]:
@@ -181,46 +178,19 @@ def update_league(league_id: int, settings: LeagueSettings) -> tuple[str, ...]:
     return ()
 
 
-def open_league(league_id: int) -> None:
-    conn = _connect()
-    try:
-        if _load_one(conn, league_id) is None:
-            return
-        _transaction(conn, lambda: _mark_open(conn, league_id))
-    finally:
-        conn.close()
-
-
 def remove_league(league_id: int) -> None:
     """Hide a league. Its draft rows stay."""
     conn = _connect()
     try:
         if _load_one(conn, league_id) is None:
             return
-
-        def write() -> None:
-            conn.execute(
-                "UPDATE leagues SET status = ?, is_open = 0 WHERE id = ?",
+        _transaction(
+            conn,
+            lambda: conn.execute(
+                "UPDATE leagues SET status = ? WHERE id = ?",
                 (DELETED, league_id),
-            )
-            remaining = conn.execute(
-                "SELECT id FROM leagues WHERE is_open = 1 AND status = ?",
-                (ACTIVE,),
-            ).fetchone()
-            if remaining is None:
-                nxt = conn.execute(
-                    """
-                    SELECT id FROM leagues
-                    WHERE status = ?
-                    ORDER BY name COLLATE NOCASE, name
-                    LIMIT 1
-                    """,
-                    (ACTIVE,),
-                ).fetchone()
-                if nxt is not None:
-                    _mark_open(conn, int(nxt["id"]))
-
-        _transaction(conn, write)
+            ),
+        )
     finally:
         conn.close()
 
@@ -268,7 +238,6 @@ def _league_from_row(row: sqlite3.Row) -> League:
     categories = frozenset(key for key, _label in CATEGORIES if row[f"cat_{key}"])
     return League(
         id=int(row["id"]),
-        is_open=bool(row["is_open"]),
         settings=LeagueSettings(
             name=row["name"],
             season=row["season"],
@@ -280,8 +249,7 @@ def _league_from_row(row: sqlite3.Row) -> League:
     )
 
 
-def _insert_open(conn: sqlite3.Connection, settings: LeagueSettings) -> None:
-    conn.execute("UPDATE leagues SET is_open = 0")
+def _insert(conn: sqlite3.Connection, settings: LeagueSettings) -> int:
     columns = (
         "name",
         "season",
@@ -289,7 +257,6 @@ def _insert_open(conn: sqlite3.Connection, settings: LeagueSettings) -> None:
         "budget",
         "roster_size",
         *(f"cat_{key}" for key, _label in CATEGORIES),
-        "is_open",
         "status",
     )
     values = (
@@ -299,14 +266,14 @@ def _insert_open(conn: sqlite3.Connection, settings: LeagueSettings) -> None:
         settings.budget,
         settings.roster_size,
         *(1 if key in settings.categories else 0 for key, _label in CATEGORIES),
-        1,
         ACTIVE,
     )
     marks = ", ".join("?" for _ in columns)
-    conn.execute(
+    cursor = conn.execute(
         f"INSERT INTO leagues ({', '.join(columns)}) VALUES ({marks})",
         values,
     )
+    return int(cursor.lastrowid)
 
 
 def _update_row(conn: sqlite3.Connection, league_id: int, settings: LeagueSettings) -> None:
@@ -330,11 +297,6 @@ def _update_row(conn: sqlite3.Connection, league_id: int, settings: LeagueSettin
         league_id,
     )
     conn.execute(f"UPDATE leagues SET {assignments} WHERE id = ?", values)
-
-
-def _mark_open(conn: sqlite3.Connection, league_id: int) -> None:
-    conn.execute("UPDATE leagues SET is_open = 0")
-    conn.execute("UPDATE leagues SET is_open = 1 WHERE id = ?", (league_id,))
 
 
 def _in_range(value: object, low: int, high: int) -> bool:
