@@ -57,7 +57,7 @@ Follow the layout in the planning file.
 
 - `stats/` reads `data/inbox/` and writes SQLite. It does not decide what a player is worth.
 - `valuation/` turns stat tables into z-scores and prices. No Streamlit imports. No reading environment variables.
-- `draft/` applies keepers, sales, budget, nominations, and balance. It may call valuation. It does not render widgets.
+- `leagues/` holds league settings, and later keepers, sales, budget, nominations, and balance. It may call valuation. It does not render widgets.
 - `ui/` renders and forwards user actions. It is thin.
 
 The database holds inputs. Prices, money left, max bid, and balance are computed from those inputs when the screen loads.

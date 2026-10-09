@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from fantasyhelper.draft.league import (
+from fantasyhelper.leagues.league import (
     BUDGET_MAX,
     BUDGET_MIN,
     CATEGORIES,

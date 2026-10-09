@@ -12,7 +12,7 @@ FantasyHelper/
   src/fantasyhelper/
     ui/                  Streamlit screens
     valuation/           added with the price-list tasks
-    draft/               added with the draft tasks
+    leagues/             league settings; keepers and sales arrive later
     stats/               reads data/inbox and writes SQLite
   data/                  local only, not committed
     inbox/               prepared stat and projection CSV files
@@ -22,14 +22,14 @@ FantasyHelper/
   README.md              how to run the app locally
 ```
 
-The package lives at `src/fantasyhelper/`. `src` keeps the importable code separate from the README, docs, and database directory. The app is installed with `pip install -e .` so `app.py` can import `fantasyhelper` from that location. `valuation/` and `draft/` are created in the tasks that fill them. The `stats` package reads `data/inbox/` and writes SQLite. It is not named `data`, because `data/` at the repo root holds the inbox and the database. Turning a raw download into an inbox file happens outside the app.
+The package lives at `src/fantasyhelper/`. `src` keeps the importable code separate from the README, docs, and database directory. The app is installed with `pip install -e .` so `app.py` can import `fantasyhelper` from that location. `valuation/` is created with the price-list tasks. `leagues/` holds league settings, and later the keepers, sales, and other facts that belong to a league. The `stats` package reads `data/inbox/` and writes SQLite. It is not named `data`, because `data/` at the repo root holds the inbox and the database. Turning a raw download into an inbox file happens outside the app.
 
 Responsibilities stay separated:
 
 - **Data** imports prepared files and stores them. It does not decide what a player is worth.
 - **Valuation** is pure calculation. Given a player table, league settings, and a punt, it returns prices. It does not know whether the user clicked a button.
-- **Draft** holds the league’s entered facts: settings, keepers, sales, money, spots. It asks valuation for prices.
-- **UI** collects input and displays results. It does not hide formulas in widget callbacks. If a number is on screen, a function in `valuation` or `draft` produced it, and that function can be checked without the UI.
+- **Leagues** holds the league’s entered facts: settings, keepers, sales, money, spots. It asks valuation for prices.
+- **UI** collects input and displays results. It does not hide formulas in widget callbacks. If a number is on screen, a function in `valuation` or `leagues` produced it, and that function can be checked without the UI.
 
 The database file is the memory of the app. Closing the window does not forget the draft.
 
@@ -37,7 +37,7 @@ The database file is the memory of the app. Closing the window does not forget t
 local CSV files  -->  SQLite  -->  valuation  -->  prices
                        ^              ^
                        |              |
-                  user entries     draft state (budget, roster, balance)
+                  user entries     league state (budget, roster, balance)
                        ^
                        |
                      Streamlit
@@ -57,7 +57,7 @@ One user, one machine, two kinds of rows: reference data (players, teams, stats)
 
 The draft assistant is a local working screen: settings, a table, a few inputs, a budget summary. Streamlit serves that with one process and one command.
 
-A separate React app and a FastAPI server would add a second runtime, a build step, and an API contract. That split pays off when there is a second client or a remote user. This stage has neither. Valuation and draft state will not import Streamlit, so a different interface can replace `ui/` later without rewriting prices or the database.
+A separate React app and a FastAPI server would add a second runtime, a build step, and an API contract. That split pays off when there is a second client or a remote user. This stage has neither. Valuation and leagues will not import Streamlit, so a different interface can replace `ui/` later without rewriting prices or the database.
 
 Streamlit’s usage statistics are turned off for this project in `.streamlit/config.toml` (`browser.gatherUsageStats = false`). Restart the app after changing that file.
 
