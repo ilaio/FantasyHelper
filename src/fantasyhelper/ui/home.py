@@ -1,9 +1,10 @@
-"""Home screen shown before a league exists."""
+"""Home screen: the open league, then the imported player tables."""
 
 import streamlit as st
 
 from fantasyhelper.stats.inbox import import_inbox
 from fantasyhelper.stats.store import Dataset, list_datasets, load_player_rows
+from fantasyhelper.ui.league import render_league
 
 _SOURCE_LABELS = {
     "bonus": "Bonus",
@@ -67,8 +68,12 @@ _RATE_LABELS = (
 
 def render() -> None:
     st.title("FantasyHelper")
-    st.write("No league is loaded yet.")
+    render_league()
+    _render_datasets()
 
+
+def _render_datasets() -> None:
+    st.subheader("Players")
     report = import_inbox()
     if report.imported:
         st.success("  \n".join(report.imported))

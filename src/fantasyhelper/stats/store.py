@@ -112,6 +112,30 @@ _SCHEMA = (
         imported_at TEXT NOT NULL
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS league (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+        season TEXT NOT NULL,
+        team_count INTEGER NOT NULL,
+        budget INTEGER NOT NULL,
+        roster_size INTEGER NOT NULL,
+        cat_pts INTEGER NOT NULL,
+        cat_reb INTEGER NOT NULL,
+        cat_ast INTEGER NOT NULL,
+        cat_stl INTEGER NOT NULL,
+        cat_blk INTEGER NOT NULL,
+        cat_threes INTEGER NOT NULL,
+        cat_fg_pct INTEGER NOT NULL,
+        cat_ft_pct INTEGER NOT NULL,
+        cat_to INTEGER NOT NULL,
+        is_open INTEGER NOT NULL
+    )
+    """,
+    """
+    CREATE UNIQUE INDEX IF NOT EXISTS league_one_open
+    ON league(is_open) WHERE is_open = 1
+    """,
 )
 
 

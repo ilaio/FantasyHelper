@@ -1,6 +1,6 @@
 # Development guidelines
 
-Status: Task 2. Living document. Add a rule when we learn one. Do not collect rules we are not willing to follow.
+Status: Task 4. Living document. Add a rule when we learn one. Do not collect rules we are not willing to follow.
 
 These guidelines keep the draft assistant small, testable, and aligned with `docs/requirements.md` and `docs/planning.md`.
 
@@ -62,7 +62,7 @@ Follow the layout in the planning file.
 
 The database holds inputs. Prices, money left, max bid, and balance are computed from those inputs when the screen loads.
 
-One league profile. One draft. Do not build a league switcher until the requirements say there is a second league.
+Several leagues can be saved, and one is open. Players and imported files are shared. Keepers, sales, and punts belong to a league and are removed with it.
 
 ## 6. Data and secrets
 

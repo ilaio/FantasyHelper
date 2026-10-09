@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: Task 3 deferred. Planning Task 4. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 4 implemented, waiting for the user’s check. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -116,11 +116,11 @@ Names can change when we create the schema. The contents should not grow beyond 
 
 **status_flags** — not created in Task 2. Inbox files have no injury column.
 
-**league** — one row: name, season, team count, budget, roster size, which categories are on, which are punted (0–2).
+**league** — many rows. `name` unique, `season` (`2026-27`), `team_count`, `budget`, `roster_size`, and one flag per scoring category. One row is open. Punt flags arrive with Task 6. Removing a league removes its keepers and sales.
 
-**keepers** — player, price or null, `mine` or `other`.
+**keepers** — belong to one league (`league_id`). Player, price or null, `mine` or `other`. Removed with that league.
 
-**sales** — ordered list: player, price, `mine` or `other`, time. Undo deletes the last row.
+**sales** — belong to one league (`league_id`). Ordered list: player, price, `mine` or `other`, time. Undo deletes the last row. Removed with that league.
 
 Derived facts are calculated, not stored: dollars left, spots left, max bid, z-scores, prices, inflation, category balance. Storing them would create a second source of truth that can drift from the inputs.
 
@@ -197,7 +197,6 @@ The writeups below stay as the generic approach until that conversation. Confirm
 Raise these before the task they affect. They do not change the text above until we decide.
 
 - **Before the price list (Task 5).** When a player’s newer season has too few games, whether prices use the older season instead. Both seasons are stored either way.
-- **Before league setup (Task 4).** Whether the user can create more than one league with the settings we already have, including a demo league or a demo draft inside a league.
 - **Before the price list (Task 5).** Other ways to calculate z-scores. The method in section 4 stays until that conversation. The user will bring specific concerns then.
 - **Before the price list is shown.** Whether the player table includes season averages next to the scores.
 - **Later, after prices exist.** The user can merge two imported players who are the same person. New files can introduce more duplicates after the price list exists, so this does not have to happen before prices. A merge recalculates prices. How the merge and that recalculation work is decided with the feature. Known splits in the current inbox are Robert Williams, Jimmy Butler, Derrick Jones Jr., and Kelly Oubre Jr. The three starting aliases stay as they are.
@@ -252,9 +251,21 @@ Status: deferred.
 
 ### Task 4 — League settings
 
-A screen to save the one league profile: name, season, teams, budget, roster size, and category toggles. Defaults from the requirements file.
+Agreed source and scope:
 
-Done when: the user can change a setting, restart the app, and see the same settings in the database.
+- Many leagues. Create, edit, and remove them. One league is open, and that choice survives a restart.
+- Each league stores a unique name, season, teams, budget, roster size, and which of the 9 categories are on. A new league starts as `My league`, `2026-27`, 12 teams, $200, 13 spots, and all 9 categories.
+- Season is the season being drafted, in the `YYYY-YY` shape. It does not change the 2025-26 price baseline.
+- Teams are a whole number from 2 to 30. Budget is whole dollars from 1 to 10000. Roster spots are a whole number from 1 to 30. At least one category stays on. A bad entry is refused and is not saved.
+- Punts wait. Saving does not calculate prices.
+- Players and imported files are shared. They are not copied per league.
+- Removing a league asks first. That league’s keepers, sales, and punts go with it once those tables exist. Removing the open league opens another remaining league. Removing the last league returns the screen to “No league is loaded yet.”
+- A second league is how a demo draft is kept. There is no separate demo flag.
+- The player table stays on the screen.
+
+Done when: the user creates a league, changes a setting, restarts, and sees the same settings. The user creates a second league, switches between them, removes one, and the open league matches the `league` rows. Removing the last league returns to the empty state.
+
+Status: implemented. Waiting for the user to check the app and SQLite.
 
 ### Task 5 — Base price list
 

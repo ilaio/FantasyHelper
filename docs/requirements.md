@@ -27,7 +27,7 @@ They are a manager in a season-long rotisserie league that drafts by auction. Th
 
 What they do:
 
-- Set up the league once: budget, team count, roster size, categories, and the season.
+- Set up one or more leagues: name, budget, team count, roster size, categories, and the season. Open the league they are drafting.
 - Let the app import the prepared stat and projection files, then look through the imported players.
 - Choose one or two categories to punt, or choose none.
 - Enter their keepers and locked prices before the draft. Enter other teams’ keepers so those players leave the pool.
@@ -74,7 +74,7 @@ These are editable settings, with defaults that match a common public league. Th
 | Budget | $200 per team | Same reason. Keepers spend part of this before the draft starts. |
 | Roster spots | 13 | Drives spots remaining, max bid, and how many players are “drafted” in the value model. |
 | Categories | The standard 9 | The z-score uses only the categories the league scores. |
-| Season | The season being drafted | Chooses which prior season is the valuation baseline. |
+| Season | 2026-27 | Names the season being drafted. The price baseline stays the newer completed season. |
 | Punt categories | None until the user picks | 0, 1, or 2 categories. |
 
 Standard 9 categories:
@@ -182,8 +182,10 @@ Auction prices drift from a model because the room spends faster or slower than 
 
 ### League setup
 
-- Create and edit one local league profile: name, season, team count, budget, roster size, active categories.
-- Save the profile on this machine.
+- Create, edit, and remove local leagues. One league is open.
+- Each league has a name, season, team count, budget, roster size, and active categories.
+- Save the leagues on this machine. The open league stays open after a restart.
+- Removing a league removes that league’s draft entries. Imported players stay.
 - Changing a setting that affects money or categories refreshes the price list.
 
 ### Prepared data
@@ -276,6 +278,7 @@ They cannot manage the season after the draft in this stage. That is a later sco
 These are product decisions, so implementation should follow them unless we change this file.
 
 - One local user. No accounts.
+- More than one league can be saved. One is open. Players and imported files are shared. Removing a league removes that league’s draft entries.
 - The app reads prepared files from `data/inbox/` and does not download them. The files are not committed.
 - One stats file per season. Several projection files per season are allowed. Older seasons may be imported and left unselected.
 - The valuation baseline is the newer completed season, currently 2025-26. A file for the season in progress can be browsed and is not the baseline. An older completed season is available for a low-games fallback, decided with the price list.
