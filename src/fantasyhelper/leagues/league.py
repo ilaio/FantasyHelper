@@ -26,11 +26,13 @@ ROSTER_MIN, ROSTER_MAX = 1, 30
 
 _SEASON = re.compile(r"^\d{4}-\d{2}$")
 _CATEGORY_KEYS = frozenset(key for key, _label in CATEGORIES)
+ACTIVE = "active"
+DELETED = "deleted"
 _SCHEMA = (
     """
     CREATE TABLE IF NOT EXISTS leagues (
         id INTEGER PRIMARY KEY,
-        name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+        name TEXT NOT NULL COLLATE NOCASE,
         season TEXT NOT NULL,
         team_count INTEGER NOT NULL,
         budget INTEGER NOT NULL,
@@ -44,16 +46,19 @@ _SCHEMA = (
         cat_fg_pct INTEGER NOT NULL,
         cat_ft_pct INTEGER NOT NULL,
         cat_to INTEGER NOT NULL,
-        is_open INTEGER NOT NULL
+        is_open INTEGER NOT NULL,
+        status TEXT NOT NULL
     )
     """,
     """
     CREATE UNIQUE INDEX IF NOT EXISTS leagues_one_open
     ON leagues(is_open) WHERE is_open = 1
     """,
+    """
+    CREATE UNIQUE INDEX IF NOT EXISTS leagues_active_name
+    ON leagues(name) WHERE status = 'active'
+    """,
 )
-# Draft rows that belong to a league. The tables arrive in later tasks.
-_OWNED_TABLES = ("keepers", "sales")
 
 
 @dataclass(frozen=True)
@@ -187,21 +192,30 @@ def open_league(league_id: int) -> None:
 
 
 def remove_league(league_id: int) -> None:
-    """Delete a league and its draft rows. Imported players stay."""
+    """Hide a league. Its draft rows stay."""
     conn = _connect()
     try:
         if _load_one(conn, league_id) is None:
             return
 
         def write() -> None:
-            _delete_owned_rows(conn, league_id)
-            conn.execute("DELETE FROM leagues WHERE id = ?", (league_id,))
+            conn.execute(
+                "UPDATE leagues SET status = ?, is_open = 0 WHERE id = ?",
+                (DELETED, league_id),
+            )
             remaining = conn.execute(
-                "SELECT id FROM leagues WHERE is_open = 1"
+                "SELECT id FROM leagues WHERE is_open = 1 AND status = ?",
+                (ACTIVE,),
             ).fetchone()
             if remaining is None:
                 nxt = conn.execute(
-                    "SELECT id FROM leagues ORDER BY name COLLATE NOCASE, name LIMIT 1"
+                    """
+                    SELECT id FROM leagues
+                    WHERE status = ?
+                    ORDER BY name COLLATE NOCASE, name
+                    LIMIT 1
+                    """,
+                    (ACTIVE,),
                 ).fetchone()
                 if nxt is not None:
                     _mark_open(conn, int(nxt["id"]))
@@ -230,13 +244,21 @@ def _transaction(conn: sqlite3.Connection, write) -> None:
 
 def _load_all(conn: sqlite3.Connection) -> list[League]:
     rows = conn.execute(
-        "SELECT * FROM leagues ORDER BY name COLLATE NOCASE, name, id"
+        """
+        SELECT * FROM leagues
+        WHERE status = ?
+        ORDER BY name COLLATE NOCASE, name, id
+        """,
+        (ACTIVE,),
     ).fetchall()
     return [_league_from_row(row) for row in rows]
 
 
 def _load_one(conn: sqlite3.Connection, league_id: int) -> League | None:
-    row = conn.execute("SELECT * FROM leagues WHERE id = ?", (league_id,)).fetchone()
+    row = conn.execute(
+        "SELECT * FROM leagues WHERE id = ? AND status = ?",
+        (league_id, ACTIVE),
+    ).fetchone()
     if row is None:
         return None
     return _league_from_row(row)
@@ -268,6 +290,7 @@ def _insert_open(conn: sqlite3.Connection, settings: LeagueSettings) -> None:
         "roster_size",
         *(f"cat_{key}" for key, _label in CATEGORIES),
         "is_open",
+        "status",
     )
     values = (
         settings.name,
@@ -277,6 +300,7 @@ def _insert_open(conn: sqlite3.Connection, settings: LeagueSettings) -> None:
         settings.roster_size,
         *(1 if key in settings.categories else 0 for key, _label in CATEGORIES),
         1,
+        ACTIVE,
     )
     marks = ", ".join("?" for _ in columns)
     conn.execute(
@@ -311,16 +335,6 @@ def _update_row(conn: sqlite3.Connection, league_id: int, settings: LeagueSettin
 def _mark_open(conn: sqlite3.Connection, league_id: int) -> None:
     conn.execute("UPDATE leagues SET is_open = 0")
     conn.execute("UPDATE leagues SET is_open = 1 WHERE id = ?", (league_id,))
-
-
-def _delete_owned_rows(conn: sqlite3.Connection, league_id: int) -> None:
-    for table in _OWNED_TABLES:
-        exists = conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
-            (table,),
-        ).fetchone()
-        if exists is not None:
-            conn.execute(f"DELETE FROM {table} WHERE league_id = ?", (league_id,))
 
 
 def _in_range(value: object, low: int, high: int) -> bool:

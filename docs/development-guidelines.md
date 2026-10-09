@@ -63,7 +63,7 @@ Follow the layout in the planning file.
 
 The database holds inputs. Prices, money left, max bid, and balance are computed from those inputs when the screen loads.
 
-Several leagues can be saved, and one is open. Players and imported files are shared. Keepers, sales, and punts belong to a league and are removed with it.
+Several leagues can be saved, and one is open. Players and imported files are shared. Hiding a league leaves its keepers, sales, and punts in the database.
 
 ## 6. Data and secrets
 

@@ -107,8 +107,8 @@ def _remove_control(league: League) -> None:
         pending = None
     if pending == league.id:
         st.warning(
-            f"Remove {league.settings.name}? The league's draft entries are removed with it. "
-            "Imported players stay."
+            f"Remove {league.settings.name}? It leaves the list. "
+            "Draft entries for this league stay."
         )
         if st.button("Remove league"):
             remove_league(league.id)

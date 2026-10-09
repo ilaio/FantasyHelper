@@ -117,11 +117,11 @@ Names can change when we create the schema. The contents should not grow beyond 
 
 **status_flags** — not created in Task 2. Inbox files have no injury column.
 
-**leagues** — many rows. `name` unique, `season` (`2026-27`), `team_count`, `budget`, `roster_size`, and one flag per scoring category. One row is open. Punt flags arrive with Task 6. Removing a league removes its keepers and sales.
+**leagues** — many rows. `name` unique among active leagues, `season` (`2026-27`), `team_count`, `budget`, `roster_size`, one flag per scoring category, and `status` (`active` or `deleted`). The chooser loads active rows. One active row is open. Punt flags arrive with Task 6. Removing a league sets `status` to `deleted`. Its keepers and sales stay.
 
-**keepers** — belong to one league (`league_id`). Player, price or null, `mine` or `other`. Removed with that league.
+**keepers** — belong to one league (`league_id`). Player, price or null, `mine` or `other`. They stay when the league is hidden.
 
-**sales** — belong to one league (`league_id`). Ordered list: player, price, `mine` or `other`, time. Undo deletes the last row. Removed with that league.
+**sales** — belong to one league (`league_id`). Ordered list: player, price, `mine` or `other`, time. Undo deletes the last row. They stay when the league is hidden.
 
 Derived facts are calculated, not stored: dollars left, spots left, max bid, z-scores, prices, inflation, category balance. Storing them would create a second source of truth that can drift from the inputs.
 
@@ -255,16 +255,16 @@ Status: deferred.
 Agreed source and scope:
 
 - Many leagues. Create, edit, and remove them. One league is open, and that choice survives a restart.
-- Each league stores a unique name, season, teams, budget, roster size, and which of the 9 categories are on. A new league starts as `My league`, `2026-27`, 12 teams, $200, 13 spots, and all 9 categories.
+- Each league stores a name, season, teams, budget, roster size, and which of the 9 categories are on. The name is unique among active leagues. A new league starts as `My league`, `2026-27`, 12 teams, $200, 13 spots, and all 9 categories.
 - Season is the season being drafted, in the `YYYY-YY` shape. It does not change the 2025-26 price baseline.
 - Teams are a whole number from 2 to 30. Budget is whole dollars from 1 to 10000. Roster spots are a whole number from 1 to 30. At least one category stays on. A bad entry is refused and is not saved.
 - Punts wait. Saving does not calculate prices.
 - Players and imported files are shared. They are not copied per league.
-- Removing a league asks first. That league’s keepers, sales, and punts go with it once those tables exist. Removing the open league opens another remaining league. Removing the last league returns the screen to “No league is loaded yet.”
+- Removing a league asks first. Its status becomes `deleted`, and it leaves the list. Keepers, sales, and punts stay. Removing the open league opens another active league. Removing the last active league returns the screen to “No league is loaded yet.” There is no list of deleted leagues and no undo.
 - A second league is how a demo draft is kept. There is no separate demo flag.
 - The player table stays on the screen.
 
-Done when: the user creates a league, changes a setting, restarts, and sees the same settings. The user creates a second league, switches between them, removes one, and the open league matches the `leagues` rows. Removing the last league returns to the empty state.
+Done when: the user creates a league, changes a setting, restarts, and sees the same settings. The user creates a second league, switches between them, removes one, and the open league matches the active `leagues` rows. The removed row is still there with status `deleted`. Removing the last active league returns to the empty state.
 
 Status: implemented. Waiting for the user to check the app and SQLite.
 
