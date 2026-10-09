@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: Task 2 done. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 3 deferred. Planning Task 4. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -196,7 +196,6 @@ The writeups below stay as the generic approach until that conversation. Confirm
 
 Raise these before the task they affect. They do not change the text above until we decide.
 
-- **Before Task 3.** Whether a current-season file belongs in this draft stage, or waits for day-to-day features. It would be another local CSV, not an API refresh.
 - **Before the price list (Task 5).** When a player’s newer season has too few games, whether prices use the older season instead. Both seasons are stored either way.
 - **Before league setup (Task 4).** Whether the user can create more than one league with the settings we already have, including a demo league or a demo draft inside a league.
 - **Before the price list (Task 5).** Other ways to calculate z-scores. The method in section 4 stays until that conversation. The user will bring specific concerns then.
@@ -245,9 +244,11 @@ Status: done. The user opened the app, selected the datasets, and checked SQLite
 
 ### Task 3 — Current-season refresh
 
-If this stage includes a current season, import another local CSV the same way as Task 2. There is no daily network refresh. If the file is absent, the two saved seasons remain available.
+Deferred. This draft stage prices from the newer completed season, currently 2025-26, and from the 2026-27 projections. A file for the season in progress belongs with day-to-day work. If that file is added to the inbox, Task 2 already imports it and it can be selected. It is not the valuation baseline.
 
-Done when: decided only if this task stays in the draft stage.
+Done when: the decision is written down. No application code.
+
+Status: deferred.
 
 ### Task 4 — League settings
 
@@ -315,7 +316,7 @@ We do not need a large automated suite before there is logic. Once valuation and
 
 - **Percentage math.** Easy to z-score the raw percentage and overvalue low-volume shooters. The hand-computed example in Task 5 should include one low-volume shooter and one high-volume shooter.
 - **Off-by-one max bid.** The last roster spot may spend the final dollar. The formula in section 5 is the one to test.
-- **Preseason emptiness.** Current-season refresh must be allowed to succeed with no games.
+- **Preseason emptiness.** When a current-season file returns with day-to-day work, an empty season has to import cleanly. This stage does not use that file as the price baseline.
 - **CSV shape.** Task 2 imports the inbox files described in section 2. A file with a different header is refused instead of guessing columns.
 - **Name match.** Normalization plus the three starting aliases will miss other spellings. Those players import as separate people. Merging them is a later feature, and a merge recalculates prices. A key clash inside one file refuses that file.
 - **Streamlit reruns.** Widgets rerun the script often. Draft writes must be idempotent: saving the same sale twice must not double-charge. The database is the source of truth, not widget state.

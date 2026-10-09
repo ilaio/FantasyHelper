@@ -106,7 +106,7 @@ Two kinds of files belong there:
 - One stats file per season, named `stats-<season>.csv`, such as `stats-2025-26.csv`. Counting stats in that file are season totals. Seasons older than the last two may be present. They are imported and can be selected on screen. Prices do not have to use them.
 - Any number of projection files for a season, named `projection-<season>-<source>.csv`, such as `projection-2026-27-bonus.csv`. Counting stats in that file are per game. A projection is for the season it names. When that season is over, those files can stay on disk and simply not be selected. The next season needs its own projection files.
 
-The newer saved season is the valuation baseline. An older saved season is available so a later price list can fall back to it when a player barely played. That fallback rule is decided with the price list, not during the import.
+The valuation baseline is the newer completed season, currently 2025-26. A stats file for the season in progress can be imported and browsed. It is not the baseline. That use waits with day-to-day features. An older completed season is available so a later price list can fall back to it when a player barely played. That fallback rule is decided with the price list, not during the import.
 
 A player is the same person across files when a normalized form of the name matches. The files do not share an id. The app builds that key when it creates a player and when it compares a new file with players it already has. The key turns accented letters into plain English letters, lowercases the name, removes periods and apostrophes, and turns spaces into hyphens. `Jokić` and `Jokic` meet. Deleting the accented letter instead would split them.
 
@@ -278,7 +278,7 @@ These are product decisions, so implementation should follow them unless we chan
 - One local user. No accounts.
 - The app reads prepared files from `data/inbox/` and does not download them. The files are not committed.
 - One stats file per season. Several projection files per season are allowed. Older seasons may be imported and left unselected.
-- The newer saved season is the valuation baseline. An older season is available for a low-games fallback, decided with the price list.
+- The valuation baseline is the newer completed season, currently 2025-26. A file for the season in progress can be browsed and is not the baseline. An older completed season is available for a low-games fallback, decided with the price list.
 - Players are matched by a normalized name, plus a short alias list. The source files do not share an id.
 - Projection rank and dollars can be shown for comparison. They are not our prices. We do not build our own projection model in this stage.
 - Position text is stored and shown. The draft does not enforce position eligibility in this stage.
