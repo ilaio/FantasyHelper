@@ -13,7 +13,7 @@ FantasyHelper/
     ui/                  Streamlit screens
     db/                  database path and connection
     valuation/           added with the price-list tasks
-    leagues/             league table; keepers and sales arrive later
+    leagues/             leagues table; keepers and sales arrive later
     stats/               reads data/inbox and writes the player tables
   data/                  local only, not committed
     inbox/               prepared stat and projection CSV files
@@ -23,7 +23,7 @@ FantasyHelper/
   README.md              how to run the app locally
 ```
 
-The package lives at `src/fantasyhelper/`. `src` keeps the importable code separate from the README, docs, and database directory. The app is installed with `pip install -e .` so `app.py` can import `fantasyhelper` from that location. `db/` opens the database and does not own a table. `valuation/` is created with the price-list tasks. `leagues/` creates the league table, and later the keepers, sales, and other facts that belong to a league. The `stats` package reads `data/inbox/` and writes the player tables. It is not named `data`, because `data/` at the repo root holds the inbox and the database. Turning a raw download into an inbox file happens outside the app.
+The package lives at `src/fantasyhelper/`. `src` keeps the importable code separate from the README, docs, and database directory. The app is installed with `pip install -e .` so `app.py` can import `fantasyhelper` from that location. `db/` opens the database and does not own a table. `valuation/` is created with the price-list tasks. `leagues/` creates the `leagues` table, and later the keepers, sales, and other facts that belong to a league. The `stats` package reads `data/inbox/` and writes the player tables. It is not named `data`, because `data/` at the repo root holds the inbox and the database. Turning a raw download into an inbox file happens outside the app.
 
 Responsibilities stay separated:
 
@@ -117,7 +117,7 @@ Names can change when we create the schema. The contents should not grow beyond 
 
 **status_flags** — not created in Task 2. Inbox files have no injury column.
 
-**league** — many rows. `name` unique, `season` (`2026-27`), `team_count`, `budget`, `roster_size`, and one flag per scoring category. One row is open. Punt flags arrive with Task 6. Removing a league removes its keepers and sales.
+**leagues** — many rows. `name` unique, `season` (`2026-27`), `team_count`, `budget`, `roster_size`, and one flag per scoring category. One row is open. Punt flags arrive with Task 6. Removing a league removes its keepers and sales.
 
 **keepers** — belong to one league (`league_id`). Player, price or null, `mine` or `other`. Removed with that league.
 
@@ -264,7 +264,7 @@ Agreed source and scope:
 - A second league is how a demo draft is kept. There is no separate demo flag.
 - The player table stays on the screen.
 
-Done when: the user creates a league, changes a setting, restarts, and sees the same settings. The user creates a second league, switches between them, removes one, and the open league matches the `league` rows. Removing the last league returns to the empty state.
+Done when: the user creates a league, changes a setting, restarts, and sees the same settings. The user creates a second league, switches between them, removes one, and the open league matches the `leagues` rows. Removing the last league returns to the empty state.
 
 Status: implemented. Waiting for the user to check the app and SQLite.
 

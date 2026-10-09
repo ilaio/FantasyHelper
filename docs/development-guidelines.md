@@ -58,7 +58,7 @@ Follow the layout in the planning file.
 - `db/` opens the database. It does not own a table.
 - `stats/` reads `data/inbox/` and writes the player, season, projection, and import log tables. It does not decide what a player is worth.
 - `valuation/` turns stat tables into z-scores and prices. No Streamlit imports. No reading environment variables.
-- `leagues/` creates the league table, and later keepers, sales, budget, nominations, and balance. It may call valuation. It does not render widgets.
+- `leagues/` creates the `leagues` table, and later keepers, sales, budget, nominations, and balance. It may call valuation. It does not render widgets.
 - `ui/` renders and forwards user actions. It is thin.
 
 The database holds inputs. Prices, money left, max bid, and balance are computed from those inputs when the screen loads.
