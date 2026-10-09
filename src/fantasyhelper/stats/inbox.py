@@ -7,13 +7,13 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
+from fantasyhelper.db import connect
 from fantasyhelper.stats.names import canonical_name_key
 from fantasyhelper.stats.store import (
     PROJECTION_HEADER,
     PROJECTION_OPTIONAL,
     STATS_HEADER,
     STATS_OPTIONAL,
-    connect,
     ensure_schema,
     file_imported,
     inbox_directory,

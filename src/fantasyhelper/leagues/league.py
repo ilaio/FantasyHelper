@@ -4,7 +4,7 @@ import re
 import sqlite3
 from dataclasses import dataclass
 
-from fantasyhelper.stats.store import connect, ensure_schema
+from fantasyhelper.db import connect
 
 CATEGORIES = (
     ("pts", "Points"),
@@ -26,6 +26,32 @@ ROSTER_MIN, ROSTER_MAX = 1, 30
 
 _SEASON = re.compile(r"^\d{4}-\d{2}$")
 _CATEGORY_KEYS = frozenset(key for key, _label in CATEGORIES)
+_SCHEMA = (
+    """
+    CREATE TABLE IF NOT EXISTS league (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+        season TEXT NOT NULL,
+        team_count INTEGER NOT NULL,
+        budget INTEGER NOT NULL,
+        roster_size INTEGER NOT NULL,
+        cat_pts INTEGER NOT NULL,
+        cat_reb INTEGER NOT NULL,
+        cat_ast INTEGER NOT NULL,
+        cat_stl INTEGER NOT NULL,
+        cat_blk INTEGER NOT NULL,
+        cat_threes INTEGER NOT NULL,
+        cat_fg_pct INTEGER NOT NULL,
+        cat_ft_pct INTEGER NOT NULL,
+        cat_to INTEGER NOT NULL,
+        is_open INTEGER NOT NULL
+    )
+    """,
+    """
+    CREATE UNIQUE INDEX IF NOT EXISTS league_one_open
+    ON league(is_open) WHERE is_open = 1
+    """,
+)
 # Draft rows that belong to a league. The tables arrive in later tasks.
 _OWNED_TABLES = ("keepers", "sales")
 
@@ -187,7 +213,8 @@ def remove_league(league_id: int) -> None:
 
 def _connect() -> sqlite3.Connection:
     conn = connect()
-    ensure_schema(conn)
+    for statement in _SCHEMA:
+        conn.execute(statement)
     return conn
 
 

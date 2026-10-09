@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+from fantasyhelper.db import connect, project_root
+
 STATS_HEADER = (
     "name",
     "team",
@@ -112,30 +114,6 @@ _SCHEMA = (
         imported_at TEXT NOT NULL
     )
     """,
-    """
-    CREATE TABLE IF NOT EXISTS league (
-        id INTEGER PRIMARY KEY,
-        name TEXT NOT NULL COLLATE NOCASE UNIQUE,
-        season TEXT NOT NULL,
-        team_count INTEGER NOT NULL,
-        budget INTEGER NOT NULL,
-        roster_size INTEGER NOT NULL,
-        cat_pts INTEGER NOT NULL,
-        cat_reb INTEGER NOT NULL,
-        cat_ast INTEGER NOT NULL,
-        cat_stl INTEGER NOT NULL,
-        cat_blk INTEGER NOT NULL,
-        cat_threes INTEGER NOT NULL,
-        cat_fg_pct INTEGER NOT NULL,
-        cat_ft_pct INTEGER NOT NULL,
-        cat_to INTEGER NOT NULL,
-        is_open INTEGER NOT NULL
-    )
-    """,
-    """
-    CREATE UNIQUE INDEX IF NOT EXISTS league_one_open
-    ON league(is_open) WHERE is_open = 1
-    """,
 )
 
 
@@ -147,26 +125,8 @@ class Dataset:
     source: str
 
 
-def project_root() -> Path:
-    """Repo root. This file is src/fantasyhelper/stats/store.py."""
-    return Path(__file__).resolve().parents[3]
-
-
-def database_path() -> Path:
-    return project_root() / "data" / "fantasyhelper.sqlite3"
-
-
 def inbox_directory() -> Path:
     return project_root() / "data" / "inbox"
-
-
-def connect() -> sqlite3.Connection:
-    path = database_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path, timeout=10, isolation_level=None)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
 
 
 def ensure_schema(conn: sqlite3.Connection) -> None:

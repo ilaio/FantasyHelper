@@ -11,9 +11,10 @@ FantasyHelper/
   app.py                 streamlit entry: streamlit run app.py
   src/fantasyhelper/
     ui/                  Streamlit screens
+    db/                  database path and connection
     valuation/           added with the price-list tasks
-    leagues/             league settings; keepers and sales arrive later
-    stats/               reads data/inbox and writes SQLite
+    leagues/             league table; keepers and sales arrive later
+    stats/               reads data/inbox and writes the player tables
   data/                  local only, not committed
     inbox/               prepared stat and projection CSV files
     fantasyhelper.sqlite3
@@ -22,7 +23,7 @@ FantasyHelper/
   README.md              how to run the app locally
 ```
 
-The package lives at `src/fantasyhelper/`. `src` keeps the importable code separate from the README, docs, and database directory. The app is installed with `pip install -e .` so `app.py` can import `fantasyhelper` from that location. `valuation/` is created with the price-list tasks. `leagues/` holds league settings, and later the keepers, sales, and other facts that belong to a league. The `stats` package reads `data/inbox/` and writes SQLite. It is not named `data`, because `data/` at the repo root holds the inbox and the database. Turning a raw download into an inbox file happens outside the app.
+The package lives at `src/fantasyhelper/`. `src` keeps the importable code separate from the README, docs, and database directory. The app is installed with `pip install -e .` so `app.py` can import `fantasyhelper` from that location. `db/` opens the database and does not own a table. `valuation/` is created with the price-list tasks. `leagues/` creates the league table, and later the keepers, sales, and other facts that belong to a league. The `stats` package reads `data/inbox/` and writes the player tables. It is not named `data`, because `data/` at the repo root holds the inbox and the database. Turning a raw download into an inbox file happens outside the app.
 
 Responsibilities stay separated:
 
