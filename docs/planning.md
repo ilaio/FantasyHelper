@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: Task 2 implemented, waiting for the user’s check. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 2 done. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -201,6 +201,7 @@ Raise these before the task they affect. They do not change the text above until
 - **Before league setup (Task 4).** Whether the user can create more than one league with the settings we already have, including a demo league or a demo draft inside a league.
 - **Before the price list (Task 5).** Other ways to calculate z-scores. The method in section 4 stays until that conversation. The user will bring specific concerns then.
 - **Before the price list is shown.** Whether the player table includes season averages next to the scores.
+- **Later, after prices exist.** The user can merge two imported players who are the same person. New files can introduce more duplicates after the price list exists, so this does not have to happen before prices. A merge recalculates prices. How the merge and that recalculation work is decided with the feature. Known splits in the current inbox are Robert Williams, Jimmy Butler, Derrick Jones Jr., and Kelly Oubre Jr. The three starting aliases stay as they are.
 
 ### Task 0 — Preparation files
 
@@ -240,7 +241,7 @@ Agreed source and scope:
 
 Done when: the user opens the app, selects each imported dataset, and sees that dataset’s players and columns. Opening the app again does not import the same files again. SQLite shows one player for a name that appears in both a stats file and a projection, two season rows for a player who played both seasons, and separate projection rows for Bonus, Josh, and Fantasy Edge. A player who exists only on a projection is still in the table.
 
-Status: implemented. Waiting for the user to open the app, select each dataset, and check SQLite.
+Status: done. The user opened the app, selected the datasets, and checked SQLite. Suffix splits that the three aliases miss stay separate until the later merge.
 
 ### Task 3 — Current-season refresh
 
@@ -316,5 +317,5 @@ We do not need a large automated suite before there is logic. Once valuation and
 - **Off-by-one max bid.** The last roster spot may spend the final dollar. The formula in section 5 is the one to test.
 - **Preseason emptiness.** Current-season refresh must be allowed to succeed with no games.
 - **CSV shape.** Task 2 imports the inbox files described in section 2. A file with a different header is refused instead of guessing columns.
-- **Name match.** Normalization plus the three starting aliases will miss other spellings. Those players import as separate people until an alias is added. A key clash inside one file refuses that file.
+- **Name match.** Normalization plus the three starting aliases will miss other spellings. Those players import as separate people. Merging them is a later feature, and a merge recalculates prices. A key clash inside one file refuses that file.
 - **Streamlit reruns.** Widgets rerun the script often. Draft writes must be idempotent: saving the same sale twice must not double-charge. The database is the source of truth, not widget state.

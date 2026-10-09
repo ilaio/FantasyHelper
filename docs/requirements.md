@@ -110,7 +110,7 @@ The newer saved season is the valuation baseline. An older saved season is avail
 
 A player is the same person across files when a normalized form of the name matches. The files do not share an id. The app builds that key when it creates a player and when it compares a new file with players it already has. The key turns accented letters into plain English letters, lowercases the name, removes periods and apostrophes, and turns spaces into hyphens. `Jokić` and `Jokic` meet. Deleting the accented letter instead would split them.
 
-That key will not fix every spelling. `Trey Murphy` and `Trey Murphy III` stay different until a short alias list says they are the same person. A name that matches nobody is still imported: a rookie may exist only on a projection, and an old player may exist only on a past season. Two different players in one file must not collapse to one key. That file is refused and the clash is shown.
+That key will not fix every spelling. A short alias list makes `Trey Murphy` and `Trey Murphy III` the same person. Other spellings stay separate. Merging two imported players in the app is later work, and that merge recalculates prices once prices exist. A name that matches nobody is still imported: a rookie may exist only on a projection, and an old player may exist only on a past season. Two different players in one file must not collapse to one key. That file is refused and the clash is shown.
 
 ### During the draft, typed by the user
 
