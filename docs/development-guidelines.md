@@ -49,7 +49,7 @@ Design the task so that check is enough. Avoid work that can only be verified by
 
 Pure functions for prices, max bid, inflation, and balance are preferred, because they can be checked with a small example that does not need the full UI. The planning file calls for those examples on the math tasks.
 
-A Streamlit control that writes a draft entry must survive a rerun and an app restart. If the only copy of a bid is in memory, the task is not done. Which league is open, and which dataset is on screen, last only while the app is running.
+A Streamlit control that writes a draft entry must survive a rerun and an app restart. If the only copy of a bid is in memory, the task is not done. Which league is open, and which dataset is on screen, last until the browser page is refreshed or the app stops.
 
 ## 5. Where code goes
 
@@ -96,7 +96,7 @@ Empty states should say what to do next. Examples: no season loaded yet, no punt
 
 Errors from a bad entry (unknown player, price above max bid, a third punt category, a keeper who was already sold) should say what is wrong in plain language. Refuse the write.
 
-Visual design stays plain. No theme work unless a screen is hard to use.
+Visual design stays plain. The app is light gray with black text, darker gray borders, and a small margin at the sides. Notes are smaller and faded. Do not add further theme work unless a screen is hard to use.
 
 ## 9. Dependencies and configuration
 

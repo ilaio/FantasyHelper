@@ -117,8 +117,8 @@ def summary(league: League) -> str:
         off = [_phrase(label) for key, label in CATEGORIES if key not in settings.categories]
         categories = f"{active} {noun} ({_off_phrase(off)})"
     return (
-        f"{settings.name}, {settings.season}, {settings.team_count} teams, "
-        f"${settings.budget}, {settings.roster_size} spots, {categories}"
+        f"{settings.season} - {settings.team_count} teams - "
+        f"${settings.budget} - {settings.roster_size} spots - {categories}"
     )
 
 

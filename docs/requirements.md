@@ -184,7 +184,7 @@ Auction prices drift from a model because the room spends faster or slower than 
 
 - Create, edit, and remove local leagues. One league is open during a visit.
 - Each league has a name, season, team count, budget, roster size, and active categories.
-- Save the leagues on this machine. A refresh keeps the open league and the selected dataset. A new visit starts on the first active league and the first dataset.
+- Save the leagues on this machine. Choosing a league or a dataset holds until the browser page is refreshed or the app stops. A browser refresh or a new visit starts on the first active league and the first dataset.
 - Removing a league hides it. That league’s draft entries stay.
 - Changing a setting that affects money or categories refreshes the price list.
 
