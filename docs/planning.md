@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: Task 5 in planning. Projection and the two ranking scores are agreed. League scoring is next. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 5 agreed, ready for code. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -149,9 +149,11 @@ Projected games do not scale the counting rates. Minutes are what decide the sou
 
 ### Player pool
 
-Ranking scores every player on our projection. The average and the spread for a category come from every projected player who has that rate. Who among them stays in the priced group is settled with league scoring.
+Ranking scores every player on our projection. The average and the spread for a category come from every projected player who has that rate. The spread is the square root of the average squared distance from the mean, counting each of those players once.
 
-The rates are the projection line above. Counting rates stay per game, so a difference in projected games does not punish a player twice. Makes are not stored.
+League scoring keeps a group from each rank. The group size is `teams × roster spots`. For 12 teams and 13 spots, that is 156. A tie on the last spot goes to the name that comes first alphabetically. A player can be in one group and not the other.
+
+The rates are the projection line above. Counting rates stay per game, so a difference in projected games does not punish a player twice. Makes are not stored. A missing percentage is left out of that category’s average and adds nothing to that player’s total.
 
 ### Counting categories
 
@@ -180,9 +182,21 @@ Both scores use the categories the league has turned on. Turnovers are flipped b
 
 **Curved.** Each category z is passed through `tanh(z / 2)`, which stays between −1 and 1. The first spread away from the average still adds a lot. Further spreads add less. `curved total = sum of those curved category scores`.
 
-Ranking keeps both. Each score orders the projected players, so there are two ranks. League scoring and pricing each keep both as well: two league totals, and two prices. The dollar scale is the same idea for each total. The price step writes down the exact scaling after a small hand-computed example.
+Ranking keeps both. Each score orders the projected players, highest first, so there are two ranks. Those ranks use the all-player scores.
 
-Auction dollars, for a total: take the players with a positive total inside the rostered portion of the priced group (`teams × roster spots` players, after replacement). Scale those positive values so they sum to `teams × budget`. A player at replacement is worth about $1, and the scaling is adjusted so the drafted money is conserved. Players with a non-positive total are worth $0 to $1. They are not targets.
+### League scoring
+
+Each rank’s group is scored again with the same category math. The average and the spread now come only from that group. These league scores are the input to that rank’s price. They are not columns on the table.
+
+### Prices
+
+Each group is priced from its own league scores. A player outside a group costs $0 on that price.
+
+Every player in the group starts at $1. The money left to assign is `teams × budget − teams × roster spots`. This needs each team’s budget to be at least the roster size, which is what a draft that bids $1 per spot requires.
+
+A player’s gap is that player’s league score minus the lowest league score in the group. Divide the sum of the gaps by the money left. That quotient is one dollar of gap. The player earns one more dollar for each whole step the gap covers, rounded down. The lowest score has a gap of 0, so that player stays at $1.
+
+Dollars left by rounding go one each to the highest ranks of that same list, starting at rank 1, until the leftover is gone. Rank 1 does not receive a second extra dollar while a lower rank received none. If every league score in the group is equal, every gap is 0 and the whole remainder is handed out this way. The prices for a group add up to `teams × budget`.
 
 ### Punt
 
@@ -220,7 +234,6 @@ The writeups below stay as the generic approach until that conversation. Confirm
 
 Raise these before the task they affect. They do not change the text above until we decide.
 
-- **Before the price list is shown.** Whether the player table includes season averages next to the scores.
 - **Later, after prices exist.** The user can merge two imported players who are the same person. New files can introduce more duplicates after the price list exists, so this does not have to happen before prices. A merge recalculates prices. How the merge and that recalculation work is decided with the feature. Known splits in the current inbox are Robert Williams, Jimmy Butler, Derrick Jones Jr., and Kelly Oubre Jr. The three starting aliases stay as they are.
 
 ### Task 0 — Preparation files
@@ -294,14 +307,13 @@ Status: done. The user checked the screen and merged.
 
 Three parts, in order: our projection, z-scores, then prices. Punts wait.
 
-- Our projection is agreed. The rule is in section 4. It is calculated from the imported files, not stored.
-- Ranking is agreed. Every projected player is scored against all of them, on the categories the league has turned on. The plain total is the sum of the category z-scores. The curved total passes each z through `tanh(z / 2)` and sums those. Each total has its own rank.
-- League scoring and pricing are not settled yet. Each will keep both types: two league totals, and two prices.
-- A small hand-computed example checks the formula apart from the full player list.
+- Our projection, the two ranks, league scoring, and the two prices are agreed. The rules are in section 4. They are calculated, not stored.
+- One wide table shows, in order: name; plain rank, plain all-player total, plain price; curved rank, curved all-player total, curved price; the projection line; each plain category score from the all-player calc; each curved category score from the all-player calc. Categories the league has turned off are omitted. The projection columns are games, minutes per game, FGA per game, FTA per game, FG%, FT%, and the seven counting rates per game. The table is sorted by the plain rank.
+- A small hand-computed example checks the scores and the prices apart from the full player list.
 
-Done when: the example matches the hand calculation, and the app shows both ranks and, once pricing is in, both prices from our projection.
+Done when: the example matches the hand calculation, and the app shows the table from our projection for the open league.
 
-Status: projection and the two ranking scores are agreed. League scoring next. No application code yet.
+Status: agreed. No application code yet.
 
 ### Task 6 — Punts
 
