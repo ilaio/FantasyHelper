@@ -126,7 +126,7 @@ Each subsection is the product behavior. The math and the task that builds it ar
 
 Rotisserie rewards ranking across categories, not raw points. A player’s value is how much they move a team relative to the rest of the player pool, in each category the league scores.
 
-The rates on that list are our projection for the draft season. The base list scores every player on that projection, on every active category, combines those scores into one value, and turns that value into an auction price. Turnovers count in reverse: fewer turnovers is the good direction. Percentages are not treated as ordinary counting stats. A player who shoots a high percentage on two shots a night is not as valuable as a player who shoots a slightly lower percentage on fifteen shots. The volume for that score is projected games times attempts per game.
+The rates on that list are our projection for the draft season. The base list scores every player on that projection, on every active category. There are two totals. The plain total adds the category z-scores. The curved total squeezes each category z toward a limit of −1 and 1 before adding, so a huge lead in one category cannot count like several categories. Each total has its own rank and, once pricing is in, its own auction price. Turnovers count in reverse: fewer turnovers is the good direction. Percentages are not treated as ordinary counting stats. A player who shoots a high percentage on two shots a night is not as valuable as a player who shoots a slightly lower percentage on fifteen shots. The volume for that score is projected games times attempts per game.
 
 Punting means the user has decided not to compete in one or two categories. Those categories drop out of the personal price. Values are recalculated, not merely hidden, so a specialist in a punted category becomes cheap to this user and a contributor in the remaining categories becomes more expensive. The user can also leave the punt empty and use the base list.
 
@@ -198,9 +198,9 @@ Auction prices drift from a model because the room spends faster or slower than 
 
 ### Price list
 
-- Base z-score prices for the active categories.
+- Two base prices for the active categories, one from the plain total and one from the curved total.
 - A punt control for zero, one, or two categories.
-- A personal price column that reflects the punt.
+- Two personal prices that reflect the punt, one for each total.
 - Rank and sort by personal price.
 - Exclude kept and drafted players from the available list.
 

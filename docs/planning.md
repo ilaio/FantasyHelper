@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: Task 5 in planning. The projection rule is agreed. Z-scores are next. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 5 in planning. Projection and the two ranking scores are agreed. League scoring is next. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -149,7 +149,7 @@ Projected games do not scale the counting rates. Minutes are what decide the sou
 
 ### Player pool
 
-The comparison pool is the top group of players by a simple total of counting production, large enough to cover the league: `teams × roster spots`, plus a small bench of extra names so the edge of the pool is not brittle. The exact extra count is set when the price list is in hand and written back here. Players below that pool have no auction price.
+Ranking scores every player on our projection. The average and the spread for a category come from every projected player who has that rate. Who among them stays in the priced group is settled with league scoring.
 
 The rates are the projection line above. Counting rates stay per game, so a difference in projected games does not punish a player twice. Makes are not stored.
 
@@ -172,17 +172,21 @@ FG% and FT% use a volume-aware impact, then that impact is turned into a z-score
 
 A high percentage on very few attempts lands near zero. A high percentage on a large number of attempts lands high. The same idea applies to a poor percentage: it hurts in proportion to how many shots created it.
 
-### Base value
+### Two scores
 
-`total z = sum of category z-scores` for active categories only.
+Both scores use the categories the league has turned on. Turnovers are flipped before either score.
 
-Auction dollars: take the players with a positive total z inside the rostered portion of the pool (`teams × roster spots` players, after replacement). Scale those positive values so they sum to `teams × budget`. A player at replacement is worth about $1, and the scaling is adjusted so the drafted money is conserved. The price step of Task 5 writes down the exact scaling after it is checked against a small hand-computed example.
+**Plain.** `total z = sum of category z-scores`.
 
-Players with a non-positive total are worth $0 to $1. They are not targets.
+**Curved.** Each category z is passed through `tanh(z / 2)`, which stays between −1 and 1. The first spread away from the average still adds a lot. Further spreads add less. `curved total = sum of those curved category scores`.
+
+Ranking keeps both. Each score orders the projected players, so there are two ranks. League scoring and pricing each keep both as well: two league totals, and two prices. The dollar scale is the same idea for each total. The price step writes down the exact scaling after a small hand-computed example.
+
+Auction dollars, for a total: take the players with a positive total inside the rostered portion of the priced group (`teams × roster spots` players, after replacement). Scale those positive values so they sum to `teams × budget`. A player at replacement is worth about $1, and the scaling is adjusted so the drafted money is conserved. Players with a non-positive total are worth $0 to $1. They are not targets.
 
 ### Punt
 
-Drop the punted categories from `total z`. Recompute the dollar scaling on the new totals. Do not take the base price and subtract a column after the fact. One or two categories. Zero categories leaves the base list unchanged.
+Drop the punted categories from both totals. Recompute both dollar scales on the new totals. Do not take a base price and subtract a column after the fact. One or two categories. Zero categories leaves both base lists unchanged.
 
 ### Inflation (Task 13)
 
@@ -216,7 +220,6 @@ The writeups below stay as the generic approach until that conversation. Confirm
 
 Raise these before the task they affect. They do not change the text above until we decide.
 
-- **Before z-scores (Task 5).** Other ways to calculate z-scores. The method in section 4 stays until that conversation. The user will bring specific concerns then.
 - **Before the price list is shown.** Whether the player table includes season averages next to the scores.
 - **Later, after prices exist.** The user can merge two imported players who are the same person. New files can introduce more duplicates after the price list exists, so this does not have to happen before prices. A merge recalculates prices. How the merge and that recalculation work is decided with the feature. Known splits in the current inbox are Robert Williams, Jimmy Butler, Derrick Jones Jr., and Kelly Oubre Jr. The three starting aliases stay as they are.
 
@@ -292,12 +295,13 @@ Status: done. The user checked the screen and merged.
 Three parts, in order: our projection, z-scores, then prices. Punts wait.
 
 - Our projection is agreed. The rule is in section 4. It is calculated from the imported files, not stored.
-- Z-scores and the dollar scale are not settled yet. The price list shows the result once they are.
+- Ranking is agreed. Every projected player is scored against all of them, on the categories the league has turned on. The plain total is the sum of the category z-scores. The curved total passes each z through `tanh(z / 2)` and sums those. Each total has its own rank.
+- League scoring and pricing are not settled yet. Each will keep both types: two league totals, and two prices.
 - A small hand-computed example checks the formula apart from the full player list.
 
-Done when: the example matches the hand calculation, and the app shows a sorted price list from our projection.
+Done when: the example matches the hand calculation, and the app shows both ranks and, once pricing is in, both prices from our projection.
 
-Status: projection agreed. Z-scores next. No application code yet.
+Status: projection and the two ranking scores are agreed. League scoring next. No application code yet.
 
 ### Task 6 — Punts
 
