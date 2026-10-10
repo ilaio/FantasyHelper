@@ -1,10 +1,11 @@
-"""Home screen: the open league, then the imported player tables."""
+"""Home screen: the open league, the price table, then the imported player tables."""
 
 import streamlit as st
 
-from fantasyhelper.stats.inbox import import_inbox
+from fantasyhelper.stats.inbox import ImportReport, import_inbox
 from fantasyhelper.stats.store import Dataset, list_datasets, load_player_rows
 from fantasyhelper.ui.league import render_league
+from fantasyhelper.ui.prices import render_prices
 
 _SOURCE_LABELS = {
     "bonus": "Bonus",
@@ -100,13 +101,15 @@ def render() -> None:
     st.set_page_config(page_title="FantasyHelper", layout="wide")
     st.markdown(_LAYOUT, unsafe_allow_html=True)
     st.title("FantasyHelper")
-    render_league()
-    _render_datasets()
-
-
-def _render_datasets() -> None:
-    st.subheader("Players")
+    league = render_league()
     report = import_inbox()
+    if league is not None:
+        render_prices(league)
+    _render_datasets(report)
+
+
+def _render_datasets(report: ImportReport) -> None:
+    st.subheader("Players")
     if report.imported:
         st.success("  \n".join(report.imported))
     for message in report.refused:

@@ -23,11 +23,11 @@ from fantasyhelper.leagues.league import (
 )
 
 
-def render_league() -> None:
+def render_league() -> League | None:
     leagues = list_leagues()
     if not leagues:
         _render_empty()
-        return
+        return None
 
     ids = [league.id for league in leagues]
     _prepare_open(ids)
@@ -54,6 +54,7 @@ def render_league() -> None:
                 _create_dialog()
         with switch:
             _switch_league(leagues)
+    return league
 
 
 def _render_empty() -> None:

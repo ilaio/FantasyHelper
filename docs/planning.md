@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: Task 5 agreed, ready for code. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 5 implemented, waiting for the user’s check. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -313,7 +313,7 @@ Three parts, in order: our projection, z-scores, then prices. Punts wait.
 
 Done when: the example matches the hand calculation, and the app shows the table from our projection for the open league.
 
-Status: agreed. No application code yet.
+Status: implemented. Waiting for the user to run the hand check and open the price table. The score math uses the standard library.
 
 ### Task 6 — Punts
 
