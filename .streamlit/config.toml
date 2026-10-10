@@ -1,2 +1,19 @@
 [browser]
 gatherUsageStats = false
+
+[theme]
+base = "light"
+backgroundColor = "#E8E8E8"
+secondaryBackgroundColor = "#F4F4F4"
+textColor = "#000000"
+borderColor = "#6E6E6E"
+dataframeBorderColor = "#6E6E6E"
+showWidgetBorder = true
+
+[theme.dark]
+backgroundColor = "#E8E8E8"
+secondaryBackgroundColor = "#F4F4F4"
+textColor = "#000000"
+borderColor = "#6E6E6E"
+dataframeBorderColor = "#6E6E6E"
+showWidgetBorder = true

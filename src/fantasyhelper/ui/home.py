@@ -1,9 +1,10 @@
-"""Home screen shown before a league exists."""
+"""Home screen: the open league, then the imported player tables."""
 
 import streamlit as st
 
 from fantasyhelper.stats.inbox import import_inbox
 from fantasyhelper.stats.store import Dataset, list_datasets, load_player_rows
+from fantasyhelper.ui.league import render_league
 
 _SOURCE_LABELS = {
     "bonus": "Bonus",
@@ -65,10 +66,46 @@ _RATE_LABELS = (
 )
 
 
-def render() -> None:
-    st.title("FantasyHelper")
-    st.write("No league is loaded yet.")
+_LAYOUT = """
+<style>
+[data-testid="stMainBlockContainer"],
+.block-container {
+    max-width: 100%;
+    padding-top: 1.25rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+}
+.league-name {
+    font-size: 1.4rem;
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 0;
+    color: #000000;
+}
+.league-details {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    margin: 0.2rem 0 0;
+    color: #000000;
+}
+div[data-testid="stCaptionContainer"] p {
+    font-size: 0.8rem;
+    color: #767676;
+}
+</style>
+"""
 
+
+def render() -> None:
+    st.set_page_config(page_title="FantasyHelper", layout="wide")
+    st.markdown(_LAYOUT, unsafe_allow_html=True)
+    st.title("FantasyHelper")
+    render_league()
+    _render_datasets()
+
+
+def _render_datasets() -> None:
+    st.subheader("Players")
     report = import_inbox()
     if report.imported:
         st.success("  \n".join(report.imported))
@@ -82,10 +119,14 @@ def render() -> None:
         return
 
     labels = {dataset.file_name: _dataset_label(dataset) for dataset in datasets}
+    names = [dataset.file_name for dataset in datasets]
+    if st.session_state.get("dataset") not in names:
+        st.session_state.pop("dataset", None)
     selected = st.selectbox(
         "Dataset",
-        [dataset.file_name for dataset in datasets],
+        names,
         format_func=labels.get,
+        key="dataset",
     )
     dataset = next(item for item in datasets if item.file_name == selected)
     rows = [_present_row(dataset.kind, row) for row in load_player_rows(dataset)]

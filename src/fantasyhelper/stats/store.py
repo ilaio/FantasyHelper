@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+from fantasyhelper.db import connect, project_root
+
 STATS_HEADER = (
     "name",
     "team",
@@ -123,26 +125,8 @@ class Dataset:
     source: str
 
 
-def project_root() -> Path:
-    """Repo root. This file is src/fantasyhelper/stats/store.py."""
-    return Path(__file__).resolve().parents[3]
-
-
-def database_path() -> Path:
-    return project_root() / "data" / "fantasyhelper.sqlite3"
-
-
 def inbox_directory() -> Path:
     return project_root() / "data" / "inbox"
-
-
-def connect() -> sqlite3.Connection:
-    path = database_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path, timeout=10, isolation_level=None)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
 
 
 def ensure_schema(conn: sqlite3.Connection) -> None:

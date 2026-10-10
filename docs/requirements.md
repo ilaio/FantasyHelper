@@ -27,7 +27,7 @@ They are a manager in a season-long rotisserie league that drafts by auction. Th
 
 What they do:
 
-- Set up the league once: budget, team count, roster size, categories, and the season.
+- Set up one or more leagues: name, budget, team count, roster size, categories, and the season. Open the league they are drafting.
 - Let the app import the prepared stat and projection files, then look through the imported players.
 - Choose one or two categories to punt, or choose none.
 - Enter their keepers and locked prices before the draft. Enter other teams’ keepers so those players leave the pool.
@@ -74,7 +74,7 @@ These are editable settings, with defaults that match a common public league. Th
 | Budget | $200 per team | Same reason. Keepers spend part of this before the draft starts. |
 | Roster spots | 13 | Drives spots remaining, max bid, and how many players are “drafted” in the value model. |
 | Categories | The standard 9 | The z-score uses only the categories the league scores. |
-| Season | The season being drafted | Chooses which prior season is the valuation baseline. |
+| Season | 2026-27 | Names the season being drafted. The price baseline stays the newer completed season. |
 | Punt categories | None until the user picks | 0, 1, or 2 categories. |
 
 Standard 9 categories:
@@ -106,7 +106,7 @@ Two kinds of files belong there:
 - One stats file per season, named `stats-<season>.csv`, such as `stats-2025-26.csv`. Counting stats in that file are season totals. Seasons older than the last two may be present. They are imported and can be selected on screen. Prices do not have to use them.
 - Any number of projection files for a season, named `projection-<season>-<source>.csv`, such as `projection-2026-27-bonus.csv`. Counting stats in that file are per game. A projection is for the season it names. When that season is over, those files can stay on disk and simply not be selected. The next season needs its own projection files.
 
-The newer saved season is the valuation baseline. An older saved season is available so a later price list can fall back to it when a player barely played. That fallback rule is decided with the price list, not during the import.
+The valuation baseline is the newer completed season, currently 2025-26. A stats file for the season in progress can be imported and browsed. It is not the baseline. That use waits with day-to-day features. An older completed season is available so a later price list can fall back to it when a player barely played. That fallback rule is decided with the price list, not during the import.
 
 A player is the same person across files when a normalized form of the name matches. The files do not share an id. The app builds that key when it creates a player and when it compares a new file with players it already has. The key turns accented letters into plain English letters, lowercases the name, removes periods and apostrophes, and turns spaces into hyphens. `Jokić` and `Jokic` meet. Deleting the accented letter instead would split them.
 
@@ -182,8 +182,10 @@ Auction prices drift from a model because the room spends faster or slower than 
 
 ### League setup
 
-- Create and edit one local league profile: name, season, team count, budget, roster size, active categories.
-- Save the profile on this machine.
+- Create, edit, and remove local leagues. One league is open during a visit.
+- Each league has a name, season, team count, budget, roster size, and active categories.
+- Save the leagues on this machine. Choosing a league or a dataset holds until the browser page is refreshed or the app stops. A browser refresh or a new visit starts on the first active league and the first dataset.
+- Removing a league hides it. That league’s draft entries stay.
 - Changing a setting that affects money or categories refreshes the price list.
 
 ### Prepared data
@@ -276,9 +278,10 @@ They cannot manage the season after the draft in this stage. That is a later sco
 These are product decisions, so implementation should follow them unless we change this file.
 
 - One local user. No accounts.
+- More than one league can be saved. One is open during a visit. That choice lasts until the app stops. Players and imported files are shared. Removing a league hides it and leaves its draft entries in place.
 - The app reads prepared files from `data/inbox/` and does not download them. The files are not committed.
 - One stats file per season. Several projection files per season are allowed. Older seasons may be imported and left unselected.
-- The newer saved season is the valuation baseline. An older season is available for a low-games fallback, decided with the price list.
+- The valuation baseline is the newer completed season, currently 2025-26. A file for the season in progress can be browsed and is not the baseline. An older completed season is available for a low-games fallback, decided with the price list.
 - Players are matched by a normalized name, plus a short alias list. The source files do not share an id.
 - Projection rank and dollars can be shown for comparison. They are not our prices. We do not build our own projection model in this stage.
 - Position text is stored and shown. The draft does not enforce position eligibility in this stage.

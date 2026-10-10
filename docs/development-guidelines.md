@@ -1,6 +1,6 @@
 # Development guidelines
 
-Status: Task 2. Living document. Add a rule when we learn one. Do not collect rules we are not willing to follow.
+Status: Task 4. Living document. Add a rule when we learn one. Do not collect rules we are not willing to follow.
 
 These guidelines keep the draft assistant small, testable, and aligned with `docs/requirements.md` and `docs/planning.md`.
 
@@ -49,20 +49,21 @@ Design the task so that check is enough. Avoid work that can only be verified by
 
 Pure functions for prices, max bid, inflation, and balance are preferred, because they can be checked with a small example that does not need the full UI. The planning file calls for those examples on the math tasks.
 
-A Streamlit control that writes state must survive a rerun and an app restart. If the only copy of a bid is in memory, the task is not done.
+A Streamlit control that writes a draft entry must survive a rerun and an app restart. If the only copy of a bid is in memory, the task is not done. Which league is open, and which dataset is on screen, last until the browser page is refreshed or the app stops.
 
 ## 5. Where code goes
 
 Follow the layout in the planning file.
 
-- `stats/` reads `data/inbox/` and writes SQLite. It does not decide what a player is worth.
+- `db/` opens the database. It does not own a table.
+- `stats/` reads `data/inbox/` and writes the player, season, projection, and import log tables. It does not decide what a player is worth.
 - `valuation/` turns stat tables into z-scores and prices. No Streamlit imports. No reading environment variables.
-- `draft/` applies keepers, sales, budget, nominations, and balance. It may call valuation. It does not render widgets.
+- `leagues/` creates the `leagues` table, and later keepers, sales, budget, nominations, and balance. It may call valuation. It does not render widgets.
 - `ui/` renders and forwards user actions. It is thin.
 
 The database holds inputs. Prices, money left, max bid, and balance are computed from those inputs when the screen loads.
 
-One league profile. One draft. Do not build a league switcher until the requirements say there is a second league.
+Several leagues can be saved. During a visit, one is open, held in the running app rather than on the league row. Players and imported files are shared. Hiding a league leaves its keepers, sales, and punts in the database.
 
 ## 6. Data and secrets
 
@@ -95,7 +96,7 @@ Empty states should say what to do next. Examples: no season loaded yet, no punt
 
 Errors from a bad entry (unknown player, price above max bid, a third punt category, a keeper who was already sold) should say what is wrong in plain language. Refuse the write.
 
-Visual design stays plain. No theme work unless a screen is hard to use.
+Visual design stays plain. The app is light gray with black text, darker gray borders, and a small margin at the sides. Notes are smaller and faded. Do not add further theme work unless a screen is hard to use.
 
 ## 9. Dependencies and configuration
 

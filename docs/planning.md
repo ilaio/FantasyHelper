@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: Task 2 done. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 4 implemented, waiting for the user’s check. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -11,9 +11,10 @@ FantasyHelper/
   app.py                 streamlit entry: streamlit run app.py
   src/fantasyhelper/
     ui/                  Streamlit screens
+    db/                  database path and connection
     valuation/           added with the price-list tasks
-    draft/               added with the draft tasks
-    stats/               reads data/inbox and writes SQLite
+    leagues/             leagues table; keepers and sales arrive later
+    stats/               reads data/inbox and writes the player tables
   data/                  local only, not committed
     inbox/               prepared stat and projection CSV files
     fantasyhelper.sqlite3
@@ -22,14 +23,14 @@ FantasyHelper/
   README.md              how to run the app locally
 ```
 
-The package lives at `src/fantasyhelper/`. `src` keeps the importable code separate from the README, docs, and database directory. The app is installed with `pip install -e .` so `app.py` can import `fantasyhelper` from that location. `valuation/` and `draft/` are created in the tasks that fill them. The `stats` package reads `data/inbox/` and writes SQLite. It is not named `data`, because `data/` at the repo root holds the inbox and the database. Turning a raw download into an inbox file happens outside the app.
+The package lives at `src/fantasyhelper/`. `src` keeps the importable code separate from the README, docs, and database directory. The app is installed with `pip install -e .` so `app.py` can import `fantasyhelper` from that location. `db/` opens the database and does not own a table. `valuation/` is created with the price-list tasks. `leagues/` creates the `leagues` table, and later the keepers, sales, and other facts that belong to a league. The `stats` package reads `data/inbox/` and writes the player tables. It is not named `data`, because `data/` at the repo root holds the inbox and the database. Turning a raw download into an inbox file happens outside the app.
 
 Responsibilities stay separated:
 
 - **Data** imports prepared files and stores them. It does not decide what a player is worth.
 - **Valuation** is pure calculation. Given a player table, league settings, and a punt, it returns prices. It does not know whether the user clicked a button.
-- **Draft** holds the league’s entered facts: settings, keepers, sales, money, spots. It asks valuation for prices.
-- **UI** collects input and displays results. It does not hide formulas in widget callbacks. If a number is on screen, a function in `valuation` or `draft` produced it, and that function can be checked without the UI.
+- **Leagues** holds the league’s entered facts: settings, keepers, sales, money, spots. It asks valuation for prices.
+- **UI** collects input and displays results. It does not hide formulas in widget callbacks. If a number is on screen, a function in `valuation` or `leagues` produced it, and that function can be checked without the UI.
 
 The database file is the memory of the app. Closing the window does not forget the draft.
 
@@ -37,7 +38,7 @@ The database file is the memory of the app. Closing the window does not forget t
 local CSV files  -->  SQLite  -->  valuation  -->  prices
                        ^              ^
                        |              |
-                  user entries     draft state (budget, roster, balance)
+                  user entries     league state (budget, roster, balance)
                        ^
                        |
                      Streamlit
@@ -57,7 +58,7 @@ One user, one machine, two kinds of rows: reference data (players, teams, stats)
 
 The draft assistant is a local working screen: settings, a table, a few inputs, a budget summary. Streamlit serves that with one process and one command.
 
-A separate React app and a FastAPI server would add a second runtime, a build step, and an API contract. That split pays off when there is a second client or a remote user. This stage has neither. Valuation and draft state will not import Streamlit, so a different interface can replace `ui/` later without rewriting prices or the database.
+A separate React app and a FastAPI server would add a second runtime, a build step, and an API contract. That split pays off when there is a second client or a remote user. This stage has neither. Valuation and leagues will not import Streamlit, so a different interface can replace `ui/` later without rewriting prices or the database.
 
 Streamlit’s usage statistics are turned off for this project in `.streamlit/config.toml` (`browser.gatherUsageStats = false`). Restart the app after changing that file.
 
@@ -116,11 +117,11 @@ Names can change when we create the schema. The contents should not grow beyond 
 
 **status_flags** — not created in Task 2. Inbox files have no injury column.
 
-**league** — one row: name, season, team count, budget, roster size, which categories are on, which are punted (0–2).
+**leagues** — many rows. `name` unique among active leagues, `season` (`2026-27`), `team_count`, `budget`, `roster_size`, one flag per scoring category, and `status` (`active` or `deleted`). The chooser loads active rows. Which league is open, and which dataset is showing, last until the browser page is refreshed or the app stops. A browser refresh or a new visit starts on the first active league and the first dataset. Punt flags arrive with Task 6. Removing a league sets `status` to `deleted`. Its keepers and sales stay.
 
-**keepers** — player, price or null, `mine` or `other`.
+**keepers** — belong to one league (`league_id`). Player, price or null, `mine` or `other`. They stay when the league is hidden.
 
-**sales** — ordered list: player, price, `mine` or `other`, time. Undo deletes the last row.
+**sales** — belong to one league (`league_id`). Ordered list: player, price, `mine` or `other`, time. Undo deletes the last row. They stay when the league is hidden.
 
 Derived facts are calculated, not stored: dollars left, spots left, max bid, z-scores, prices, inflation, category balance. Storing them would create a second source of truth that can drift from the inputs.
 
@@ -196,9 +197,7 @@ The writeups below stay as the generic approach until that conversation. Confirm
 
 Raise these before the task they affect. They do not change the text above until we decide.
 
-- **Before Task 3.** Whether a current-season file belongs in this draft stage, or waits for day-to-day features. It would be another local CSV, not an API refresh.
 - **Before the price list (Task 5).** When a player’s newer season has too few games, whether prices use the older season instead. Both seasons are stored either way.
-- **Before league setup (Task 4).** Whether the user can create more than one league with the settings we already have, including a demo league or a demo draft inside a league.
 - **Before the price list (Task 5).** Other ways to calculate z-scores. The method in section 4 stays until that conversation. The user will bring specific concerns then.
 - **Before the price list is shown.** Whether the player table includes season averages next to the scores.
 - **Later, after prices exist.** The user can merge two imported players who are the same person. New files can introduce more duplicates after the price list exists, so this does not have to happen before prices. A merge recalculates prices. How the merge and that recalculation work is decided with the feature. Known splits in the current inbox are Robert Williams, Jimmy Butler, Derrick Jones Jr., and Kelly Oubre Jr. The three starting aliases stay as they are.
@@ -245,15 +244,30 @@ Status: done. The user opened the app, selected the datasets, and checked SQLite
 
 ### Task 3 — Current-season refresh
 
-If this stage includes a current season, import another local CSV the same way as Task 2. There is no daily network refresh. If the file is absent, the two saved seasons remain available.
+Deferred. This draft stage prices from the newer completed season, currently 2025-26, and from the 2026-27 projections. A file for the season in progress belongs with day-to-day work. If that file is added to the inbox, Task 2 already imports it and it can be selected. It is not the valuation baseline.
 
-Done when: decided only if this task stays in the draft stage.
+Done when: the decision is written down. No application code.
+
+Status: deferred.
 
 ### Task 4 — League settings
 
-A screen to save the one league profile: name, season, teams, budget, roster size, and category toggles. Defaults from the requirements file.
+Agreed source and scope:
 
-Done when: the user can change a setting, restart the app, and see the same settings in the database.
+- Many leagues. Create, edit, and remove them. One league is open during a visit. Choosing a league or a dataset holds until the browser page is refreshed or the app stops. A browser refresh or a new visit starts on the first active league and the first dataset.
+- The open league is a compact header: the name, then the other settings in small type separated by " - ". Edit and create open a form over the screen. Remove asks in a confirmation over the screen. Switch league is a select. The form is not on the page otherwise.
+- Each league stores a name, season, teams, budget, roster size, and which of the 9 categories are on. The name is unique among active leagues. A new league starts as `My league`, `2026-27`, 12 teams, $200, 13 spots, and all 9 categories.
+- Season is the season being drafted, in the `YYYY-YY` shape. It does not change the 2025-26 price baseline.
+- Teams are a whole number from 2 to 30. Budget is whole dollars from 1 to 10000. Roster spots are a whole number from 1 to 30. At least one category stays on. A bad entry is refused and is not saved.
+- Punts wait. Saving does not calculate prices.
+- Players and imported files are shared. They are not copied per league.
+- Removing a league asks first. Its status becomes `deleted`, and it leaves the list. Keepers, sales, and punts stay. Removing the open league opens another active league. Removing the last active league returns the screen to “No league is loaded yet.” There is no list of deleted leagues and no undo.
+- A second league is how a demo draft is kept. There is no separate demo flag.
+- The player table stays on the screen.
+
+Done when: the user creates a league, changes a setting, restarts, and sees the same settings. The user creates a second league and switches to it; using the screen stays on that league and on the selected dataset. A browser refresh returns to the first active league and the first dataset. Removing a league leaves the row with status `deleted`. Removing the last active league returns to the empty state.
+
+Status: implemented. Waiting for the user to check the app and SQLite.
 
 ### Task 5 — Base price list
 
@@ -315,7 +329,7 @@ We do not need a large automated suite before there is logic. Once valuation and
 
 - **Percentage math.** Easy to z-score the raw percentage and overvalue low-volume shooters. The hand-computed example in Task 5 should include one low-volume shooter and one high-volume shooter.
 - **Off-by-one max bid.** The last roster spot may spend the final dollar. The formula in section 5 is the one to test.
-- **Preseason emptiness.** Current-season refresh must be allowed to succeed with no games.
+- **Preseason emptiness.** When a current-season file returns with day-to-day work, an empty season has to import cleanly. This stage does not use that file as the price baseline.
 - **CSV shape.** Task 2 imports the inbox files described in section 2. A file with a different header is refused instead of guessing columns.
 - **Name match.** Normalization plus the three starting aliases will miss other spellings. Those players import as separate people. Merging them is a later feature, and a merge recalculates prices. A key clash inside one file refuses that file.
 - **Streamlit reruns.** Widgets rerun the script often. Draft writes must be idempotent: saving the same sale twice must not double-charge. The database is the source of truth, not widget state.
