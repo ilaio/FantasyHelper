@@ -5,6 +5,7 @@ import unittest
 from fantasyhelper.ui.prices import (
     _row_colors,
     column_alignment,
+    price_format,
     shot_text,
     strength_color,
     table_columns,
@@ -41,6 +42,9 @@ class ColorTests(unittest.TestCase):
         self.assertEqual(columns[-2:], ["Z Score", "C Score"])
         self.assertEqual(column_alignment("Name"), "left")
         self.assertTrue(all(column_alignment(name) == "center" for name in columns[1:]))
+        self.assertEqual(price_format("Z Price"), "$%d")
+        self.assertEqual(price_format("C Price"), "$%d")
+        self.assertIsNone(price_format("Z Rank"))
 
     def test_usage_and_category_colors(self) -> None:
         row = PriceRow(

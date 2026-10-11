@@ -65,10 +65,7 @@ def render_prices(league: League) -> None:
     st.dataframe(
         _styled(frame, table.rows, settings.categories),
         hide_index=True,
-        column_config={
-            name: st.column_config.Column(alignment=column_alignment(name))
-            for name in frame.columns
-        },
+        column_config={name: _column_config(name) for name in frame.columns},
     )
 
 
@@ -100,6 +97,23 @@ def column_alignment(name: str) -> str:
     if name == "Name":
         return "left"
     return "center"
+
+
+def price_format(name: str) -> str | None:
+    """Z Price and C Price show a dollar sign. The value stays a whole number."""
+    if name in ("Z Price", "C Price"):
+        return "$%d"
+    return None
+
+
+def _column_config(name: str) -> dict:
+    number_format = price_format(name)
+    if number_format is not None:
+        return st.column_config.NumberColumn(
+            alignment=column_alignment(name),
+            format=number_format,
+        )
+    return st.column_config.Column(alignment=column_alignment(name))
 
 
 def table_columns(active: frozenset[str]) -> list[str]:
