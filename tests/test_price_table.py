@@ -31,7 +31,8 @@ class ColorTests(unittest.TestCase):
         columns = table_columns(active)
         self.assertNotIn("FG% / FGA", columns)
         self.assertEqual(columns[7], "FT% / FTA")
-        self.assertEqual(columns[-2:], ["Plain score", "Curved score"])
+        self.assertEqual(columns[:5], ["Name", "Z Rank", "Z Price", "C Rank", "C Price"])
+        self.assertEqual(columns[-2:], ["Z Score", "C Score"])
 
     def test_usage_and_category_colors(self) -> None:
         row = PriceRow(

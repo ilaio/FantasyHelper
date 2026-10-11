@@ -31,8 +31,8 @@ _STAT_COLUMNS = (
     ("blk", "Blocks"),
     ("to", "Turnovers"),
 )
-_LEAD = ("Name", "Plain rank", "Plain price", "Curved rank", "Curved price", "Games", "Minutes")
-_TOTALS = ("Plain score", "Curved score")
+_LEAD = ("Name", "Z Rank", "Z Price", "C Rank", "C Price", "Games", "Minutes")
+_TOTALS = ("Z Score", "C Score")
 _GAMES_MARK = 60
 _MINUTES_MARK = 25
 
@@ -140,8 +140,8 @@ def _styled(
         "Steals": "{:.2f}",
         "Blocks": "{:.2f}",
         "Turnovers": "{:.1f}",
-        "Plain score": "{:.2f}",
-        "Curved score": "{:.2f}",
+        "Z Score": "{:.2f}",
+        "C Score": "{:.2f}",
     }
     present = {key: fmt for key, fmt in number_formats.items() if key in frame.columns}
     return frame.style.apply(paint, axis=None).format(present, na_rep="")
