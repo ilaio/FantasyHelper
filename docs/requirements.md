@@ -198,10 +198,9 @@ Auction prices drift from a model because the room spends faster or slower than 
 
 ### Price list
 
-- Two ranks and two base prices for the active categories, one plain and one curved, plus the projection and each category score, on one table sorted by the plain rank.
-- A punt control for zero, one, or two categories.
-- Two personal prices that reflect the punt, one for each total.
-- Rank and sort by personal price.
+- One price table sorted by the plain rank. Headers are Name, Z Rank, Z Price, C Rank, C Price, Games, Minutes, each active category, then Z Score and C Score. Z is the plain total and C is the curved total. Names stay on the left. Every other value is centered. Z Price and C Price show a dollar sign in front of the whole-dollar amount. Each column is as wide as its own header or values, and the table stops there. Each category's projection is colored by its plain z. FG% and FT% share a cell with their attempts. Games under 60 and minutes under 25 are marked. Positions are not shown.
+- One line above the table lists each category the league has turned on, with a switch. A switch starts on. Turning it off punts that category. A third off switch is refused. Turning the last switch off is refused. The choice is not saved.
+- With a punt, My Z Rank, My Z Price, My C Rank, and My C Price follow C Price. The table sorts by My Z Rank. The base ranks, prices, and score totals stay. The punted category stays on the table and its header is marked.
 - Exclude kept and drafted players from the available list.
 
 ### Keepers

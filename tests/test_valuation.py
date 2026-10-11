@@ -2,7 +2,7 @@
 
 import unittest
 
-from fantasyhelper.valuation.prices import assign_prices, build_price_table
+from fantasyhelper.valuation.prices import apply_punt, assign_prices, build_price_table
 from fantasyhelper.valuation.projection import (
     COUNTING,
     FileProjection,
@@ -202,6 +202,33 @@ class ScoreTests(unittest.TestCase):
         self.assertEqual(sum(prices), 20)
         roster_scores = [row.plain_score for row in table.rows[:12]]
         self.assertEqual(prices[:12], assign_prices(roster_scores, 20, paid_count=10))
+
+    def test_a_punt_drops_a_category_without_rescoring_it(self) -> None:
+        lines = [
+            ProjectionLine(1, "Star", 70, 30, 10, 2, 0.5, 0.8, _counting(pts=30, reb=4)),
+            ProjectionLine(2, "Board", 70, 30, 10, 2, 0.5, 0.8, _counting(pts=18, reb=10)),
+            ProjectionLine(3, "Weak", 70, 30, 10, 2, 0.5, 0.8, _counting(pts=6, reb=4)),
+        ]
+        base = build_price_table(lines, frozenset({"pts", "reb"}), 1, 4, 2)
+        untouched = apply_punt(base.rows, frozenset(), 1, 4, 2)
+        self.assertIsNone(untouched[0].personal_plain_rank)
+        self.assertEqual([row.name for row in untouched], [row.name for row in base.rows])
+
+        punted = apply_punt(base.rows, frozenset({"reb"}), 1, 4, 2)
+        by_base = {row.name: row for row in base.rows}
+        by_name = {row.name: row for row in punted}
+        self.assertEqual([row.name for row in punted], ["Star", "Board", "Weak"])
+        star = by_name["Star"]
+        self.assertEqual(star.plain_categories, by_base["Star"].plain_categories)
+        self.assertEqual(star.plain_score, by_base["Star"].plain_score)
+        self.assertEqual(star.plain_rank, by_base["Star"].plain_rank)
+        self.assertEqual(star.plain_price, by_base["Star"].plain_price)
+        self.assertEqual(star.personal_plain_rank, 1)
+        self.assertEqual(star.personal_plain_price, 3)
+        self.assertEqual(by_name["Board"].personal_plain_rank, 2)
+        self.assertEqual(by_name["Board"].personal_plain_price, 1)
+        self.assertEqual(by_name["Weak"].personal_plain_price, 0)
+        self.assertEqual(sum(row.personal_plain_price or 0 for row in punted), 4)
 
 
 if __name__ == "__main__":

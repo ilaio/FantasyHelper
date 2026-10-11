@@ -63,7 +63,7 @@ Follow the layout in the planning file.
 
 The database holds inputs. Prices, money left, max bid, and balance are computed from those inputs when the screen loads.
 
-Several leagues can be saved. During a visit, one is open, held in the running app rather than on the league row. Players and imported files are shared. Hiding a league leaves its keepers, sales, and punts in the database.
+Several leagues can be saved. During a visit, one is open, held in the running app rather than on the league row. Players and imported files are shared. Hiding a league leaves its keepers and sales in the database. A punt is not stored.
 
 ## 6. Data and secrets
 
@@ -96,7 +96,7 @@ Empty states should say what to do next. Examples: no season loaded yet, no punt
 
 Errors from a bad entry (unknown player, price above max bid, a third punt category, a keeper who was already sold) should say what is wrong in plain language. Refuse the write.
 
-Visual design stays plain. The app is light gray with black text, darker gray borders, and a small margin at the sides. Notes are smaller and faded. Do not add further theme work unless a screen is hard to use.
+Visual design stays plain. The app is light gray with black text, darker gray borders, gray switches, and a small margin at the sides. Notes are smaller and faded. Do not add further theme work unless a screen is hard to use.
 
 ## 9. Dependencies and configuration
 
@@ -106,7 +106,7 @@ Tools for this stage are free, widely used, and under our control. A tool has to
 
 Pin versions in the project dependency file once Task 1 creates it, so the user’s machine and later work install the same stack.
 
-Configuration that changes value (budget, categories, punt) is league data in SQLite. Configuration that changes the environment (API key, database path) is local config. Do not mix them.
+Configuration that changes value (budget, categories) is league data in SQLite. A punt is not saved yet. It lasts until the browser page is refreshed or the app stops. Configuration that changes the environment (API key, database path) is local config. Do not mix them.
 
 ## 10. Changing these documents
 

@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: Task 5 done. Next is Task 6, after the user merges. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 6 adds the punt control on the price table. A punt is not saved. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -117,7 +117,7 @@ Names can change when we create the schema. The contents should not grow beyond 
 
 **status_flags** — not created in Task 2. Inbox files have no injury column.
 
-**leagues** — many rows. `name` unique among active leagues, `season` (`2026-27`), `team_count`, `budget`, `roster_size`, one flag per scoring category, and `status` (`active` or `deleted`). The chooser loads active rows. Which league is open, and which dataset is showing, last until the browser page is refreshed or the app stops. A browser refresh or a new visit starts on the first active league and the first dataset. Punt flags arrive with Task 6. Removing a league sets `status` to `deleted`. Its keepers and sales stay.
+**leagues** — many rows. `name` unique among active leagues, `season` (`2026-27`), `team_count`, `budget`, `roster_size`, one flag per scoring category, and `status` (`active` or `deleted`). The chooser loads active rows. Which league is open, and which dataset is showing, last until the browser page is refreshed or the app stops. A browser refresh or a new visit starts on the first active league and the first dataset. A punt is not stored on the league. Removing a league sets `status` to `deleted`. Its keepers and sales stay.
 
 **keepers** — belong to one league (`league_id`). Player, price or null, `mine` or `other`. They stay when the league is hidden.
 
@@ -194,9 +194,23 @@ A player’s gap is that player’s total minus the total of the first player be
 
 Dollars left by rounding go one each to the highest ranks of the paid group, starting at rank 1, until the leftover is gone. Rank 1 does not receive a second extra dollar while a lower paid rank received none. A player who is staying at $1 does not receive one. If every paid total is equal, every gap is 0 and the whole remainder is handed out this way. The prices add up to `teams × budget`.
 
+### Price table
+
+One table, sorted by the plain rank. The columns are Name, Z Rank, Z Price, C Rank, C Price, Games, Minutes, then the active categories, then Z Score and C Score. Z is the plain total and C is the curved total. Names stay on the left. Every other value is centered. Z Price and C Price show a dollar sign in front of the whole-dollar amount. Each column is as wide as its own header or values, and the table stops there. The category order is FG% with FGA, FT% with FTA, threes, points, rebounds, assists, steals, blocks, and turnovers. A category the league has turned off is omitted. Turning off FG% also omits FGA, and turning off FT% also omits FTA.
+
+FG% and FT% share a cell with their attempts. A blank percentage stays blank, and the attempts stay. The cell is colored from the plain category z, which already treats fewer turnovers as the good direction. A value on the edge takes the higher band: 2 and above is deep green, 1 to 2 is green, 0 to 1 is light green, −0.75 to 0 is light red, −1.5 to −0.75 is red, and below −1.5 is deep red. Games under 60 and minutes under 25 are yellow. 60 and 25 are not.
+
+Positions are not on the table.
+
 ### Punt
 
-Drop the punted categories from both totals. Recompute both dollar scales on the new totals. Do not take a base price and subtract a column after the fact. One or two categories. Zero categories leaves both base lists unchanged.
+A punt is not saved. It lasts until the browser page is refreshed or the app stops.
+
+One line above the price table lists each category the league has turned on, with a switch. A switch starts on. Turning it off punts that category. A third off switch is refused. Turning the last switch off is refused.
+
+With every switch on, the table is unchanged.
+
+With a punt, four columns follow C Price: My Z Rank, My Z Price, My C Rank, and My C Price. The table sorts by My Z Rank. Z Rank, Z Price, C Rank, C Price, Z Score, and C Score stay the base numbers. The personal numbers use the same price rule, with the punted categories left out of both totals. Category z-scores are not recomputed. The colored projection stays, including a punted category, and that column's header is marked as a punt.
 
 ### Inflation (Task 13)
 
@@ -232,7 +246,7 @@ Raise these before the task they affect. They do not change the text above until
 
 - **Later, when a new file splits a player the alias list does not already join.** The user can merge two imported players who are the same person. A merge recalculates prices. How the merge and that recalculation work is decided with the feature.
 - **Before next season.** The price list reads three fixed seasons: projections `2026-27`, last season `2025-26`, and the season before `2024-25`. Those years are written in the projection code and again in the query that loads the rows. The league season field does not move them. Next season the three years have to move together. Leave them fixed until that task.
-- **Later, the price table display.** The calculations are settled. The one wide table is hard to read. A later task decides a clearer display. It does not change the prices.
+- **Later, positions on the price table.** The projection files often disagree on a single position. The price table leaves positions off until that is settled.
 
 ### Task 0 — Preparation files
 
@@ -315,9 +329,11 @@ Status: done. The user checked the price table and is merging. The score math us
 
 ### Task 6 — Punts
 
-Add the 0–2 category punt control. Recompute prices the way section 4 describes. Show base price and personal price.
+The punt control is on the price table and is not saved. The rules are in section 4.
 
-Done when: choosing no punt matches Task 5, punting one category moves specialists in that category down the personal list, and a second punt is allowed while a third is refused.
+Done when: choosing no punt matches the base table, punting one category moves a specialist in that category down My Z Rank, a second punt is allowed, a third is refused, and a punt that would leave no categories is refused.
+
+Status: in the app. The user has not checked it yet.
 
 ### Task 7 — Keepers
 
