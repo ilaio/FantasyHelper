@@ -196,7 +196,7 @@ Dollars left by rounding go one each to the highest ranks of the paid group, sta
 
 ### Price table
 
-One table, sorted by the plain rank. The columns are Name, Z Rank, Z Price, C Rank, C Price, Games, Minutes, then the active categories, then Z Score and C Score. Z is the plain total and C is the curved total. The category order is FG% with FGA, FT% with FTA, threes, points, rebounds, assists, steals, blocks, and turnovers. A category the league has turned off is omitted. Turning off FG% also omits FGA, and turning off FT% also omits FTA.
+One table, sorted by the plain rank. The columns are Name, Z Rank, Z Price, C Rank, C Price, Games, Minutes, then the active categories, then Z Score and C Score. Z is the plain total and C is the curved total. Names stay on the left. Every other value is centered. The category order is FG% with FGA, FT% with FTA, threes, points, rebounds, assists, steals, blocks, and turnovers. A category the league has turned off is omitted. Turning off FG% also omits FGA, and turning off FT% also omits FTA.
 
 FG% and FT% share a cell with their attempts. A blank percentage stays blank, and the attempts stay. The cell is colored from the plain category z, which already treats fewer turnovers as the good direction. A value on the edge takes the higher band: 2 and above is deep green, 1 to 2 is green, 0 to 1 is light green, −0.75 to 0 is light red, −1.5 to −0.75 is red, and below −1.5 is deep red. Games under 60 and minutes under 25 are yellow. 60 and 25 are not.
 

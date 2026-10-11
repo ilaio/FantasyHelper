@@ -2,7 +2,13 @@
 
 import unittest
 
-from fantasyhelper.ui.prices import _row_colors, shot_text, strength_color, table_columns
+from fantasyhelper.ui.prices import (
+    _row_colors,
+    column_alignment,
+    shot_text,
+    strength_color,
+    table_columns,
+)
 from fantasyhelper.valuation.prices import PriceRow
 
 _DEEP_GREEN = "background-color: #8FCB9B"
@@ -33,6 +39,8 @@ class ColorTests(unittest.TestCase):
         self.assertEqual(columns[7], "FT% / FTA")
         self.assertEqual(columns[:5], ["Name", "Z Rank", "Z Price", "C Rank", "C Price"])
         self.assertEqual(columns[-2:], ["Z Score", "C Score"])
+        self.assertEqual(column_alignment("Name"), "left")
+        self.assertTrue(all(column_alignment(name) == "center" for name in columns[1:]))
 
     def test_usage_and_category_colors(self) -> None:
         row = PriceRow(

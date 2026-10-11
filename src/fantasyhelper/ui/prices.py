@@ -62,7 +62,14 @@ def render_prices(league: League) -> None:
         "Games under 60 and minutes under 25 are yellow."
     )
     frame = _frame(table.rows, settings.categories)
-    st.dataframe(_styled(frame, table.rows, settings.categories), hide_index=True)
+    st.dataframe(
+        _styled(frame, table.rows, settings.categories),
+        hide_index=True,
+        column_config={
+            name: st.column_config.Column(alignment=column_alignment(name))
+            for name in frame.columns
+        },
+    )
 
 
 def strength_color(z: float) -> str:
@@ -86,6 +93,13 @@ def shot_text(pct: float | None, attempts: float) -> str:
     if pct is None:
         return f"— / {attempts_text}"
     return f"{pct * 100:.1f}% / {attempts_text}"
+
+
+def column_alignment(name: str) -> str:
+    """Name stays on the left. Every other value is centered."""
+    if name == "Name":
+        return "left"
+    return "center"
 
 
 def table_columns(active: frozenset[str]) -> list[str]:
