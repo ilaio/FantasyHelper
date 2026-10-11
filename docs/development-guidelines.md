@@ -96,7 +96,7 @@ Empty states should say what to do next. Examples: no season loaded yet, no punt
 
 Errors from a bad entry (unknown player, price above max bid, a third punt category, a keeper who was already sold) should say what is wrong in plain language. Refuse the write.
 
-Visual design stays plain. The app is light gray with black text, darker gray borders, and a small margin at the sides. Notes are smaller and faded. Do not add further theme work unless a screen is hard to use.
+Visual design stays plain. The app is light gray with black text, darker gray borders, gray switches, and a small margin at the sides. Notes are smaller and faded. Do not add further theme work unless a screen is hard to use.
 
 ## 9. Dependencies and configuration
 
