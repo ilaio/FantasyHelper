@@ -7,7 +7,7 @@ import streamlit as st
 
 from fantasyhelper.leagues.league import League
 from fantasyhelper.stats.store import load_baseline_rows
-from fantasyhelper.valuation.prices import PriceRow, build_price_table
+from fantasyhelper.valuation.prices import PriceRow, apply_punt, build_price_table
 from fantasyhelper.valuation.projection import lines_from_rows
 
 # Plain z bands. A value on the edge takes the higher band.
@@ -31,10 +31,14 @@ _STAT_COLUMNS = (
     ("blk", "Blocks"),
     ("to", "Turnovers"),
 )
-_LEAD = ("Name", "Z Rank", "Z Price", "C Rank", "C Price", "Games", "Minutes")
+_IDENTITY = ("Name", "Z Rank", "Z Price", "C Rank", "C Price")
+_PERSONAL = ("My Z Rank", "My Z Price", "My C Rank", "My C Price")
+_USAGE = ("Games", "Minutes")
 _TOTALS = ("Z Score", "C Score")
+_PUNT_MARK = " (punt)"
 _GAMES_MARK = 60
 _MINUTES_MARK = 25
+_PUNT_LIMIT = 2
 
 
 def render_prices(league: League) -> None:
@@ -54,6 +58,14 @@ def render_prices(league: League) -> None:
     if not table.rows:
         st.write("No players are in the projection yet.")
         return
+    punted = _selected_punts(league.id, settings.categories)
+    rows = apply_punt(
+        table.rows,
+        punted,
+        settings.team_count,
+        settings.budget,
+        settings.roster_size,
+    )
     st.caption(
         "Ranks and scores use every projected player. "
         "Extra money above $1 goes to the top 10 players per team. "
@@ -61,10 +73,11 @@ def render_prices(league: League) -> None:
         "Green is above the average and red is below it. "
         "Games under 60 and minutes under 25 are yellow."
     )
-    frame = _frame(table.rows, settings.categories)
+    frame = _frame(rows, settings.categories, punted)
     st.dataframe(
-        _styled(frame, table.rows, settings.categories),
+        _styled(frame, rows, settings.categories, punted),
         hide_index=True,
+        width="content",
         column_config={name: _column_config(name) for name in frame.columns},
     )
 
@@ -100,10 +113,24 @@ def column_alignment(name: str) -> str:
 
 
 def price_format(name: str) -> str | None:
-    """Z Price and C Price show a dollar sign. The value stays a whole number."""
-    if name in ("Z Price", "C Price"):
+    """Price columns show a dollar sign. The value stays a whole number."""
+    if name in ("Z Price", "C Price", "My Z Price", "My C Price"):
         return "$%d"
     return None
+
+
+def punt_limit(active_count: int) -> int:
+    """At most two categories, and at least one category stays on."""
+    if active_count <= 1:
+        return 0
+    return min(_PUNT_LIMIT, active_count - 1)
+
+
+def column_label(label: str, punted: bool) -> str:
+    """A punted category keeps its column, and the header says so."""
+    if punted:
+        return f"{label}{_PUNT_MARK}"
+    return label
 
 
 def _column_config(name: str) -> dict:
@@ -116,25 +143,60 @@ def _column_config(name: str) -> dict:
     return st.column_config.Column(alignment=column_alignment(name))
 
 
-def table_columns(active: frozenset[str]) -> list[str]:
-    stats = [label for key, label in _STAT_COLUMNS if key in active]
-    return [*_LEAD, *stats, *_TOTALS]
+def table_columns(active: frozenset[str], punted: frozenset[str] = frozenset()) -> list[str]:
+    lead = list(_IDENTITY)
+    if punted:
+        lead.extend(_PERSONAL)
+    lead.extend(_USAGE)
+    stats = [
+        column_label(label, key in punted) for key, label in _STAT_COLUMNS if key in active
+    ]
+    return [*lead, *stats, *_TOTALS]
 
 
-def _frame(rows: tuple[PriceRow, ...], active: frozenset[str]) -> pd.DataFrame:
-    return pd.DataFrame([_values(row, active) for row in rows], columns=table_columns(active))
+def _selected_punts(league_id: int, active: frozenset[str]) -> frozenset[str]:
+    limit = punt_limit(len(active))
+    if limit == 0:
+        return frozenset()
+    options = [(key, label) for key, label in _STAT_COLUMNS if key in active]
+    labels = [label for _key, label in options]
+    by_label = {label: key for key, label in options}
+    state_key = f"punt-{league_id}"
+    stored = st.session_state.get(state_key, [])
+    valid = [label for label in stored if label in by_label][:limit]
+    if state_key in st.session_state and valid != list(stored):
+        st.session_state[state_key] = valid
+    chosen = st.multiselect("Punt", labels, max_selections=limit, placeholder="None", key=state_key)
+    return frozenset(by_label[label] for label in chosen)
 
 
-def _values(row: PriceRow, active: frozenset[str]) -> list[object]:
+def _frame(
+    rows: tuple[PriceRow, ...],
+    active: frozenset[str],
+    punted: frozenset[str],
+) -> pd.DataFrame:
+    columns = table_columns(active, punted)
+    return pd.DataFrame([_values(row, active, punted) for row in rows], columns=columns)
+
+
+def _values(row: PriceRow, active: frozenset[str], punted: frozenset[str]) -> list[object]:
     values: list[object] = [
         row.name,
         row.plain_rank,
         row.plain_price,
         row.curved_rank,
         row.curved_price,
-        row.games,
-        row.minutes_per_game,
     ]
+    if punted:
+        values.extend(
+            (
+                row.personal_plain_rank,
+                row.personal_plain_price,
+                row.personal_curved_rank,
+                row.personal_curved_price,
+            )
+        )
+    values.extend((row.games, row.minutes_per_game))
     for key, _label in _STAT_COLUMNS:
         if key not in active:
             continue
@@ -148,12 +210,25 @@ def _values(row: PriceRow, active: frozenset[str]) -> list[object]:
     return values
 
 
+_RATE_FORMATS = {
+    "Threes": "{:.1f}",
+    "Points": "{:.1f}",
+    "Rebounds": "{:.1f}",
+    "Assists": "{:.1f}",
+    "Steals": "{:.2f}",
+    "Blocks": "{:.2f}",
+    "Turnovers": "{:.1f}",
+}
+
+
 def _styled(
     frame: pd.DataFrame,
     rows: tuple[PriceRow, ...],
     active: frozenset[str],
+    punted: frozenset[str],
 ) -> pd.io.formats.style.Styler:
-    colors = [_row_colors(row, active, list(frame.columns)) for row in rows]
+    columns = list(frame.columns)
+    colors = [_row_colors(row, active, punted, columns) for row in rows]
 
     def paint(_frame: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame(colors, index=_frame.index, columns=_frame.columns)
@@ -161,21 +236,23 @@ def _styled(
     number_formats = {
         "Games": "{:.1f}",
         "Minutes": "{:.1f}",
-        "Threes": "{:.1f}",
-        "Points": "{:.1f}",
-        "Rebounds": "{:.1f}",
-        "Assists": "{:.1f}",
-        "Steals": "{:.2f}",
-        "Blocks": "{:.2f}",
-        "Turnovers": "{:.1f}",
         "Z Score": "{:.2f}",
         "C Score": "{:.2f}",
     }
+    for column in columns:
+        base = column.removesuffix(_PUNT_MARK)
+        if base in _RATE_FORMATS:
+            number_formats[column] = _RATE_FORMATS[base]
     present = {key: fmt for key, fmt in number_formats.items() if key in frame.columns}
     return frame.style.apply(paint, axis=None).format(present, na_rep="")
 
 
-def _row_colors(row: PriceRow, active: frozenset[str], columns: list[str]) -> list[str]:
+def _row_colors(
+    row: PriceRow,
+    active: frozenset[str],
+    punted: frozenset[str],
+    columns: list[str],
+) -> list[str]:
     colors = {column: "" for column in columns}
     if row.games < _GAMES_MARK:
         colors["Games"] = _YELLOW
@@ -186,5 +263,5 @@ def _row_colors(row: PriceRow, active: frozenset[str], columns: list[str]) -> li
             continue
         z = row.plain_categories[key]
         if z is not None:
-            colors[label] = strength_color(z)
+            colors[column_label(label, key in punted)] = strength_color(z)
     return [colors[column] for column in columns]

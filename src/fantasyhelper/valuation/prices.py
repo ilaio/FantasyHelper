@@ -1,7 +1,7 @@
 """Ranks and prices from projection lines. Both results are calculated."""
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from fantasyhelper.valuation.projection import ProjectionLine
 
@@ -32,6 +32,10 @@ class PriceRow:
     counting: dict[str, float]
     plain_categories: dict[str, float | None]
     curved_categories: dict[str, float | None]
+    personal_plain_rank: int | None = None
+    personal_plain_price: int | None = None
+    personal_curved_rank: int | None = None
+    personal_curved_price: int | None = None
 
 
 @dataclass(frozen=True)
@@ -90,6 +94,47 @@ def build_price_table(
     ]
     rows.sort(key=lambda item: item.plain_rank)
     return PriceTable(rows=tuple(rows), error=None)
+
+
+def apply_punt(
+    rows: tuple[PriceRow, ...],
+    punted: frozenset[str],
+    team_count: int,
+    budget: int,
+    roster_size: int,
+) -> tuple[PriceRow, ...]:
+    """Rank and price again with the punted categories left out of both totals.
+
+    Category z-scores stay as they are. An empty punt returns the base rows.
+    """
+    if not punted:
+        return rows
+    plain_totals = [_kept_total(row.plain_categories, punted) for row in rows]
+    curved_totals = [_kept_total(row.curved_categories, punted) for row in rows]
+    plain_order = _order_named(rows, plain_totals)
+    curved_order = _order_named(rows, curved_totals)
+    pool_size = team_count * roster_size
+    total_budget = team_count * budget
+    plain_prices = _prices_named(
+        rows, plain_order, plain_totals, pool_size, total_budget, team_count
+    )
+    curved_prices = _prices_named(
+        rows, curved_order, curved_totals, pool_size, total_budget, team_count
+    )
+    plain_rank = _ranks(plain_order)
+    curved_rank = _ranks(curved_order)
+    updated = [
+        replace(
+            row,
+            personal_plain_rank=plain_rank[index],
+            personal_plain_price=plain_prices[row.player_id],
+            personal_curved_rank=curved_rank[index],
+            personal_curved_price=curved_prices[row.player_id],
+        )
+        for index, row in enumerate(rows)
+    ]
+    updated.sort(key=lambda item: item.personal_plain_rank or 0)
+    return tuple(updated)
 
 
 def assign_prices(
@@ -227,6 +272,33 @@ def _z_scores(values: list[float | None]) -> list[float | None]:
 
 def _total(parts: dict[str, float | None]) -> float:
     return sum(value for value in parts.values() if value is not None)
+
+
+def _kept_total(parts: dict[str, float | None], punted: frozenset[str]) -> float:
+    return sum(value for key, value in parts.items() if key not in punted and value is not None)
+
+
+def _order_named(rows: tuple[PriceRow, ...], totals: list[float]) -> list[int]:
+    indexes = list(range(len(rows)))
+    indexes.sort(key=lambda index: (-totals[index], rows[index].name.casefold(), rows[index].name))
+    return indexes
+
+
+def _prices_named(
+    rows: tuple[PriceRow, ...],
+    order: list[int],
+    totals: list[float],
+    pool_size: int,
+    total_budget: int,
+    team_count: int,
+) -> dict[int, int]:
+    chosen = order[:pool_size]
+    scores = [totals[index] for index in chosen]
+    priced = assign_prices(scores, total_budget, paid_count=_PAID_PER_TEAM * team_count)
+    prices = {row.player_id: 0 for row in rows}
+    for index, price in zip(chosen, priced):
+        prices[rows[index].player_id] = price
+    return prices
 
 
 def _order(lines: list[ProjectionLine], totals: list[float]) -> list[int]:

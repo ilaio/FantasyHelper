@@ -63,7 +63,7 @@ Follow the layout in the planning file.
 
 The database holds inputs. Prices, money left, max bid, and balance are computed from those inputs when the screen loads.
 
-Several leagues can be saved. During a visit, one is open, held in the running app rather than on the league row. Players and imported files are shared. Hiding a league leaves its keepers, sales, and punts in the database.
+Several leagues can be saved. During a visit, one is open, held in the running app rather than on the league row. Players and imported files are shared. Hiding a league leaves its keepers and sales in the database. A punt is not stored.
 
 ## 6. Data and secrets
 
@@ -106,7 +106,7 @@ Tools for this stage are free, widely used, and under our control. A tool has to
 
 Pin versions in the project dependency file once Task 1 creates it, so the user’s machine and later work install the same stack.
 
-Configuration that changes value (budget, categories, punt) is league data in SQLite. Configuration that changes the environment (API key, database path) is local config. Do not mix them.
+Configuration that changes value (budget, categories) is league data in SQLite. A punt is not saved yet. It lasts until the browser page is refreshed or the app stops. Configuration that changes the environment (API key, database path) is local config. Do not mix them.
 
 ## 10. Changing these documents
 

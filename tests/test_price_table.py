@@ -5,7 +5,9 @@ import unittest
 from fantasyhelper.ui.prices import (
     _row_colors,
     column_alignment,
+    column_label,
     price_format,
+    punt_limit,
     shot_text,
     strength_color,
     table_columns,
@@ -44,7 +46,24 @@ class ColorTests(unittest.TestCase):
         self.assertTrue(all(column_alignment(name) == "center" for name in columns[1:]))
         self.assertEqual(price_format("Z Price"), "$%d")
         self.assertEqual(price_format("C Price"), "$%d")
+        self.assertEqual(price_format("My Z Price"), "$%d")
+        self.assertEqual(price_format("My C Price"), "$%d")
         self.assertIsNone(price_format("Z Rank"))
+        self.assertEqual(punt_limit(9), 2)
+        self.assertEqual(punt_limit(2), 1)
+        self.assertEqual(punt_limit(1), 0)
+
+    def test_a_punt_adds_personal_columns_and_marks_the_header(self) -> None:
+        active = frozenset({"pts", "reb", "blk"})
+        columns = table_columns(active, frozenset({"blk"}))
+        self.assertEqual(
+            columns[:9],
+            ["Name", "Z Rank", "Z Price", "C Rank", "C Price", "My Z Rank", "My Z Price", "My C Rank", "My C Price"],
+        )
+        self.assertEqual(columns[9:11], ["Games", "Minutes"])
+        self.assertIn("Blocks (punt)", columns)
+        self.assertNotIn("Blocks", columns)
+        self.assertEqual(column_label("Blocks", False), "Blocks")
 
     def test_usage_and_category_colors(self) -> None:
         row = PriceRow(
@@ -78,12 +97,15 @@ class ColorTests(unittest.TestCase):
         )
         active = frozenset(row.plain_categories)
         columns = table_columns(active)
-        colors = dict(zip(columns, _row_colors(row, active, columns)))
+        colors = dict(zip(columns, _row_colors(row, active, frozenset(), columns)))
+        punt_columns = table_columns(active, frozenset({"blk"}))
+        punt_colors = dict(zip(punt_columns, _row_colors(row, active, frozenset({"blk"}), punt_columns)))
         self.assertEqual(colors["Games"], "background-color: #F8E7A0")
         self.assertEqual(colors["Minutes"], "")
         self.assertEqual(colors["FG% / FGA"], "")
         self.assertEqual(colors["Points"], _DEEP_GREEN)
         self.assertEqual(colors["Turnovers"], _LIGHT_GREEN)
+        self.assertEqual(punt_colors["Blocks (punt)"], _DEEP_RED)
 
 
 if __name__ == "__main__":
