@@ -105,7 +105,8 @@ def build_lines(players: list[PlayerSources]) -> list[ProjectionLine]:
 def project_player(player: PlayerSources) -> ProjectionLine | None:
     last = player.last_season if _played(player.last_season) else None
     files = player.projections
-    if not files and last is None:
+    long_last = last is not None and last.games > GAMES_LONG
+    if not files and not long_last:
         return None
     if files:
         games = _mean([item.games for item in files])

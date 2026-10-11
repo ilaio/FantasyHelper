@@ -81,15 +81,26 @@ class ProjectionTests(unittest.TestCase):
         player = PlayerSources(1, "Rookie", None, None, ())
         self.assertIsNone(project_player(player))
 
+    def test_a_short_last_season_without_a_projection_is_left_out(self) -> None:
+        for games in (10, 40):
+            player = PlayerSources(1, "Short", _totals(games, fg_pct=0.5), None, ())
+            self.assertIsNone(project_player(player))
+
     def test_last_season_is_used_when_no_projection_exists(self) -> None:
-        last = _totals(10, fg_pct=0.5)
-        player = PlayerSources(1, "Short", last, None, ())
+        last = _totals(41, fg_pct=0.5)
+        player = PlayerSources(1, "Regular", last, None, ())
         line = project_player(player)
         assert line is not None
-        self.assertEqual(line.games, 10)
+        self.assertEqual(line.games, 41)
         self.assertEqual(line.counting["pts"], 20)
-        self.assertIsNone(line.fg_pct)
-        self.assertIsNone(line.ft_pct)
+        self.assertEqual(line.fg_pct, 0.5)
+
+    def test_a_projection_keeps_a_player_who_barely_played(self) -> None:
+        files = (_file(points=11),)
+        player = PlayerSources(1, "Projected", _totals(10), None, files)
+        line = project_player(player)
+        assert line is not None
+        self.assertEqual(line.counting["pts"], 11)
 
     def test_usage_averages_the_projection_files(self) -> None:
         files = (_file(games=70, minutes=28), _file(games=80, minutes=32))

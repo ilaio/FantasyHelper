@@ -97,7 +97,7 @@ The match key is built in code. It is not a column in the file.
 
 A new key creates a player. The display name kept is the name from the file that created the player. A later file that matches the key adds rows and does not rename the player. The same key twice inside one file refuses that file.
 
-An alias list in the project maps an alternate key to the canonical key before the match. The starting aliases are `trey-murphy` to `trey-murphy-iii`, `alex-sarr` to `alexandre-sarr`, and `cam-johnson` to `cameron-johnson`. A player who still matches nothing is stored anyway.
+An alias list in the project maps an alternate key to the canonical key before the match. The aliases are `trey-murphy` to `trey-murphy-iii`, `alex-sarr` to `alexandre-sarr`, `cam-johnson` to `cameron-johnson`, `robert-williams` to `robert-williams-iii`, `jimmy-butler` to `jimmy-butler-iii`, `derrick-jones` to `derrick-jones-jr`, and `kelly-oubre` to `kelly-oubre-jr`. A player who still matches nothing is stored anyway.
 
 ### No hosting
 
@@ -135,7 +135,7 @@ One calculated line per player for the season being drafted. It is not stored. F
 
 Projection files are the 2026-27 files. Last season is 2025-26. The season before that is 2024-25. An average uses only the projection files that include the player. A blank percentage is left out of that average.
 
-A player on no projection file who has no 2025-26 row is left out. A 2025-26 row with no games played counts as not having played.
+A player is included when they are on at least one projection file, or when they played more than 40 games in 2025-26. A player on no projection file with 40 games or fewer last season is left out.
 
 More than 40 games means 41 or more. Last season’s per-game rates are the season total divided by games played. The minutes gap is the absolute difference between the projection’s minutes per game and last season’s minutes per game. A gap under 4.8 minutes is close.
 
@@ -234,7 +234,8 @@ The writeups below stay as the generic approach until that conversation. Confirm
 
 Raise these before the task they affect. They do not change the text above until we decide.
 
-- **Later, after prices exist.** The user can merge two imported players who are the same person. New files can introduce more duplicates after the price list exists, so this does not have to happen before prices. A merge recalculates prices. How the merge and that recalculation work is decided with the feature. Known splits in the current inbox are Robert Williams, Jimmy Butler, Derrick Jones Jr., and Kelly Oubre Jr. The three starting aliases stay as they are.
+- **Later, when a new file splits a player the alias list does not already join.** The user can merge two imported players who are the same person. A merge recalculates prices. How the merge and that recalculation work is decided with the feature.
+- **Before next season.** The price list reads three fixed seasons: projections `2026-27`, last season `2025-26`, and the season before `2024-25`. Those years are written in the projection code and again in the query that loads the rows. The league season field does not move them. Next season the three years have to move together. Leave them fixed until that task.
 
 ### Task 0 — Preparation files
 
@@ -371,5 +372,5 @@ We do not need a large automated suite before there is logic. Once valuation and
 - **Off-by-one max bid.** The last roster spot may spend the final dollar. The formula in section 5 is the one to test.
 - **Preseason emptiness.** When a current-season file returns with day-to-day work, an empty season has to import cleanly. This stage does not use that file as the price baseline.
 - **CSV shape.** Task 2 imports the inbox files described in section 2. A file with a different header is refused instead of guessing columns.
-- **Name match.** Normalization plus the three starting aliases will miss other spellings. Those players import as separate people. Merging them is a later feature, and a merge recalculates prices. A key clash inside one file refuses that file.
+- **Name match.** Normalization plus the alias list will miss spellings that are not on it. Those players import as separate people. Merging them is a later feature, and a merge recalculates prices. A key clash inside one file refuses that file.
 - **Streamlit reruns.** Widgets rerun the script often. Draft writes must be idempotent: saving the same sale twice must not double-charge. The database is the source of truth, not widget state.
