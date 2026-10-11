@@ -8,6 +8,7 @@ from fantasyhelper.ui.prices import (
     column_label,
     price_format,
     punt_limit,
+    punt_refusal,
     shot_text,
     strength_color,
     table_columns,
@@ -52,6 +53,10 @@ class ColorTests(unittest.TestCase):
         self.assertEqual(punt_limit(9), 2)
         self.assertEqual(punt_limit(2), 1)
         self.assertEqual(punt_limit(1), 0)
+        self.assertEqual(punt_refusal(3, 9), "Only two categories can be off.")
+        self.assertEqual(punt_refusal(2, 2), "Leave at least one category on.")
+        self.assertIsNone(punt_refusal(2, 9))
+        self.assertIsNone(punt_refusal(0, 9))
 
     def test_a_punt_adds_personal_columns_and_marks_the_header(self) -> None:
         active = frozenset({"pts", "reb", "blk"})

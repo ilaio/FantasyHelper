@@ -206,9 +206,9 @@ Positions are not on the table.
 
 A punt is not saved. It lasts until the browser page is refreshed or the app stops.
 
-The control sits above the price table. It offers only categories the league has turned on. Zero, one, or two. A third is refused. A choice that would turn every category off is refused.
+One line above the price table lists each category the league has turned on, with a switch. A switch starts on. Turning it off punts that category. A third off switch is refused. Turning the last switch off is refused.
 
-With nothing selected, the table is unchanged.
+With every switch on, the table is unchanged.
 
 With a punt, four columns follow C Price: My Z Rank, My Z Price, My C Rank, and My C Price. The table sorts by My Z Rank. Z Rank, Z Price, C Rank, C Price, Z Score, and C Score stay the base numbers. The personal numbers use the same price rule, with the punted categories left out of both totals. Category z-scores are not recomputed. The colored projection stays, including a punted category, and that column's header is marked as a punt.
 

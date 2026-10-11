@@ -39,6 +39,17 @@ _PUNT_MARK = " (punt)"
 _GAMES_MARK = 60
 _MINUTES_MARK = 25
 _PUNT_LIMIT = 2
+_SWITCH_LABELS = {
+    "fg_pct": "FG%",
+    "ft_pct": "FT%",
+    "threes": "Threes",
+    "pts": "Points",
+    "reb": "Rebounds",
+    "ast": "Assists",
+    "stl": "Steals",
+    "blk": "Blocks",
+    "to": "Turnovers",
+}
 
 
 def render_prices(league: League) -> None:
@@ -58,6 +69,13 @@ def render_prices(league: League) -> None:
     if not table.rows:
         st.write("No players are in the projection yet.")
         return
+    st.caption(
+        "Ranks and scores use every projected player. "
+        "Extra money above $1 goes to the top 10 players per team. "
+        "The rest of that rank's roster group stays at $1, and a player outside it costs $0. "
+        "Green is above the average and red is below it. "
+        "Games under 60 and minutes under 25 are yellow."
+    )
     punted = _selected_punts(league.id, settings.categories)
     rows = apply_punt(
         table.rows,
@@ -65,13 +83,6 @@ def render_prices(league: League) -> None:
         settings.team_count,
         settings.budget,
         settings.roster_size,
-    )
-    st.caption(
-        "Ranks and scores use every projected player. "
-        "Extra money above $1 goes to the top 10 players per team. "
-        "The rest of that rank's roster group stays at $1, and a player outside it costs $0. "
-        "Green is above the average and red is below it. "
-        "Games under 60 and minutes under 25 are yellow."
     )
     frame = _frame(rows, settings.categories, punted)
     st.dataframe(
@@ -126,6 +137,15 @@ def punt_limit(active_count: int) -> int:
     return min(_PUNT_LIMIT, active_count - 1)
 
 
+def punt_refusal(off_count: int, active_count: int) -> str | None:
+    """Why a switch must stay on. None means the choice is allowed."""
+    if off_count > _PUNT_LIMIT:
+        return "Only two categories can be off."
+    if active_count > 0 and off_count >= active_count:
+        return "Leave at least one category on."
+    return None
+
+
 def column_label(label: str, punted: bool) -> str:
     """A punted category keeps its column, and the header says so."""
     if punted:
@@ -154,20 +174,53 @@ def table_columns(active: frozenset[str], punted: frozenset[str] = frozenset()) 
     return [*lead, *stats, *_TOTALS]
 
 
+def _switch_key(league_id: int, category: str) -> str:
+    return f"cat-on-{league_id}-{category}"
+
+
+def _guard_category_switch(
+    state_key: str,
+    message_key: str,
+    league_id: int,
+    active_keys: tuple[str, ...],
+) -> None:
+    off_count = sum(
+        1
+        for key in active_keys
+        if st.session_state.get(_switch_key(league_id, key)) is False
+    )
+    message = punt_refusal(off_count, len(active_keys))
+    if message is None:
+        st.session_state[message_key] = ""
+        return
+    st.session_state[state_key] = True
+    st.session_state[message_key] = message
+
+
 def _selected_punts(league_id: int, active: frozenset[str]) -> frozenset[str]:
-    limit = punt_limit(len(active))
-    if limit == 0:
+    options = [(key, _SWITCH_LABELS[key]) for key, _label in _STAT_COLUMNS if key in active]
+    if punt_limit(len(options)) == 0:
         return frozenset()
-    options = [(key, label) for key, label in _STAT_COLUMNS if key in active]
-    labels = [label for _key, label in options]
-    by_label = {label: key for key, label in options}
-    state_key = f"punt-{league_id}"
-    stored = st.session_state.get(state_key, [])
-    valid = [label for label in stored if label in by_label][:limit]
-    if state_key in st.session_state and valid != list(stored):
-        st.session_state[state_key] = valid
-    chosen = st.multiselect("Punt", labels, max_selections=limit, placeholder="None", key=state_key)
-    return frozenset(by_label[label] for label in chosen)
+    active_keys = tuple(key for key, _label in options)
+    message_key = f"punt-note-{league_id}"
+    with st.container(horizontal=True, wrap=False, gap="medium"):
+        for key, label in options:
+            state_key = _switch_key(league_id, key)
+            if state_key not in st.session_state:
+                st.session_state[state_key] = True
+            st.toggle(
+                label,
+                key=state_key,
+                width="content",
+                on_change=_guard_category_switch,
+                args=(state_key, message_key, league_id, active_keys),
+            )
+    message = st.session_state.get(message_key, "")
+    if message:
+        st.caption(message)
+    return frozenset(
+        key for key in active_keys if st.session_state.get(_switch_key(league_id, key)) is False
+    )
 
 
 def _frame(
