@@ -198,7 +198,7 @@ Auction prices drift from a model because the room spends faster or slower than 
 
 ### Price list
 
-- Two ranks and two base prices for the active categories, one plain and one curved, plus the projection and each category score, on one table sorted by the plain rank.
+- One price table sorted by the plain rank: name, both ranks and prices, games, minutes, each active category's projection colored by its plain z, then both score totals. FG% and FT% share a cell with their attempts. Games under 60 and minutes under 25 are marked. Positions are not shown.
 - A punt control for zero, one, or two categories.
 - Two personal prices that reflect the punt, one for each total.
 - Rank and sort by personal price.
