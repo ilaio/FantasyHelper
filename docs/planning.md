@@ -186,11 +186,13 @@ Ranking keeps both. Each score orders the projected players, highest first, so t
 
 ### Prices
 
-Every player in the priced group starts at $1. The money left to assign is `teams × budget − teams × roster spots`. This needs each team’s budget to be at least the roster size, which is what a draft that bids $1 per spot requires.
+Every player in the top `teams × roster spots` starts at $1. A player outside that group costs $0. The money left is `teams × budget − teams × roster spots`. This needs each team’s budget to be at least the roster size, which is what a draft that bids $1 per spot requires.
 
-A player’s gap is that player’s total minus the lowest total in the group. Divide the sum of the gaps by the money left. That quotient is one dollar of gap. The player earns one more dollar for each whole step the gap covers, rounded down. The lowest total has a gap of 0, so that player stays at $1.
+That leftover money is shared by the top `10 × teams` players. When the roster is 10 or smaller, the whole group shares it. For 12 teams and 13 spots, the top 120 share it and ranks 121 through 156 stay at $1. For 12 teams and 9 spots, all 108 share it.
 
-Dollars left by rounding go one each to the highest ranks of that same list, starting at rank 1, until the leftover is gone. Rank 1 does not receive a second extra dollar while a lower rank received none. If every total in the group is equal, every gap is 0 and the whole remainder is handed out this way. The prices for a group add up to `teams × budget`.
+A player’s gap is that player’s total minus the total of the first player behind the paid group. When the paid group is the whole roster group, the gap is measured from the last player in it, so that player stays at $1. Divide the sum of the gaps by the money left. That quotient is one dollar of gap. The player earns one more dollar for each whole step the gap covers, rounded down.
+
+Dollars left by rounding go one each to the highest ranks of the paid group, starting at rank 1, until the leftover is gone. Rank 1 does not receive a second extra dollar while a lower paid rank received none. A player who is staying at $1 does not receive one. If every paid total is equal, every gap is 0 and the whole remainder is handed out this way. The prices add up to `teams × budget`.
 
 ### Punt
 
@@ -302,7 +304,7 @@ Status: done. The user checked the screen and merged.
 
 Three parts, in order: our projection, z-scores, then prices. Punts wait.
 
-- Our projection, the two ranks, and the two prices are agreed. A price uses the same total as its rank. The rules are in section 4. They are calculated, not stored.
+- Our projection, the two ranks, and the two prices are agreed. A price uses the same total as its rank. Extra money above $1 goes to the top 10 players per team on that rank. The rest of the roster group stays at $1. The rules are in section 4. They are calculated, not stored.
 - One wide table shows, in order: name; plain rank, plain all-player total, plain price; curved rank, curved all-player total, curved price; the projection line; each plain category score from the all-player calc; each curved category score from the all-player calc. Categories the league has turned off are omitted. The projection columns are games, minutes per game, FGA per game, FTA per game, FG%, FT%, and the seven counting rates per game. The table is sorted by the plain rank.
 - A small hand-computed example checks the scores and the prices apart from the full player list.
 

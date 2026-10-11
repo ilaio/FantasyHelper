@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from fantasyhelper.valuation.projection import ProjectionLine
 
 _TURNOVERS = "to"
+_PAID_PER_TEAM = 10
 _PERCENTAGES = (
     ("fg_pct", "fga_per_game"),
     ("ft_pct", "fta_per_game"),
@@ -65,8 +66,12 @@ def build_price_table(
     curved_order = _order(lines, curved_totals)
     pool_size = team_count * roster_size
     total_budget = team_count * budget
-    plain_prices = _prices_for(lines, plain_order, plain_totals, pool_size, total_budget)
-    curved_prices = _prices_for(lines, curved_order, curved_totals, pool_size, total_budget)
+    plain_prices = _prices_for(
+        lines, plain_order, plain_totals, pool_size, total_budget, team_count
+    )
+    curved_prices = _prices_for(
+        lines, curved_order, curved_totals, pool_size, total_budget, team_count
+    )
     plain_rank = _ranks(plain_order)
     curved_rank = _ranks(curved_order)
     rows = [
@@ -87,25 +92,39 @@ def build_price_table(
     return PriceTable(rows=tuple(rows), error=None)
 
 
-def assign_prices(scores_in_rank_order: list[float], total_budget: int) -> list[int]:
-    """Price one group. Scores are best first. The result sums to `total_budget`."""
+def assign_prices(
+    scores_in_rank_order: list[float],
+    total_budget: int,
+    paid_count: int | None = None,
+) -> list[int]:
+    """Price one roster group. Scores are best first. The result sums to `total_budget`.
+
+    Everyone in the group starts at $1. Extra money goes to the first `paid_count`
+    players, measured from the score of the player just behind them. When that
+    count covers the whole group, the last player is the baseline and stays at $1.
+    """
     count = len(scores_in_rank_order)
     if count == 0:
         return []
+    paid = count if paid_count is None else min(paid_count, count)
+    prices = [1] * count
     money_left = total_budget - count
-    lowest = min(scores_in_rank_order)
-    gaps = [score - lowest for score in scores_in_rank_order]
+    if money_left <= 0 or paid == 0:
+        return prices
+    baseline = scores_in_rank_order[paid] if paid < count else scores_in_rank_order[-1]
+    gaps = [score - baseline for score in scores_in_rank_order[:paid]]
     gap_sum = sum(gaps)
-    if money_left <= 0 or gap_sum == 0:
-        extras = [0] * count
-        leftover = max(money_left, 0)
+    if gap_sum == 0:
+        extras = [0] * paid
+        leftover = money_left
     else:
         extras = [math.floor(gap * money_left / gap_sum) for gap in gaps]
         leftover = money_left - sum(extras)
-    prices = [1 + extra for extra in extras]
+    for index, extra in enumerate(extras):
+        prices[index] += extra
     index = 0
     while leftover > 0:
-        prices[index % count] += 1
+        prices[index % paid] += 1
         leftover -= 1
         index += 1
     return prices
@@ -117,11 +136,12 @@ def _prices_for(
     totals: list[float],
     pool_size: int,
     total_budget: int,
+    team_count: int,
 ) -> dict[int, int]:
     chosen = order[:pool_size]
     # The group keeps the scores that set the rank. It is not scored again.
     scores = [totals[index] for index in chosen]
-    priced = assign_prices(scores, total_budget)
+    priced = assign_prices(scores, total_budget, paid_count=_PAID_PER_TEAM * team_count)
     prices = {line.player_id: 0 for line in lines}
     for index, price in zip(chosen, priced):
         prices[lines[index].player_id] = price

@@ -38,8 +38,8 @@ def render_prices(league: League) -> None:
     active = [item for item in CATEGORIES if item[0] in settings.categories]
     st.caption(
         "Ranks and scores use every projected player. "
-        "Each price uses those same scores for that rank's top group. "
-        "A player outside the group costs $0."
+        "Extra money above $1 goes to the top 10 players per team. "
+        "The rest of that rank's roster group stays at $1, and a player outside it costs $0."
     )
     st.dataframe(
         [_present(row, active) for row in table.rows],

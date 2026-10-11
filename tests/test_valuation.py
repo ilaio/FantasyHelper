@@ -187,8 +187,21 @@ class ScoreTests(unittest.TestCase):
     def test_hand_priced_gaps(self) -> None:
         self.assertEqual(assign_prices([5, 3, 1, 0], 10), [5, 3, 1, 1])
 
+    def test_extra_money_stops_at_the_player_behind_the_paid_group(self) -> None:
+        self.assertEqual(assign_prices([8, 7, 6, 5, 0], 15, paid_count=3), [7, 4, 2, 1, 1])
+
     def test_equal_scores_hand_the_remainder_down_from_rank_one(self) -> None:
         self.assertEqual(assign_prices([0, 0, 0], 5), [2, 2, 1])
+
+    def test_ten_players_per_team_keep_the_extra_money(self) -> None:
+        lines = [_player(f"P{index:02d}", float(30 - index), index + 1) for index in range(13)]
+        table = build_price_table(lines, frozenset({"pts"}), 1, 20, 12)
+        prices = [row.plain_price for row in table.rows]
+        self.assertEqual(prices[10:12], [1, 1])
+        self.assertEqual(prices[12], 0)
+        self.assertEqual(sum(prices), 20)
+        roster_scores = [row.plain_score for row in table.rows[:12]]
+        self.assertEqual(prices[:12], assign_prices(roster_scores, 20, paid_count=10))
 
 
 if __name__ == "__main__":
