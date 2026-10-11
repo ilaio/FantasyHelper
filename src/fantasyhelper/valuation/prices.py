@@ -157,7 +157,7 @@ def _category_scores(
     by_key = {key: _one_category(lines, key) for key in categories}
     if curved:
         by_key = {
-            key: [None if value is None else math.tanh(value / 2) for value in values]
+            key: [None if value is None else math.tanh(value / 3.5) for value in values]
             for key, values in by_key.items()
         }
     return [

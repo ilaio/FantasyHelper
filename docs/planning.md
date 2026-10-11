@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: Task 5 implemented, waiting for the user’s check. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 5 done. Next is Task 6, after the user merges. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -180,7 +180,7 @@ Both scores use the categories the league has turned on. Turnovers are flipped b
 
 **Plain.** `total z = sum of category z-scores`.
 
-**Curved.** Each category z is passed through `tanh(z / 2)`, which stays between −1 and 1. The first spread away from the average still adds a lot. Further spreads add less. `curved total = sum of those curved category scores`.
+**Curved.** Each category z is passed through `tanh(z / 3.5)`, which stays between −1 and 1. A lead near the average still adds. Further spreads add less. `curved total = sum of those curved category scores`.
 
 Ranking keeps both. Each score orders the projected players, highest first, so there are two ranks. The price for a rank uses that same total.
 
@@ -232,6 +232,7 @@ Raise these before the task they affect. They do not change the text above until
 
 - **Later, when a new file splits a player the alias list does not already join.** The user can merge two imported players who are the same person. A merge recalculates prices. How the merge and that recalculation work is decided with the feature.
 - **Before next season.** The price list reads three fixed seasons: projections `2026-27`, last season `2025-26`, and the season before `2024-25`. Those years are written in the projection code and again in the query that loads the rows. The league season field does not move them. Next season the three years have to move together. Leave them fixed until that task.
+- **Later, the price table display.** The calculations are settled. The one wide table is hard to read. A later task decides a clearer display. It does not change the prices.
 
 ### Task 0 — Preparation files
 
@@ -310,7 +311,7 @@ Three parts, in order: our projection, z-scores, then prices. Punts wait.
 
 Done when: the example matches the hand calculation, and the app shows the table from our projection for the open league.
 
-Status: implemented. Waiting for the user to run the hand check and open the price table. The score math uses the standard library.
+Status: done. The user checked the price table and is merging. The score math uses the standard library. The curved score is `tanh(z / 3.5)`.
 
 ### Task 6 — Punts
 
