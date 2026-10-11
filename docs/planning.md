@@ -135,15 +135,15 @@ One calculated line per player for the season being drafted. It is not stored. F
 
 Projection files are the 2026-27 files. Last season is 2025-26. The season before that is 2024-25. An average uses only the projection files that include the player. A blank percentage is left out of that average.
 
-A player is included when they are on at least one projection file, or when they played more than 40 games in 2025-26. A player on no projection file with 40 games or fewer last season is left out.
+A player is included only when they are on at least one projection file. A player who is on none is left out, including one who played more than 40 games last season.
 
 More than 40 games means 41 or more. Last season’s per-game rates are the season total divided by games played. The minutes gap is the absolute difference between the projection’s minutes per game and last season’s minutes per game. A gap under 4.8 minutes is close.
 
-**Usage.** Games, minutes per game, FGA per game, and FTA per game come from the projection average. With no projection file, they come from last season.
+**Usage.** Games, minutes per game, FGA per game, and FTA per game come from the projection average.
 
 **FG% and FT%.** Last season’s stored percentage when that season has more than 40 games. Otherwise the season before, when that season has more than 40 games. Otherwise the projection average.
 
-**Counting rates.** Points, rebounds, assists, threes, steals, blocks, and turnovers, each per game. With no projection file, last season’s per-game rate. Otherwise, when last season has more than 40 games and the minutes gap is under 4.8, that same last-season rate. Otherwise the projection average. The season before is not a source for these rates. The chosen source supplies the whole rate.
+**Counting rates.** Points, rebounds, assists, threes, steals, blocks, and turnovers, each per game. When last season has more than 40 games and the minutes gap is under 4.8, last season’s per-game rate. Otherwise the projection average. The season before is not a source for these rates. The chosen source supplies the whole rate.
 
 Projected games do not scale the counting rates. Minutes are what decide the source, through the 4.8 gap. Projected games and attempts per game are the volume for the shot-percentage score: games × FGA per game for FG%, and games × FTA per game for FT%.
 
@@ -151,7 +151,7 @@ Projected games do not scale the counting rates. Minutes are what decide the sou
 
 Ranking scores every player on our projection. The average and the spread for a category come from every projected player who has that rate. The spread is the square root of the average squared distance from the mean, counting each of those players once.
 
-League scoring keeps a group from each rank. The group size is `teams × roster spots`. For 12 teams and 13 spots, that is 156. A tie on the last spot goes to the name that comes first alphabetically. A player can be in one group and not the other.
+Each rank prices the top `teams × roster spots` players. For 12 teams and 13 spots, that is 156. A tie on the last spot goes to the name that comes first alphabetically. The price uses that rank’s total, the same number on the table. The group is not scored again. A player can be in one priced group and not the other. A player outside a group costs $0 on that price and keeps the rank.
 
 The rates are the projection line above. Counting rates stay per game, so a difference in projected games does not punish a player twice. Makes are not stored. A missing percentage is left out of that category’s average and adds nothing to that player’s total.
 
@@ -159,15 +159,15 @@ The rates are the projection line above. Counting rates stay per game, so a diff
 
 For PTS, REB, AST, STL, BLK, 3PM, and TO:
 
-`z = (player average − pool mean) / pool standard deviation`
+`z = (player average − mean) / standard deviation`
 
 Turnovers are multiplied by −1 after that, so a low-turnover player gets a positive score.
 
 ### Percentages
 
-FG% and FT% use a volume-aware impact, then that impact is turned into a z-score across the pool:
+FG% and FT% use a volume-aware impact, then that impact is turned into a z-score across every projected player:
 
-- League average percentage from the pool’s percentages, weighted by projected season attempts.
+- Average percentage from those players’ percentages, weighted by projected season attempts.
 - A player’s impact is `(player percentage − league percentage) × projected season attempts`.
 - Season attempts are projected games × FGA per game for FG%, and projected games × FTA per game for FT%.
 - That impact is z-scored like a counting stat.
@@ -182,21 +182,15 @@ Both scores use the categories the league has turned on. Turnovers are flipped b
 
 **Curved.** Each category z is passed through `tanh(z / 2)`, which stays between −1 and 1. The first spread away from the average still adds a lot. Further spreads add less. `curved total = sum of those curved category scores`.
 
-Ranking keeps both. Each score orders the projected players, highest first, so there are two ranks. Those ranks use the all-player scores.
-
-### League scoring
-
-Each rank’s group is scored again with the same category math. The average and the spread now come only from that group. These league scores are the input to that rank’s price. They are not columns on the table.
+Ranking keeps both. Each score orders the projected players, highest first, so there are two ranks. The price for a rank uses that same total.
 
 ### Prices
 
-Each group is priced from its own league scores. A player outside a group costs $0 on that price.
+Every player in the priced group starts at $1. The money left to assign is `teams × budget − teams × roster spots`. This needs each team’s budget to be at least the roster size, which is what a draft that bids $1 per spot requires.
 
-Every player in the group starts at $1. The money left to assign is `teams × budget − teams × roster spots`. This needs each team’s budget to be at least the roster size, which is what a draft that bids $1 per spot requires.
+A player’s gap is that player’s total minus the lowest total in the group. Divide the sum of the gaps by the money left. That quotient is one dollar of gap. The player earns one more dollar for each whole step the gap covers, rounded down. The lowest total has a gap of 0, so that player stays at $1.
 
-A player’s gap is that player’s league score minus the lowest league score in the group. Divide the sum of the gaps by the money left. That quotient is one dollar of gap. The player earns one more dollar for each whole step the gap covers, rounded down. The lowest score has a gap of 0, so that player stays at $1.
-
-Dollars left by rounding go one each to the highest ranks of that same list, starting at rank 1, until the leftover is gone. Rank 1 does not receive a second extra dollar while a lower rank received none. If every league score in the group is equal, every gap is 0 and the whole remainder is handed out this way. The prices for a group add up to `teams × budget`.
+Dollars left by rounding go one each to the highest ranks of that same list, starting at rank 1, until the leftover is gone. Rank 1 does not receive a second extra dollar while a lower rank received none. If every total in the group is equal, every gap is 0 and the whole remainder is handed out this way. The prices for a group add up to `teams × budget`.
 
 ### Punt
 
@@ -308,7 +302,7 @@ Status: done. The user checked the screen and merged.
 
 Three parts, in order: our projection, z-scores, then prices. Punts wait.
 
-- Our projection, the two ranks, league scoring, and the two prices are agreed. The rules are in section 4. They are calculated, not stored.
+- Our projection, the two ranks, and the two prices are agreed. A price uses the same total as its rank. The rules are in section 4. They are calculated, not stored.
 - One wide table shows, in order: name; plain rank, plain all-player total, plain price; curved rank, curved all-player total, curved price; the projection line; each plain category score from the all-player calc; each curved category score from the all-player calc. Categories the league has turned off are omitted. The projection columns are games, minutes per game, FGA per game, FTA per game, FG%, FT%, and the seven counting rates per game. The table is sorted by the plain rank.
 - A small hand-computed example checks the scores and the prices apart from the full player list.
 

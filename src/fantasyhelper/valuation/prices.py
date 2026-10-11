@@ -65,12 +65,8 @@ def build_price_table(
     curved_order = _order(lines, curved_totals)
     pool_size = team_count * roster_size
     total_budget = team_count * budget
-    plain_prices = _prices_for(
-        lines, plain_order, categories, pool_size, total_budget, curved=False
-    )
-    curved_prices = _prices_for(
-        lines, curved_order, categories, pool_size, total_budget, curved=True
-    )
+    plain_prices = _prices_for(lines, plain_order, plain_totals, pool_size, total_budget)
+    curved_prices = _prices_for(lines, curved_order, curved_totals, pool_size, total_budget)
     plain_rank = _ranks(plain_order)
     curved_rank = _ranks(curved_order)
     rows = [
@@ -118,22 +114,17 @@ def assign_prices(scores_in_rank_order: list[float], total_budget: int) -> list[
 def _prices_for(
     lines: list[ProjectionLine],
     order: list[int],
-    categories: frozenset[str],
+    totals: list[float],
     pool_size: int,
     total_budget: int,
-    *,
-    curved: bool,
 ) -> dict[int, int]:
     chosen = order[:pool_size]
-    group = [lines[index] for index in chosen]
-    parts = _category_scores(group, categories, curved=curved)
-    scores = [_total(item) for item in parts]
-    # $1 is reserved for each player in the group. The rest of the league budget
-    # is the gap money. A full group leaves teams × budget − teams × roster spots.
+    # The group keeps the scores that set the rank. It is not scored again.
+    scores = [totals[index] for index in chosen]
     priced = assign_prices(scores, total_budget)
     prices = {line.player_id: 0 for line in lines}
-    for line, price in zip(group, priced):
-        prices[line.player_id] = price
+    for index, price in zip(chosen, priced):
+        prices[lines[index].player_id] = price
     return prices
 
 

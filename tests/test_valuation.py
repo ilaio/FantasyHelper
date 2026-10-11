@@ -81,19 +81,10 @@ class ProjectionTests(unittest.TestCase):
         player = PlayerSources(1, "Rookie", None, None, ())
         self.assertIsNone(project_player(player))
 
-    def test_a_short_last_season_without_a_projection_is_left_out(self) -> None:
-        for games in (10, 40):
-            player = PlayerSources(1, "Short", _totals(games, fg_pct=0.5), None, ())
+    def test_a_player_on_no_projection_file_is_left_out(self) -> None:
+        for games in (10, 40, 41):
+            player = PlayerSources(1, "Veteran", _totals(games, fg_pct=0.5), None, ())
             self.assertIsNone(project_player(player))
-
-    def test_last_season_is_used_when_no_projection_exists(self) -> None:
-        last = _totals(41, fg_pct=0.5)
-        player = PlayerSources(1, "Regular", last, None, ())
-        line = project_player(player)
-        assert line is not None
-        self.assertEqual(line.games, 41)
-        self.assertEqual(line.counting["pts"], 20)
-        self.assertEqual(line.fg_pct, 0.5)
 
     def test_a_projection_keeps_a_player_who_barely_played(self) -> None:
         files = (_file(points=11),)
@@ -158,6 +149,22 @@ class ScoreTests(unittest.TestCase):
         self.assertEqual(by_name["A"].plain_rank, 3)
         self.assertEqual([by_name[name].plain_price for name in "CDAB"], [4, 4, 1, 1])
         self.assertEqual(sum(row.plain_price for row in table.rows), 10)
+
+    def test_prices_follow_the_all_player_rank(self) -> None:
+        lines = [
+            ProjectionLine(1, "Star", 70, 30, 10, 2, 0.5, 0.8, _counting(pts=30, reb=4)),
+            ProjectionLine(2, "Board", 70, 30, 10, 2, 0.5, 0.8, _counting(pts=18, reb=10)),
+            ProjectionLine(3, "Weak", 70, 30, 10, 2, 0.5, 0.8, _counting(pts=6, reb=4)),
+        ]
+        table = build_price_table(lines, frozenset({"pts", "reb"}), 1, 4, 2)
+        by_name = {row.name: row for row in table.rows}
+        self.assertEqual(by_name["Board"].plain_rank, 1)
+        self.assertEqual(by_name["Star"].plain_rank, 2)
+        self.assertGreater(by_name["Board"].plain_score, by_name["Star"].plain_score)
+        self.assertEqual(
+            [by_name[name].plain_price for name in ("Board", "Star", "Weak")],
+            [3, 1, 0],
+        )
 
     def test_a_player_outside_the_group_costs_zero(self) -> None:
         lines = [_player("Star", 25, 1), _player("End", 15, 2)]

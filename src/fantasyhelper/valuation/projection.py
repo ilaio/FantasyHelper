@@ -103,24 +103,14 @@ def build_lines(players: list[PlayerSources]) -> list[ProjectionLine]:
 
 
 def project_player(player: PlayerSources) -> ProjectionLine | None:
-    last = player.last_season if _played(player.last_season) else None
     files = player.projections
-    long_last = last is not None and last.games > GAMES_LONG
-    if not files and not long_last:
+    if not files:
         return None
-    if files:
-        games = _mean([item.games for item in files])
-        minutes = _mean([item.minutes_per_game for item in files])
-        fga = _mean([item.fga_per_game for item in files])
-        fta = _mean([item.fta_per_game for item in files])
-        counting = _counting_rates(last, files, minutes)
-    else:
-        assert last is not None
-        games = last.games
-        minutes = last.minutes / last.games
-        fga = last.fga / last.games
-        fta = last.fta / last.games
-        counting = {key: last.counting[key] / last.games for key, _total, _rate in COUNTING}
+    last = player.last_season if _played(player.last_season) else None
+    games = _mean([item.games for item in files])
+    minutes = _mean([item.minutes_per_game for item in files])
+    fga = _mean([item.fga_per_game for item in files])
+    fta = _mean([item.fta_per_game for item in files])
     return ProjectionLine(
         player_id=player.player_id,
         name=player.name,
@@ -130,7 +120,7 @@ def project_player(player: PlayerSources) -> ProjectionLine | None:
         fta_per_game=fta,
         fg_pct=_percentage("fg_pct", last, player.prior_season, files),
         ft_pct=_percentage("ft_pct", last, player.prior_season, files),
-        counting=counting,
+        counting=_counting_rates(last, files, minutes),
     )
 
 
