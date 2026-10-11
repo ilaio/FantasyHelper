@@ -106,11 +106,11 @@ Two kinds of files belong there:
 - One stats file per season, named `stats-<season>.csv`, such as `stats-2025-26.csv`. Counting stats in that file are season totals. Seasons older than the last two may be present. They are imported and can be selected on screen. Prices do not have to use them.
 - Any number of projection files for a season, named `projection-<season>-<source>.csv`, such as `projection-2026-27-bonus.csv`. Counting stats in that file are per game. A projection is for the season it names. When that season is over, those files can stay on disk and simply not be selected. The next season needs its own projection files.
 
-The valuation baseline is the newer completed season, currently 2025-26. A stats file for the season in progress can be imported and browsed. It is not the baseline. That use waits with day-to-day features. An older completed season is available so a later price list can fall back to it when a player barely played. That fallback rule is decided with the price list, not during the import.
+The valuation baseline is our projection for the season being drafted. Usage comes from the 2026-27 projection files. Counting rates stay on last season, 2025-26, when that season is long enough and the minutes are close to the projection. Percentages can come from 2024-25 when 2025-26 is not long enough. A player is included only when they appear on at least one projection file. A long last season with no projection file is left out. The planning file has the rule. A stats file for the season in progress can be imported and browsed. It is not the baseline. That use waits with day-to-day features.
 
 A player is the same person across files when a normalized form of the name matches. The files do not share an id. The app builds that key when it creates a player and when it compares a new file with players it already has. The key turns accented letters into plain English letters, lowercases the name, removes periods and apostrophes, and turns spaces into hyphens. `Jokić` and `Jokic` meet. Deleting the accented letter instead would split them.
 
-That key will not fix every spelling. A short alias list makes `Trey Murphy` and `Trey Murphy III` the same person. Other spellings stay separate. Merging two imported players in the app is later work, and that merge recalculates prices once prices exist. A name that matches nobody is still imported: a rookie may exist only on a projection, and an old player may exist only on a past season. Two different players in one file must not collapse to one key. That file is refused and the clash is shown.
+That key will not fix every spelling. A short alias list makes `Trey Murphy` and `Trey Murphy III` the same person, and does the same for Robert Williams, Jimmy Butler, Derrick Jones Jr., and Kelly Oubre Jr. Other spellings stay separate. Merging two imported players in the app is later work, and that merge recalculates prices once prices exist. A name that matches nobody is still imported: a rookie may exist only on a projection, and an old player may exist only on a past season. Two different players in one file must not collapse to one key. That file is refused and the clash is shown.
 
 ### During the draft, typed by the user
 
@@ -126,7 +126,7 @@ Each subsection is the product behavior. The math and the task that builds it ar
 
 Rotisserie rewards ranking across categories, not raw points. A player’s value is how much they move a team relative to the rest of the player pool, in each category the league scores.
 
-The base list scores every relevant player on every active category, combines those scores into one value, and turns that value into an auction price. Turnovers count in reverse: fewer turnovers is the good direction. Percentages are not treated as ordinary counting stats. A player who shoots a high percentage on two shots a night is not as valuable as a player who shoots a slightly lower percentage on fifteen shots. The price list uses a volume-aware percentage score so shot volume is part of the value.
+The rates on that list are our projection for the draft season. The base list scores every player on that projection, on every active category. There are two totals. The plain total adds the category z-scores. The curved total squeezes each category z toward a limit of −1 and 1 before adding, so a huge lead in one category cannot count like several categories. Each total has its own rank. Each rank keeps the top `teams × roster spots` players and turns that same total into a price. A player in the group costs at least $1. Extra money above $1 goes to the top 10 players per team. The rest of the group stays at $1. A player outside the group costs $0 on that price. The two prices add up, each on its own, to the league’s auction money. Turnovers count in reverse: fewer turnovers is the good direction. Percentages are not treated as ordinary counting stats. A player who shoots a high percentage on two shots a night is not as valuable as a player who shoots a slightly lower percentage on fifteen shots. The volume for that score is projected games times attempts per game.
 
 Punting means the user has decided not to compete in one or two categories. Those categories drop out of the personal price. Values are recalculated, not merely hidden, so a specialist in a punted category becomes cheap to this user and a contributor in the remaining categories becomes more expensive. The user can also leave the punt empty and use the base list.
 
@@ -198,9 +198,9 @@ Auction prices drift from a model because the room spends faster or slower than 
 
 ### Price list
 
-- Base z-score prices for the active categories.
+- Two ranks and two base prices for the active categories, one plain and one curved, plus the projection and each category score, on one table sorted by the plain rank.
 - A punt control for zero, one, or two categories.
-- A personal price column that reflects the punt.
+- Two personal prices that reflect the punt, one for each total.
 - Rank and sort by personal price.
 - Exclude kept and drafted players from the available list.
 

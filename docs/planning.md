@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: Task 4 implemented, waiting for the user’s check. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 5 done. Next is Task 6, after the user merges. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -97,7 +97,7 @@ The match key is built in code. It is not a column in the file.
 
 A new key creates a player. The display name kept is the name from the file that created the player. A later file that matches the key adds rows and does not rename the player. The same key twice inside one file refuses that file.
 
-An alias list in the project maps an alternate key to the canonical key before the match. The starting aliases are `trey-murphy` to `trey-murphy-iii`, `alex-sarr` to `alexandre-sarr`, and `cam-johnson` to `cameron-johnson`. A player who still matches nothing is stored anyway.
+An alias list in the project maps an alternate key to the canonical key before the match. The aliases are `trey-murphy` to `trey-murphy-iii`, `alex-sarr` to `alexandre-sarr`, `cam-johnson` to `cameron-johnson`, `robert-williams` to `robert-williams-iii`, `jimmy-butler` to `jimmy-butler-iii`, `derrick-jones` to `derrick-jones-jr`, and `kelly-oubre` to `kelly-oubre-jr`. A player who still matches nothing is stored anyway.
 
 ### No hosting
 
@@ -123,47 +123,80 @@ Names can change when we create the schema. The contents should not grow beyond 
 
 **sales** — belong to one league (`league_id`). Ordered list: player, price, `mine` or `other`, time. Undo deletes the last row. They stay when the league is hidden.
 
-Derived facts are calculated, not stored: dollars left, spots left, max bid, z-scores, prices, inflation, category balance. Storing them would create a second source of truth that can drift from the inputs.
+Derived facts are calculated, not stored: our projection, z-scores, prices, dollars left, spots left, max bid, inflation, category balance. Storing them would create a second source of truth that can drift from the inputs.
 
 ## 4. Valuation approach
 
-This is the method Task 6 and Task 7 implement. It is the standard rotisserie approach, kept small.
+This is the method the base price list uses. Punts are the following task. It is the standard rotisserie approach, kept small.
+
+### Our projection
+
+One calculated line per player for the season being drafted. It is not stored. File rank and file dollars are not inputs.
+
+Projection files are the 2026-27 files. Last season is 2025-26. The season before that is 2024-25. An average uses only the projection files that include the player. A blank percentage is left out of that average.
+
+A player is included only when they are on at least one projection file. A player who is on none is left out, including one who played more than 40 games last season.
+
+More than 40 games means 41 or more. Last season’s per-game rates are the season total divided by games played. The minutes gap is the absolute difference between the projection’s minutes per game and last season’s minutes per game. A gap under 4.8 minutes is close.
+
+**Usage.** Games, minutes per game, FGA per game, and FTA per game come from the projection average.
+
+**FG% and FT%.** Last season’s stored percentage when that season has more than 40 games. Otherwise the season before, when that season has more than 40 games. Otherwise the projection average.
+
+**Counting rates.** Points, rebounds, assists, threes, steals, blocks, and turnovers, each per game. When last season has more than 40 games and the minutes gap is under 4.8, last season’s per-game rate. Otherwise the projection average. The season before is not a source for these rates. The chosen source supplies the whole rate.
+
+Projected games do not scale the counting rates. Minutes are what decide the source, through the 4.8 gap. Projected games and attempts per game are the volume for the shot-percentage score: games × FGA per game for FG%, and games × FTA per game for FT%.
 
 ### Player pool
 
-The comparison pool is the top group of players by a simple total of counting production, large enough to cover the league: `teams × roster spots`, plus a small bench of extra names so the edge of the pool is not brittle. The exact extra count is set in Task 6 and written back here once we see a real list. Players below that pool have no auction price.
+Ranking scores every player on our projection. The average and the spread for a category come from every projected player who has that rate. The spread is the square root of the average squared distance from the mean, counting each of those players once.
 
-Rates use per-game averages so a player who missed games is not punished twice. The stored percentage inputs are `fg_pct`, `ft_pct`, and the attempt columns. Makes are not stored. How those inputs become the volume-aware score is settled with the price list.
+Each rank prices the top `teams × roster spots` players. For 12 teams and 13 spots, that is 156. A tie on the last spot goes to the name that comes first alphabetically. The price uses that rank’s total, the same number on the table. The group is not scored again. A player can be in one priced group and not the other. A player outside a group costs $0 on that price and keeps the rank.
+
+The rates are the projection line above. Counting rates stay per game, so a difference in projected games does not punish a player twice. Makes are not stored. A missing percentage is left out of that category’s average and adds nothing to that player’s total.
 
 ### Counting categories
 
 For PTS, REB, AST, STL, BLK, 3PM, and TO:
 
-`z = (player average − pool mean) / pool standard deviation`
+`z = (player average − mean) / standard deviation`
 
 Turnovers are multiplied by −1 after that, so a low-turnover player gets a positive score.
 
 ### Percentages
 
-FG% and FT% use a volume-aware impact, then that impact is turned into a z-score across the pool:
+FG% and FT% use a volume-aware impact, then that impact is turned into a z-score across every projected player:
 
-- League average percentage from the pool’s stored percentages, weighted by attempts.
-- A player’s impact is `(player percentage − league percentage) × player attempts`.
+- Average percentage from those players’ percentages, weighted by projected season attempts.
+- A player’s impact is `(player percentage − league percentage) × projected season attempts`.
+- Season attempts are projected games × FGA per game for FG%, and projected games × FTA per game for FT%.
 - That impact is z-scored like a counting stat.
 
 A high percentage on very few attempts lands near zero. A high percentage on a large number of attempts lands high. The same idea applies to a poor percentage: it hurts in proportion to how many shots created it.
 
-### Base value
+### Two scores
 
-`total z = sum of category z-scores` for active categories only.
+Both scores use the categories the league has turned on. Turnovers are flipped before either score.
 
-Auction dollars: take the players with a positive total z inside the rostered portion of the pool (`teams × roster spots` players, after replacement). Scale those positive values so they sum to `teams × budget`. A player at replacement is worth about $1, and the scaling is adjusted so the drafted money is conserved. Task 6 writes down the exact scaling after it is checked against a small hand-computed example.
+**Plain.** `total z = sum of category z-scores`.
 
-Players with a non-positive total are worth $0 to $1. They are not targets.
+**Curved.** Each category z is passed through `tanh(z / 3.5)`, which stays between −1 and 1. A lead near the average still adds. Further spreads add less. `curved total = sum of those curved category scores`.
+
+Ranking keeps both. Each score orders the projected players, highest first, so there are two ranks. The price for a rank uses that same total.
+
+### Prices
+
+Every player in the top `teams × roster spots` starts at $1. A player outside that group costs $0. The money left is `teams × budget − teams × roster spots`. This needs each team’s budget to be at least the roster size, which is what a draft that bids $1 per spot requires.
+
+That leftover money is shared by the top `10 × teams` players. When the roster is 10 or smaller, the whole group shares it. For 12 teams and 13 spots, the top 120 share it and ranks 121 through 156 stay at $1. For 12 teams and 9 spots, all 108 share it.
+
+A player’s gap is that player’s total minus the total of the first player behind the paid group. When the paid group is the whole roster group, the gap is measured from the last player in it, so that player stays at $1. Divide the sum of the gaps by the money left. That quotient is one dollar of gap. The player earns one more dollar for each whole step the gap covers, rounded down.
+
+Dollars left by rounding go one each to the highest ranks of the paid group, starting at rank 1, until the leftover is gone. Rank 1 does not receive a second extra dollar while a lower paid rank received none. A player who is staying at $1 does not receive one. If every paid total is equal, every gap is 0 and the whole remainder is handed out this way. The prices add up to `teams × budget`.
 
 ### Punt
 
-Drop the punted categories from `total z`. Recompute the dollar scaling on the new totals. Do not take the base price and subtract a column after the fact. One or two categories. Zero categories leaves the base list unchanged.
+Drop the punted categories from both totals. Recompute both dollar scales on the new totals. Do not take a base price and subtract a column after the fact. One or two categories. Zero categories leaves both base lists unchanged.
 
 ### Inflation (Task 13)
 
@@ -197,10 +230,9 @@ The writeups below stay as the generic approach until that conversation. Confirm
 
 Raise these before the task they affect. They do not change the text above until we decide.
 
-- **Before the price list (Task 5).** When a player’s newer season has too few games, whether prices use the older season instead. Both seasons are stored either way.
-- **Before the price list (Task 5).** Other ways to calculate z-scores. The method in section 4 stays until that conversation. The user will bring specific concerns then.
-- **Before the price list is shown.** Whether the player table includes season averages next to the scores.
-- **Later, after prices exist.** The user can merge two imported players who are the same person. New files can introduce more duplicates after the price list exists, so this does not have to happen before prices. A merge recalculates prices. How the merge and that recalculation work is decided with the feature. Known splits in the current inbox are Robert Williams, Jimmy Butler, Derrick Jones Jr., and Kelly Oubre Jr. The three starting aliases stay as they are.
+- **Later, when a new file splits a player the alias list does not already join.** The user can merge two imported players who are the same person. A merge recalculates prices. How the merge and that recalculation work is decided with the feature.
+- **Before next season.** The price list reads three fixed seasons: projections `2026-27`, last season `2025-26`, and the season before `2024-25`. Those years are written in the projection code and again in the query that loads the rows. The league season field does not move them. Next season the three years have to move together. Leave them fixed until that task.
+- **Later, the price table display.** The calculations are settled. The one wide table is hard to read. A later task decides a clearer display. It does not change the prices.
 
 ### Task 0 — Preparation files
 
@@ -267,13 +299,19 @@ Agreed source and scope:
 
 Done when: the user creates a league, changes a setting, restarts, and sees the same settings. The user creates a second league and switches to it; using the screen stays on that league and on the selected dataset. A browser refresh returns to the first active league and the first dataset. Removing a league leaves the row with status `deleted`. Removing the last active league returns to the empty state.
 
-Status: implemented. Waiting for the user to check the app and SQLite.
+Status: done. The user checked the screen and merged.
 
 ### Task 5 — Base price list
 
-Implement section 4 without punts. Show a table of player, per-game stats, total z, and price. Include a tiny fixed example in tests or a script the user can run, with hand-computed z-scores, so the formula is checked apart from the full player list.
+Three parts, in order: our projection, z-scores, then prices. Punts wait.
 
-Done when: the example matches the hand calculation, and the app shows a sorted price list from the loaded season.
+- Our projection, the two ranks, and the two prices are agreed. A price uses the same total as its rank. Extra money above $1 goes to the top 10 players per team on that rank. The rest of the roster group stays at $1. The rules are in section 4. They are calculated, not stored.
+- One wide table shows, in order: name; plain rank, plain all-player total, plain price; curved rank, curved all-player total, curved price; the projection line; each plain category score from the all-player calc; each curved category score from the all-player calc. Categories the league has turned off are omitted. The projection columns are games, minutes per game, FGA per game, FTA per game, FG%, FT%, and the seven counting rates per game. The table is sorted by the plain rank.
+- A small hand-computed example checks the scores and the prices apart from the full player list.
+
+Done when: the example matches the hand calculation, and the app shows the table from our projection for the open league.
+
+Status: done. The user checked the price table and is merging. The score math uses the standard library. The curved score is `tanh(z / 3.5)`.
 
 ### Task 6 — Punts
 
@@ -331,5 +369,5 @@ We do not need a large automated suite before there is logic. Once valuation and
 - **Off-by-one max bid.** The last roster spot may spend the final dollar. The formula in section 5 is the one to test.
 - **Preseason emptiness.** When a current-season file returns with day-to-day work, an empty season has to import cleanly. This stage does not use that file as the price baseline.
 - **CSV shape.** Task 2 imports the inbox files described in section 2. A file with a different header is refused instead of guessing columns.
-- **Name match.** Normalization plus the three starting aliases will miss other spellings. Those players import as separate people. Merging them is a later feature, and a merge recalculates prices. A key clash inside one file refuses that file.
+- **Name match.** Normalization plus the alias list will miss spellings that are not on it. Those players import as separate people. Merging them is a later feature, and a merge recalculates prices. A key clash inside one file refuses that file.
 - **Streamlit reruns.** Widgets rerun the script often. Draft writes must be idempotent: saving the same sale twice must not double-charge. The database is the source of truth, not widget state.

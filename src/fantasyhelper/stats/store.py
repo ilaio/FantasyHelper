@@ -217,6 +217,44 @@ def list_datasets() -> list[Dataset]:
     ]
 
 
+def load_baseline_rows() -> tuple[list[dict[str, object]], list[dict[str, object]], list[dict[str, object]]]:
+    """Players, 2024-25 and 2025-26 seasons, and 2026-27 projections."""
+    conn = connect()
+    try:
+        ensure_schema(conn)
+        players = [
+            dict(row)
+            for row in conn.execute("SELECT id, name FROM players").fetchall()
+        ]
+        seasons = [
+            dict(row)
+            for row in conn.execute(
+                """
+                SELECT player_id, season, games, minutes, points, threes, rebounds,
+                       assists, steals, blocks, turnovers, fg_pct, fga, ft_pct, fta
+                FROM season_stats
+                WHERE season IN ('2024-25', '2025-26')
+                """
+            ).fetchall()
+        ]
+        projections = [
+            dict(row)
+            for row in conn.execute(
+                """
+                SELECT player_id, games, minutes_per_game, points_per_game,
+                       threes_per_game, rebounds_per_game, assists_per_game,
+                       steals_per_game, blocks_per_game, turnovers_per_game,
+                       fg_pct, fga_per_game, ft_pct, fta_per_game
+                FROM projections
+                WHERE season = '2026-27'
+                """
+            ).fetchall()
+        ]
+    finally:
+        conn.close()
+    return players, seasons, projections
+
+
 def load_player_rows(dataset: Dataset) -> list[dict[str, object]]:
     conn = connect()
     try:

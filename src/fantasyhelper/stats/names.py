@@ -7,6 +7,10 @@ ALIASES = {
     "trey-murphy": "trey-murphy-iii",
     "alex-sarr": "alexandre-sarr",
     "cam-johnson": "cameron-johnson",
+    "robert-williams": "robert-williams-iii",
+    "jimmy-butler": "jimmy-butler-iii",
+    "derrick-jones": "derrick-jones-jr",
+    "kelly-oubre": "kelly-oubre-jr",
 }
 
 # Periods and apostrophes are removed rather than turned into hyphens.
