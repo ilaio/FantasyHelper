@@ -1,5 +1,6 @@
 """One projection line per player, from the imported files."""
 
+import math
 from dataclasses import dataclass
 
 DRAFT_SEASON = "2026-27"
@@ -140,7 +141,7 @@ def _counting_rates(
     close_to_last = (
         last is not None
         and last.games > GAMES_LONG
-        and abs(projected_minutes - last.minutes / last.games) < MINUTES_GAP
+        and _minutes_are_close(projected_minutes, last.minutes / last.games)
     )
     rates = {}
     for key, _total, _rate in COUNTING:
@@ -168,6 +169,12 @@ def _percentage(
     if not present:
         return None
     return _mean(present)
+
+
+def _minutes_are_close(projected_minutes: float, last_minutes_per_game: float) -> bool:
+    gap = abs(projected_minutes - last_minutes_per_game)
+    # 34.8 − 30 is stored a hair under 4.8. That gap is 4.8, so it is not close.
+    return gap < MINUTES_GAP and not math.isclose(gap, MINUTES_GAP)
 
 
 def _played(season: SeasonTotals | None) -> bool:

@@ -88,7 +88,8 @@ class ProjectionTests(unittest.TestCase):
         assert line is not None
         self.assertEqual(line.games, 10)
         self.assertEqual(line.counting["pts"], 20)
-        self.assertEqual(line.fg_pct, 0.5)
+        self.assertIsNone(line.fg_pct)
+        self.assertIsNone(line.ft_pct)
 
     def test_usage_averages_the_projection_files(self) -> None:
         files = (_file(games=70, minutes=28), _file(games=80, minutes=32))
