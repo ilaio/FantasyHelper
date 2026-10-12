@@ -102,7 +102,7 @@ Visual design stays plain. The app is light gray with black text, darker gray bo
 
 Add a dependency only when a task needs it. Prefer the standard library, then the tools already chosen: Python, pandas, numpy, SQLite, and Streamlit. Reading the inbox files uses the standard library. Do not add an HTTP client for stats or projections.
 
-Tools for this stage are free, widely used, and under our control. A tool has to let us turn off anything that sends our data or usage data to a third party. Calls that leave the machine wait until a task needs one. Stat and projection files are local, so importing them does not. Streamlit stays the interface. Its usage statistics are off in `.streamlit/config.toml`. Whether a tool could later run outside a local machine is a low-priority preference, checked only when the other requirements are already met.
+Tools for this stage are free, widely used, and under our control. A tool has to let us turn off anything that sends our data or usage data to a third party. Calls that leave the machine wait until a task needs one. Stat and projection files are local, so importing them does not. Streamlit stays the interface. Its usage statistics are off in `.streamlit/config.toml`, and that file also hides the top bar. Whether a tool could later run outside a local machine is a low-priority preference, checked only when the other requirements are already met.
 
 Pin versions in the project dependency file once Task 1 creates it, so the user’s machine and later work install the same stack.
 

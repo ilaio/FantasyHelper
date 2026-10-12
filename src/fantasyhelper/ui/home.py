@@ -69,6 +69,9 @@ _RATE_LABELS = (
 
 _LAYOUT = """
 <style>
+header[data-testid="stHeader"] {
+    display: none;
+}
 [data-testid="stMainBlockContainer"],
 .block-container {
     max-width: 100%;
