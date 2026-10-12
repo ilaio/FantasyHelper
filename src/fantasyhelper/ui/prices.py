@@ -56,19 +56,26 @@ def show_price_table(
     *,
     selection_key: str | None = None,
     on_select=None,
+    height: int | str = "auto",
 ) -> None:
-    """Draw the price table. A selection key lets one row open the player view."""
-    frame = _frame(rows, active, punted)
+    """Draw the price table. No rows draws one blank row in the same columns."""
+    columns = table_columns(active, punted)
+    if rows:
+        frame = _frame(rows, active, punted)
+        data = _styled(frame, rows, active, punted)
+    else:
+        data = pd.DataFrame([{name: None for name in columns}])
     kwargs = {}
     if selection_key is not None:
         kwargs["key"] = selection_key
         kwargs["on_select"] = on_select
         kwargs["selection_mode"] = "single-row"
     st.dataframe(
-        _styled(frame, rows, active, punted),
+        data,
         hide_index=True,
         width="content",
-        column_config={name: _column_config(name) for name in frame.columns},
+        height=height,
+        column_config={name: _column_config(name) for name in columns},
         **kwargs,
     )
 

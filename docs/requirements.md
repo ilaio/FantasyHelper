@@ -206,8 +206,9 @@ Not used. The auction reprice already makes the remaining prices add up to the m
 - Keep the league header. Under it, a Players tab for the dataset lists and a Draft tab for the auction. The selected tab has a light filled background.
 - On Draft, one left-aligned line shows your money, your spots, league money, and league spots. Each figure is what is left, with spent or taken in parentheses. The leftover dollar amounts and spot counts are bold. The max bid stays on the player view.
 - Three lists: players still available with the repriced amounts, the user's taken players, and other teams' taken players. Your players and other teams show the name, the price paid, and keeper or draft. Projected category values can be added there later. Ranks and scores stay off those two lists.
-- Search sits above the lists. Choosing a player, or a row in a list, opens that player's view under the search. The lists stay on the page. The view shows that player's price-table line and the max bid.
-- Mark the player sold as a keeper or a draft sale, on the user's team or another team, with a price. Edit the price or unmark the player.
+- Search sits above the lists. "Search player" sits to the left of the select, which is about 50 characters wide. One price-table row stays under the search. With no player chosen, the row is empty. Choosing a player, or a row in a list, fills that row. The lists stay on the page.
+- Under the row, one line holds the sale. My team or Another team, and Draft or Keeper, are each two buttons with one pressed. Price sits to the left of the amount, and the max bid or team budget sits to the right of it. Mark sold is on the right when the player is not sold. Save and Unmark are on the right when the player is sold. Save stays off until team, keeper or draft, or price changes.
+- Mark the player sold as a keeper or a draft sale, on the user's team or another team, with a price. Edit those values or unmark the player.
 - The punt switches stay on Draft. Category balance and nomination ideas stay later.
 
 ### Category balance

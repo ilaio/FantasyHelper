@@ -122,9 +122,19 @@ header[data-testid="stHeader"] {
     width: fit-content;
     align-items: center;
 }
+[data-testid="stHorizontalBlock"]:has(.sale-price) {
+    width: 100%;
+}
+[data-testid="stHorizontalBlock"]:has(.sale-price) > div:last-child {
+    margin-left: auto;
+}
 [data-testid="stHorizontalBlock"]:has(.draft-figure) > div {
     width: auto;
     flex: 0 0 auto;
+}
+[data-testid="stHorizontalBlock"]:has(.search-player) > div:has([data-testid="stSelectbox"]) {
+    width: 50ch;
+    flex: 0 0 50ch;
 }
 button[data-testid="stPopoverButton"] {
     width: 2.5rem;

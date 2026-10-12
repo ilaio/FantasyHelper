@@ -55,19 +55,27 @@ def render_draft(league: League) -> None:
 
     names = {int(player["id"]): str(player["name"]) for player in players}
     by_id = {row.player_id: row for row in table.rows}
-    _search(league.id, table.rows)
-    chosen = st.session_state.get(_player_key(league.id))
-    punted = current_punts(league.id, settings.categories)
-    priced = reprice_remaining(
-        table.rows,
-        sales,
-        settings.team_count,
-        settings.budget,
-        settings.roster_size,
-        punted,
-    )
-    if isinstance(chosen, int):
-        _player_view(league, chosen, by_id.get(chosen), priced.rows, sales, names)
+    with st.container(gap="xsmall"):
+        _search(league.id, table.rows)
+        chosen = st.session_state.get(_player_key(league.id))
+        punted = current_punts(league.id, settings.categories)
+        priced = reprice_remaining(
+            table.rows,
+            sales,
+            settings.team_count,
+            settings.budget,
+            settings.roster_size,
+            punted,
+        )
+        player_id = chosen if isinstance(chosen, int) else None
+        _player_view(
+            league,
+            player_id,
+            by_id.get(player_id) if player_id is not None else None,
+            priced.rows,
+            sales,
+            punted,
+        )
     punt_switches(league.id, settings.categories)
     _available(league.id, priced.error, priced.rows, settings.categories, punted)
     _taken(league.id, "Your players", "draft-yours", sales, MINE, names)
@@ -118,107 +126,159 @@ def _search(league_id: int, rows: tuple[PriceRow, ...]) -> None:
     kwargs = {}
     if key not in st.session_state:
         kwargs["index"] = None
-    st.selectbox(
-        "Search",
-        ids,
-        format_func=lambda player_id: names[player_id],
-        key=key,
-        placeholder="Player name",
-        width="stretch",
-        **kwargs,
-    )
+    with st.container(horizontal=True, vertical_alignment="center", gap="small", width="content"):
+        st.markdown(
+            "<p class='draft-figure search-player'>Search player</p>",
+            unsafe_allow_html=True,
+        )
+        st.selectbox(
+            "Search player",
+            ids,
+            format_func=lambda player_id: names[player_id],
+            key=key,
+            placeholder="Player name",
+            label_visibility="collapsed",
+            **kwargs,
+        )
 
 
 def _player_view(
     league: League,
-    player_id: int,
+    player_id: int | None,
     base: PriceRow | None,
     available: tuple[PriceRow, ...],
     sales: tuple[Sale, ...],
-    names: dict[int, str],
+    punted: frozenset[str],
 ) -> None:
-    sale = next((item for item in sales if item.player_id == player_id), None)
-    shown = next((row for row in available if row.player_id == player_id), None)
-    if shown is not None:
-        show_price_table((shown,), league.settings.categories, current_punts(league.id, league.settings.categories))
-    elif base is not None:
-        show_price_table((base,), league.settings.categories, frozenset())
-    else:
-        st.write(names.get(player_id, "That player is not in the price list."))
-    if sale is not None:
-        who = "you" if sale.side == MINE else "another team"
-        kind = "keeper" if sale.sale_type == KEEPER else "draft"
-        st.write(f"Sold to {who} for ${sale.price}, {kind}.")
+    sale = None
+    if player_id is not None:
+        sale = next((item for item in sales if item.player_id == player_id), None)
+    shown = None
+    if player_id is not None:
+        shown = next((row for row in available if row.player_id == player_id), None)
+    line = (shown,) if shown is not None else ((base,) if base is not None else ())
+    show_price_table(line, league.settings.categories, punted, height="content")
     _sale_form(league, player_id, sale, sales)
 
 
 def _sale_form(
     league: League,
-    player_id: int,
+    player_id: int | None,
     sale: Sale | None,
     sales: tuple[Sale, ...],
 ) -> None:
-    side_key = f"sale-side-{league.id}-{player_id}"
-    type_key = f"sale-type-{league.id}-{player_id}"
-    price_key = f"sale-price-{league.id}-{player_id}"
+    suffix = str(player_id) if player_id is not None else "none"
+    side_key = f"sale-side-{league.id}-{suffix}"
+    type_key = f"sale-type-{league.id}-{suffix}"
+    price_key = f"sale-price-{league.id}-{suffix}"
     if side_key not in st.session_state:
         st.session_state[side_key] = sale.side if sale is not None else MINE
     if type_key not in st.session_state:
         st.session_state[type_key] = sale.sale_type if sale is not None else DRAFT
     if price_key not in st.session_state:
         st.session_state[price_key] = sale.price if sale is not None else None
-    with st.container(horizontal=True, vertical_alignment="bottom", gap="small", width="content"):
-        side = st.selectbox(
+    open_player = player_id is not None
+    with st.container(horizontal=True, vertical_alignment="center", gap="small", width="stretch"):
+        side = st.segmented_control(
             "Team",
             (MINE, OTHER),
             format_func=lambda item: _SIDE_LABELS[item],
             key=side_key,
-            width=200,
+            required=True,
+            label_visibility="collapsed",
+            width="content",
+            disabled=not open_player,
         )
-        sale_type = st.selectbox(
+        sale_type = st.segmented_control(
             "Keeper or draft",
             (DRAFT, KEEPER),
             format_func=lambda item: _TYPE_LABELS[item],
             key=type_key,
-            width=180,
+            required=True,
+            label_visibility="collapsed",
+            width="content",
+            disabled=not open_player,
         )
-        price = st.number_input("Price", min_value=1, step=1, key=price_key, width=120)
-    _cap_line(league.settings, sales, player_id, side)
-    errors: tuple[str, ...] = ()
-    with st.container(horizontal=True, vertical_alignment="center", gap="small", width="content"):
-        save_label = "Save" if sale is not None else "Mark sold"
-        if st.button(save_label, key=f"sale-save-{league.id}-{player_id}"):
-            errors = _save_sale(
-                league, player_id, side, sale_type, price, replacing=sale is not None
-            )
-        if sale is not None and st.button("Unmark", key=f"sale-clear-{league.id}-{player_id}"):
-            _unmark(league.id, player_id)
+        st.markdown("<p class='draft-figure sale-price'>Price</p>", unsafe_allow_html=True)
+        price = st.number_input(
+            "Price",
+            min_value=1,
+            step=1,
+            key=price_key,
+            width=120,
+            label_visibility="collapsed",
+            disabled=not open_player,
+        )
+        st.markdown(
+            f"<p class='draft-figure'>{html.escape(_cap_text(league.settings, sales, player_id, side))}</p>",
+            unsafe_allow_html=True,
+        )
+        errors = _sale_actions(league, player_id, sale, side, sale_type, price)
     for message in errors:
         st.error(message)
 
 
-def _cap_line(
+def _sale_actions(
+    league: League,
+    player_id: int | None,
+    sale: Sale | None,
+    side: str | None,
+    sale_type: str | None,
+    price: object,
+) -> tuple[str, ...]:
+    errors: tuple[str, ...] = ()
+    suffix = str(player_id) if player_id is not None else "none"
+    with st.container(horizontal=True, vertical_alignment="center", gap="small", width="content"):
+        if sale is None:
+            if st.button(
+                "Mark sold",
+                key=f"sale-mark-{league.id}-{suffix}",
+                disabled=player_id is None,
+            ):
+                errors = _save_sale(league, player_id, side, sale_type, price, replacing=False)
+            return errors
+        if st.button(
+            "Save",
+            key=f"sale-save-{league.id}-{suffix}",
+            disabled=not _sale_changed(sale, side, sale_type, price),
+        ):
+            errors = _save_sale(league, player_id, side, sale_type, price, replacing=True)
+        if st.button("Unmark", key=f"sale-clear-{league.id}-{suffix}"):
+            _unmark(league.id, player_id)
+    return errors
+
+
+def _sale_changed(sale: Sale, side: str | None, sale_type: str | None, price: object) -> bool:
+    return not (
+        side == sale.side
+        and sale_type == sale.sale_type
+        and _whole_dollars(price) == sale.price
+    )
+
+
+def _cap_text(
     settings: LeagueSettings,
     sales: tuple[Sale, ...],
-    player_id: int,
-    side: str,
-) -> None:
+    player_id: int | None,
+    side: str | None,
+) -> str:
     if side == OTHER:
-        st.write(f"Team budget: ${settings.budget}")
-        return
+        return f"Team budget: ${settings.budget}"
     rest = tuple(sale for sale in sales if sale.player_id != player_id)
-    st.write(f"Max bid: {_bid(max_bid(settings.budget, settings.roster_size, rest))}")
+    return f"Max bid: {_bid(max_bid(settings.budget, settings.roster_size, rest))}"
 
 
 def _save_sale(
     league: League,
-    player_id: int,
-    side: str,
-    sale_type: str,
+    player_id: int | None,
+    side: str | None,
+    sale_type: str | None,
     price: object,
     *,
     replacing: bool,
 ) -> tuple[str, ...]:
+    if player_id is None or side is None or sale_type is None:
+        return ("Choose a player.",)
     whole = _whole_dollars(price)
     if whole is None:
         return ("Enter a whole-dollar price.",)
@@ -231,7 +291,9 @@ def _save_sale(
     return ()
 
 
-def _unmark(league_id: int, player_id: int) -> None:
+def _unmark(league_id: int, player_id: int | None) -> None:
+    if player_id is None:
+        return
     remove_sale(league_id, player_id)
     for name in ("side", "type", "price"):
         st.session_state.pop(f"sale-{name}-{league_id}-{player_id}", None)
