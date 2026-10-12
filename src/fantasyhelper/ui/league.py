@@ -33,15 +33,15 @@ def render_league() -> League | None:
     _prepare_open(ids)
     current = st.session_state.get("open-league", ids[0])
     league = next(item for item in leagues if item.id == current)
-    with st.container(horizontal=True, vertical_alignment="center", gap="small", width="content"):
+    with st.container(horizontal=True, vertical_alignment="center", gap="small", width="stretch"):
         _name(league.settings.name)
+        _details(summary(league))
         _league_menu(league, leagues)
-    _details(summary(league))
     return league
 
 
 def _render_empty() -> None:
-    with st.container(horizontal=True, vertical_alignment="center", gap="small", width="content"):
+    with st.container(horizontal=True, vertical_alignment="center", gap="medium", width="stretch"):
         _name("No league is loaded yet.")
         with _league_actions():
             _create_button()

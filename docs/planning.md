@@ -301,7 +301,7 @@ Status: deferred.
 Agreed source and scope:
 
 - Many leagues. Create, edit, and remove them. One league is open during a visit. Choosing a league or a dataset holds until the browser page is refreshed or the app stops. A browser refresh or a new visit starts on the first active league and the first dataset.
-- The open league is the page heading: the name, then the other settings in small type separated by " - ". Edit, remove, create, and switch league sit in a ⋮ menu. Edit and create open a form over the screen. Remove asks in a confirmation over the screen. The form is not on the page otherwise.
+- The open league is the page heading. The name is on the left, the other settings sit beside it in lighter type, separated by " - ", and a round ⋮ button is on the right. Edit and create open a form over the screen. Remove asks in a confirmation over the screen. The form is not on the page otherwise.
 - Each league stores a name, season, teams, budget, roster size, and which of the 9 categories are on. The name is unique among active leagues. A new league starts as `My league`, `2026-27`, 12 teams, $200, 13 spots, and all 9 categories.
 - Season is the season being drafted, in the `YYYY-YY` shape. It does not change the 2025-26 price baseline.
 - Teams are a whole number from 2 to 30. Budget is whole dollars from 1 to 10000. Roster spots are a whole number from 1 to 30. At least one category stays on. A bad entry is refused and is not saved.

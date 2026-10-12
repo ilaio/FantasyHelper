@@ -99,21 +99,64 @@ header[data-testid="stHeader"] {
 [data-testid="stMarkdownContainer"] .league-details {
     font-size: 0.95rem;
     line-height: 1.4;
-    margin: 0.35rem 0 0;
-    color: #000000;
+    margin: 0;
+    padding-bottom: 3px;
+    width: fit-content;
+    color: #8A8A8A;
 }
-[data-testid="stHorizontalBlock"]:has(.league-name),
+[data-testid="stHorizontalBlock"]:has(.league-name) {
+    width: 100%;
+    align-items: center;
+}
+[data-testid="stHorizontalBlock"]:has(.league-name) > div {
+    width: auto;
+    flex: 0 0 auto;
+}
+[data-testid="stHorizontalBlock"]:has(.league-name) > div:last-child {
+    margin-left: auto;
+}
+[data-testid="stHorizontalBlock"]:has(.league-name):has(.league-details) > div:nth-child(2) {
+    align-self: flex-end;
+}
 [data-testid="stHorizontalBlock"]:has(.draft-figure) {
     width: fit-content;
     align-items: center;
 }
-[data-testid="stHorizontalBlock"]:has(.league-name) > div,
 [data-testid="stHorizontalBlock"]:has(.draft-figure) > div {
     width: auto;
     flex: 0 0 auto;
 }
+button[data-testid="stPopoverButton"] {
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid #D4D4D4;
+    background-color: #F7F7F7;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+button[data-testid="stPopoverButton"]:hover {
+    background-color: #D9D9D9;
+}
+button[data-testid="stPopoverButton"] > div {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 [data-testid="stPopoverButton"] [data-testid="stIconMaterial"] {
-    font-size: 1.75rem;
+    font-size: 1.35rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translateX(-2px);
 }
 [data-testid="stPopoverButton"] > div > div:last-child {
     display: none;
