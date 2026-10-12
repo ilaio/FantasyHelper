@@ -2,7 +2,15 @@
 
 import unittest
 
-from fantasyhelper.valuation.prices import apply_punt, assign_prices, build_price_table
+from fantasyhelper.valuation.prices import (
+    Sale,
+    apply_punt,
+    assign_prices,
+    build_price_table,
+    max_bid,
+    reprice_remaining,
+    sale_errors,
+)
 from fantasyhelper.valuation.projection import (
     COUNTING,
     FileProjection,
@@ -229,6 +237,73 @@ class ScoreTests(unittest.TestCase):
         self.assertEqual(by_name["Board"].personal_plain_price, 1)
         self.assertEqual(by_name["Weak"].personal_plain_price, 0)
         self.assertEqual(sum(row.personal_plain_price or 0 for row in punted), 4)
+
+    def test_no_sales_keep_the_base_prices(self) -> None:
+        lines = [_player(name, points, index) for index, (name, points) in enumerate(
+            (("A", 40), ("B", 30), ("C", 20), ("D", 10)), start=1
+        )]
+        base = build_price_table(lines, frozenset({"pts"}), 1, 10, 2)
+        again = reprice_remaining(base.rows, (), 1, 10, 2)
+        self.assertIsNone(again.error)
+        self.assertEqual(
+            [(row.name, row.plain_price) for row in again.rows],
+            [(row.name, row.plain_price) for row in base.rows],
+        )
+
+    def test_a_sale_reprices_the_players_still_available(self) -> None:
+        lines = [_player(name, points, index) for index, (name, points) in enumerate(
+            (("A", 40), ("B", 30), ("C", 20), ("D", 10)), start=1
+        )]
+        base = build_price_table(lines, frozenset({"pts"}), 1, 10, 2)
+        sold = (Sale(1, "mine", 4, "keeper"),)
+        auction = reprice_remaining(base.rows, sold, 1, 10, 2)
+        self.assertIsNone(auction.error)
+        by_name = {row.name: row for row in auction.rows}
+        self.assertNotIn("A", by_name)
+        self.assertEqual(by_name["B"].plain_price, 6)
+        self.assertEqual(by_name["C"].plain_price, 0)
+        self.assertEqual(by_name["D"].plain_price, 0)
+        self.assertEqual(sum(row.plain_price for row in auction.rows), 6)
+        self.assertEqual(by_name["B"].plain_categories, {row.name: row for row in base.rows}["B"].plain_categories)
+
+    def test_a_punt_uses_the_money_left_after_sales(self) -> None:
+        lines = [
+            ProjectionLine(1, "Star", 70, 30, 10, 2, 0.5, 0.8, _counting(pts=30, reb=4)),
+            ProjectionLine(2, "Board", 70, 30, 10, 2, 0.5, 0.8, _counting(pts=18, reb=10)),
+            ProjectionLine(3, "Weak", 70, 30, 10, 2, 0.5, 0.8, _counting(pts=6, reb=4)),
+        ]
+        base = build_price_table(lines, frozenset({"pts", "reb"}), 1, 4, 2)
+        sold = (Sale(2, "other", 1, "draft"),)
+        auction = reprice_remaining(base.rows, sold, 1, 4, 2, frozenset({"reb"}))
+        self.assertIsNone(auction.error)
+        self.assertEqual([row.name for row in auction.rows], ["Star", "Weak"])
+        self.assertEqual(sum(row.personal_plain_price or 0 for row in auction.rows), 3)
+        self.assertEqual(auction.rows[0].plain_categories["reb"], {row.name: row for row in base.rows}["Star"].plain_categories["reb"])
+
+    def test_max_bid_leaves_a_dollar_for_later_spots(self) -> None:
+        self.assertEqual(max_bid(200, 13, ()), 188)
+        kept = (Sale(1, "mine", 160, "keeper"),)
+        self.assertEqual(max_bid(200, 13, kept), 29)
+        filled = tuple(Sale(index, "mine", 1, "draft") for index in range(1, 14))
+        self.assertIsNone(max_bid(200, 13, filled))
+        almost = tuple(Sale(index, "mine", 10, "keeper") for index in range(1, 13))
+        self.assertEqual(max_bid(200, 13, almost), 80)
+
+    def test_a_price_above_the_max_bid_is_refused(self) -> None:
+        errors = sale_errors((), 1, "mine", 189, "keeper", 12, 200, 13)
+        self.assertEqual(errors, ("That price is above your max bid of $188.",))
+        self.assertEqual(sale_errors((), 1, "mine", 188, "keeper", 12, 200, 13), ())
+        self.assertEqual(
+            sale_errors((), 1, "other", 201, "draft", 12, 200, 13),
+            ("That price is above this league's budget of $200.",),
+        )
+        self.assertEqual(sale_errors((), 1, "mine", 0, "keeper", 12, 200, 13), ("Enter a price of at least $1.",))
+        sold = (Sale(1, "mine", 50, "keeper"),)
+        self.assertEqual(
+            sale_errors(sold, 1, "mine", 50, "keeper", 12, 200, 13),
+            ("That player is already sold.",),
+        )
+        self.assertEqual(sale_errors(sold, 1, "mine", 40, "draft", 12, 200, 13, replacing=True), ())
 
 
 if __name__ == "__main__":

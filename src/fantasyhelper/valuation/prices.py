@@ -44,6 +44,24 @@ class PriceTable:
     error: str | None
 
 
+@dataclass(frozen=True)
+class Sale:
+    """One keeper or draft sale. The sale type does not change the price."""
+
+    player_id: int
+    side: str
+    price: int
+    sale_type: str
+
+
+MINE = "mine"
+OTHER = "other"
+KEEPER = "keeper"
+DRAFT = "draft"
+_SIDES = frozenset({MINE, OTHER})
+_SALE_TYPES = frozenset({KEEPER, DRAFT})
+
+
 def build_price_table(
     lines: list[ProjectionLine],
     categories: frozenset[str],
@@ -135,6 +153,166 @@ def apply_punt(
     ]
     updated.sort(key=lambda item: item.personal_plain_rank or 0)
     return tuple(updated)
+
+
+def max_bid(budget: int, roster_size: int, sales: tuple[Sale, ...]) -> int | None:
+    """The most this user can bid and still fill every later spot at $1.
+
+    None means the user has no spot left. The number does not depend on which
+    player is up.
+    """
+    spots_left = roster_size - sum(1 for sale in sales if sale.side == MINE)
+    if spots_left <= 0:
+        return None
+    money_left = budget - sum(sale.price for sale in sales if sale.side == MINE)
+    if spots_left == 1:
+        return money_left
+    return money_left - (spots_left - 1)
+
+
+def sale_errors(
+    sales: tuple[Sale, ...],
+    player_id: int,
+    side: str,
+    price: int,
+    sale_type: str,
+    team_count: int,
+    budget: int,
+    roster_size: int,
+    *,
+    replacing: bool = False,
+) -> tuple[str, ...]:
+    """Why this sale cannot be saved. An empty tuple means it can."""
+    errors: list[str] = []
+    if side not in _SIDES:
+        errors.append("Choose your team or another team.")
+    if sale_type not in _SALE_TYPES:
+        errors.append("Choose keeper or draft.")
+    if type(price) is not int:
+        errors.append("Enter a whole-dollar price.")
+        return tuple(errors)
+    if price < 1:
+        errors.append("Enter a price of at least $1.")
+    already = any(sale.player_id == player_id for sale in sales)
+    if already and not replacing:
+        errors.append("That player is already sold.")
+    if errors:
+        return tuple(errors)
+
+    baseline = tuple(sale for sale in sales if sale.player_id != player_id)
+    league_spots = team_count * roster_size
+    if len(baseline) >= league_spots:
+        return ("Every roster spot in the league is already filled.",)
+    if side == MINE and sum(1 for sale in baseline if sale.side == MINE) >= roster_size:
+        return ("Your roster is already full.",)
+    if side == MINE:
+        bid = max_bid(budget, roster_size, baseline)
+        if bid is None or price > bid:
+            return (f"That price is above your max bid of ${0 if bid is None else bid}.",)
+    elif price > budget:
+        return (f"That price is above this league's budget of ${budget}.",)
+    money_left = team_count * budget - sum(sale.price for sale in baseline) - price
+    spots_left = league_spots - len(baseline) - 1
+    if money_left < spots_left:
+        return ("That sale leaves the league short of $1 for every open spot.",)
+    return ()
+
+
+def reprice_remaining(
+    rows: tuple[PriceRow, ...],
+    sales: tuple[Sale, ...],
+    team_count: int,
+    budget: int,
+    roster_size: int,
+    punted: frozenset[str] = frozenset(),
+) -> PriceTable:
+    """Price the players still available from the spots and money still left.
+
+    Category z-scores stay as they are. Sold players are left off the list.
+    """
+    sold = {sale.player_id for sale in sales}
+    if len(sold) != len(sales):
+        return PriceTable(rows=(), error="A player is on the sale list twice.")
+    spots = team_count * roster_size - len(sales)
+    money = team_count * budget - sum(sale.price for sale in sales)
+    if spots < 0 or money < 0:
+        return PriceTable(rows=(), error="The sale list does not fit this league.")
+    if spots == 0:
+        return PriceTable(rows=(), error=None)
+    if money < spots:
+        return PriceTable(
+            rows=(),
+            error=(
+                "The league's remaining budget is smaller than the open spots, "
+                "so a $1 bid cannot fill every spot."
+            ),
+        )
+    available = tuple(row for row in rows if row.player_id not in sold)
+    plain_prices = _auction_prices(
+        available, [row.plain_score for row in available], spots, money, team_count
+    )
+    curved_prices = _auction_prices(
+        available, [row.curved_score for row in available], spots, money, team_count
+    )
+    personal_plain: dict[int, int] = {}
+    personal_curved: dict[int, int] = {}
+    personal_plain_rank: list[int] = []
+    personal_curved_rank: list[int] = []
+    if punted:
+        plain_totals = [_kept_total(row.plain_categories, punted) for row in available]
+        curved_totals = [_kept_total(row.curved_categories, punted) for row in available]
+        plain_order = _order_named(available, plain_totals)
+        curved_order = _order_named(available, curved_totals)
+        personal_plain = _prices_named(
+            available, plain_order, plain_totals, spots, money, team_count
+        )
+        personal_curved = _prices_named(
+            available, curved_order, curved_totals, spots, money, team_count
+        )
+        personal_plain_rank = _ranks(plain_order)
+        personal_curved_rank = _ranks(curved_order)
+    updated = []
+    for index, row in enumerate(available):
+        if punted:
+            updated.append(
+                replace(
+                    row,
+                    plain_price=plain_prices[row.player_id],
+                    curved_price=curved_prices[row.player_id],
+                    personal_plain_rank=personal_plain_rank[index],
+                    personal_plain_price=personal_plain[row.player_id],
+                    personal_curved_rank=personal_curved_rank[index],
+                    personal_curved_price=personal_curved[row.player_id],
+                )
+            )
+        else:
+            updated.append(
+                replace(
+                    row,
+                    plain_price=plain_prices[row.player_id],
+                    curved_price=curved_prices[row.player_id],
+                    personal_plain_rank=None,
+                    personal_plain_price=None,
+                    personal_curved_rank=None,
+                    personal_curved_price=None,
+                )
+            )
+    if punted:
+        updated.sort(key=lambda item: item.personal_plain_rank or 0)
+    else:
+        updated.sort(key=lambda item: item.plain_rank)
+    return PriceTable(rows=tuple(updated), error=None)
+
+
+def _auction_prices(
+    rows: tuple[PriceRow, ...],
+    totals: list[float],
+    spots: int,
+    money: int,
+    team_count: int,
+) -> dict[int, int]:
+    order = _order_named(rows, totals)
+    return _prices_named(rows, order, totals, spots, money, team_count)
 
 
 def assign_prices(

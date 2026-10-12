@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: Task 6 done. Next is Task 7, keepers. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 7 is sales and the auction reprice. Subtask 1 saves the rows and reprices. No new screen yet. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -117,13 +117,11 @@ Names can change when we create the schema. The contents should not grow beyond 
 
 **status_flags** — not created in Task 2. Inbox files have no injury column.
 
-**leagues** — many rows. `name` unique among active leagues, `season` (`2026-27`), `team_count`, `budget`, `roster_size`, one flag per scoring category, and `status` (`active` or `deleted`). The chooser loads active rows. Which league is open, and which dataset is showing, last until the browser page is refreshed or the app stops. A browser refresh or a new visit starts on the first active league and the first dataset. A punt is not stored on the league. Removing a league sets `status` to `deleted`. Its keepers and sales stay.
+**leagues** — many rows. `name` unique among active leagues, `season` (`2026-27`), `team_count`, `budget`, `roster_size`, one flag per scoring category, and `status` (`active` or `deleted`). The chooser loads active rows. Which league is open, and which dataset is showing, last until the browser page is refreshed or the app stops. A browser refresh or a new visit starts on the first active league and the first dataset. A punt is not stored on the league. Removing a league sets `status` to `deleted`. Its sales stay.
 
-**keepers** — belong to one league (`league_id`). Player, price or null, `mine` or `other`. They stay when the league is hidden.
+**sales** — one row per player in a league. `league_id`, `player_id`, `side` (`mine` or `other`), `price` (whole dollars, at least $1), `sale_type` (`keeper` or `draft`). A keeper is a sale entered before the draft. The mark does not change the math. A player appears once. Rows stay when the league is hidden.
 
-**sales** — belong to one league (`league_id`). Ordered list: player, price, `mine` or `other`, time. Undo deletes the last row. They stay when the league is hidden.
-
-Derived facts are calculated, not stored: our projection, z-scores, prices, dollars left, spots left, max bid, inflation, category balance. Storing them would create a second source of truth that can drift from the inputs.
+Derived facts are calculated, not stored: our projection, z-scores, prices, dollars left, spots left, max bid, category balance. Storing them would create a second source of truth that can drift from the inputs.
 
 ## 4. Valuation approach
 
@@ -212,23 +210,25 @@ With every switch on, the table is unchanged.
 
 With a punt, four columns follow C Price: My Z Rank, My Z Price, My C Rank, and My C Price. The table sorts by My Z Rank. Z Rank, Z Price, C Rank, C Price, Z Score, and C Score stay the base numbers. The personal numbers use the same price rule, with the punted categories left out of both totals. Category z-scores are not recomputed. The colored projection stays, including a punted category, and that column's header is marked as a punt.
 
-### Inflation (Task 13)
+### Auction reprice
 
-`factor = dollars still unspent in the whole league / sum of model prices of players still available`
+Sold players leave the price list. Their spots are no longer for sale, and their prices come out of the league pot, `teams × budget`. Category z-scores stay as they are. The same price rule then runs on the players still available, with the spots and money that are left. A punt uses that same remaining pot and those same remaining spots, with the punted categories left out of both totals.
 
-`adjusted price = model price × factor`
+The remaining prices add up to the money still in the league. A separate inflation factor would be 1 after this reprice, so that factor is not used.
 
-The user’s own remaining budget does not replace this factor. Inflation describes the room. The max bid still caps what this user can pay.
+A sale is refused when the player is already sold, the price is under $1, the user's price is above the user's max bid, another team's price is above that team's budget, the user's roster or the league roster is already full, or the sale would leave the league short of $1 for every open spot. The row does not name which other team bought the player, so that team's own max bid is not computed.
 
 ## 5. Draft calculations
 
-**Money spent** — sum of the user’s keeper prices and the user’s purchases.
+**League money spent** — sum of every sale price. **League money left** — `teams × budget` minus that sum.
 
-**Money left** — budget − money spent.
+**League spots taken** — the number of sales. **League spots left** — `teams × roster size` minus that number.
 
-**Spots left** — roster size − user’s keepers − user’s purchases.
+**Your money spent** — sum of your sale prices. **Your money left** — budget minus that sum.
 
-**Max bid** — money left − $1 × (spots left − 1), and never below $1 while a spot remains. When one spot remains, max bid equals money left.
+**Your spots taken** — the number of your sales. **Your spots left** — roster size minus that number.
+
+**Max bid** — your money left minus $1 for each of your spots that would still be open after this buy. When one of your spots remains, the max bid is your money left. When you have no spot left, there is no max bid. The number is the same for every player still available.
 
 **Category balance** — sum of per-game z-scores, by category, for the user’s keepers and purchases only. Punted categories are marked `punt`. Other categories are `strong` or `thin` by a simple threshold set in Task 12 (starting idea: above +0.5 combined z is strong, below −0.5 is thin, otherwise neutral). The threshold is written back here after we look at a real roster.
 
@@ -307,7 +307,7 @@ Agreed source and scope:
 - Teams are a whole number from 2 to 30. Budget is whole dollars from 1 to 10000. Roster spots are a whole number from 1 to 30. At least one category stays on. A bad entry is refused and is not saved.
 - Punts wait. Saving does not calculate prices.
 - Players and imported files are shared. They are not copied per league.
-- Removing a league asks first. Its status becomes `deleted`, and it leaves the list. Keepers, sales, and punts stay. Removing the open league opens another active league. Removing the last active league returns the screen to “No league is loaded yet.” There is no list of deleted leagues and no undo.
+- Removing a league asks first. Its status becomes `deleted`, and it leaves the list. Sales stay. Punts are not stored. Removing the open league opens another active league. Removing the last active league returns the screen to “No league is loaded yet.” There is no list of deleted leagues and no undo.
 - A second league is how a demo draft is kept. There is no separate demo flag.
 - The player table stays on the screen.
 
@@ -335,17 +335,22 @@ Done when: choosing no punt matches the base table, punting one category moves a
 
 Status: done. The user checked the punt switches and merged. A punt is not saved.
 
-### Task 7 — Keepers
+### Task 7 — Sales and the auction
 
-Enter, edit, and remove the user’s keepers (player + price) and other teams’ keepers (player + optional price). Remove them from the available list. Apply the user’s keepers to money, spots, and category totals.
+Keepers and draft sales are one `sales` row. The rules are in sections 4 and 5. The league header stays. Under it, a Players tab keeps the dataset lists, and a Draft tab holds the auction. Four subtasks:
 
-Done when: the user can enter a keeper, see the budget drop by that price and the spots drop by one, restart, and see the same keeper still applied.
+1. Save the rows and reprice the remaining players. No new screen.
+2. Add the tabs. Draft shows league money, league spots, your money, your spots, and the max bid.
+3. Three lists on Draft: still available, yours, and other teams. The punt switches and the repriced list live here.
+4. One player view, from search or from a row: the price-table line, the max bid, and mark sold, edit, or unmark.
+
+Done when: a sale is still there after a restart, the remaining prices add up to the money left in the league, a price above the max bid is refused, and unmarking a player puts that player back on the list.
+
+Status: subtask 1 is in the code. There is no new screen yet.
 
 ### Task 8 — Budget and sales
 
-Show spent, remaining, spots, and max bid. Record a sale to the user or to another team. Undo the last sale.
-
-Done when: the user can enter a short sequence of sales, including one of their own, and the max bid matches the formula in section 5. Undo restores the previous numbers. Rows in `sales` match what was entered.
+Folded into Task 7. A keeper is a sale entered before the draft. Unmark or edit replaces a separate undo of only the last sale.
 
 ### Task 9 — Pool filters and nominations
 
@@ -361,9 +366,7 @@ Done when: buying a blocks specialist moves the blocks reading, a punted categor
 
 ### Task 11 — Inflation
 
-Implement the factor in section 4. Show it and the adjusted prices. Keep the unadjusted personal price visible.
-
-Done when: a small example where the room has overspent produces a factor above 1, and the adjusted column moves while the personal price stays put.
+Retired. The auction reprice in section 4 already assigns the money still in the league, so the old inflation factor would be 1.
 
 ### After this list
 
