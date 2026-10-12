@@ -76,35 +76,55 @@ _LAYOUT = """
     padding-left: 1.25rem;
     padding-right: 1.25rem;
 }
-.league-name {
-    font-size: 2.4rem;
+[data-testid="stMarkdownContainer"]:has(.league-name) {
+    font-size: 2.5rem;
+    margin-bottom: 0;
+    width: auto;
+}
+[data-testid="stMarkdownContainer"] .league-name {
+    font-size: 1em;
     font-weight: 600;
-    line-height: 1.2;
+    line-height: 1.15;
     margin: 0;
     color: #000000;
 }
-.league-details {
-    font-size: 0.85rem;
+[data-testid="stMarkdownContainer"]:has(.league-details),
+[data-testid="stMarkdownContainer"]:has(.draft-figure) {
+    margin-bottom: 0;
+    width: auto;
+}
+[data-testid="stMarkdownContainer"] .league-details {
+    font-size: 0.95rem;
     line-height: 1.4;
-    margin: 0.2rem 0 0;
+    margin: 0.35rem 0 0;
     color: #000000;
+}
+[data-testid="stHorizontalBlock"]:has(.league-name),
+[data-testid="stHorizontalBlock"]:has(.draft-figure) {
+    width: fit-content;
+    align-items: center;
+}
+[data-testid="stHorizontalBlock"]:has(.league-name) > div,
+[data-testid="stHorizontalBlock"]:has(.draft-figure) > div {
+    width: auto;
+    flex: 0 0 auto;
+}
+[data-testid="stPopoverButton"] [data-testid="stIconMaterial"] {
+    font-size: 1.75rem;
+}
+[data-testid="stPopoverButton"] > div > div:last-child {
+    display: none;
 }
 div[data-testid="stCaptionContainer"] p {
     font-size: 0.8rem;
     color: #767676;
 }
-.draft-figure-title {
-    font-size: 0.85rem;
-    font-weight: 600;
-    line-height: 1.3;
-    margin: 0;
+[data-testid="stMarkdownContainer"] .draft-figure {
+    font-size: 1rem;
+    line-height: 1.4;
+    margin: 0.15rem 0;
     color: #000000;
-}
-.draft-figure-line {
-    font-size: 0.95rem;
-    line-height: 1.35;
-    margin: 0.15rem 0 0;
-    color: #000000;
+    white-space: nowrap;
 }
 div[data-testid="stTabs"] [data-testid="stTab"] {
     flex: 1 1 0;

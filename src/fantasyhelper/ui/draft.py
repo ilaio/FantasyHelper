@@ -23,30 +23,24 @@ def render_draft(league: League) -> None:
 
 
 def _figures(summary: AuctionSummary) -> None:
-    league_money, league_spots = st.columns(2)
-    with league_money:
-        _figure(
-            "League money",
-            (f"${summary.league_spent} spent", f"${summary.league_left} left"),
-        )
-    with league_spots:
-        _figure(
-            "League spots",
-            (f"{summary.league_taken} taken", f"{summary.league_open} left"),
-        )
-    yours_money, yours_spots, bid = st.columns(3)
-    with yours_money:
-        _figure(
-            "Your money",
-            (f"${summary.yours_spent} spent", f"${summary.yours_left} left"),
-        )
-    with yours_spots:
-        _figure(
-            "Your spots",
-            (f"{summary.yours_taken} taken", f"{summary.yours_open} left"),
-        )
-    with bid:
-        _figure("Max bid", (_bid(summary.max_bid),))
+    _row(
+        f"League money: ${summary.league_left} left (${summary.league_spent} spent)",
+        f"League spots: {summary.league_open} left ({summary.league_taken} taken)",
+    )
+    _row(
+        f"Your money: ${summary.yours_left} left (${summary.yours_spent} spent)",
+        f"Your spots: {summary.yours_open} left ({summary.yours_taken} taken)",
+        f"Max bid: {_bid(summary.max_bid)}",
+    )
+
+
+def _row(*parts: str) -> None:
+    with st.container(horizontal=True, gap="large", width="content", vertical_alignment="center"):
+        for part in parts:
+            st.markdown(
+                f"<p class='draft-figure'>{html.escape(part)}</p>",
+                unsafe_allow_html=True,
+            )
 
 
 def _bid(amount: int | None) -> str:
@@ -55,9 +49,3 @@ def _bid(amount: int | None) -> str:
     return f"${amount}"
 
 
-def _figure(title: str, lines: tuple[str, ...]) -> None:
-    body = "".join(f"<p class='draft-figure-line'>{html.escape(line)}</p>" for line in lines)
-    st.markdown(
-        f"<p class='draft-figure-title'>{html.escape(title)}</p>{body}",
-        unsafe_allow_html=True,
-    )
