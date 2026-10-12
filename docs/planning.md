@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: Task 7 is sales and the auction reprice. Subtask 1 saves the rows and reprices. No new screen yet. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 7 subtask 2 is the Players and Draft tabs. The three lists are next. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -346,7 +346,7 @@ Keepers and draft sales are one `sales` row. The rules are in sections 4 and 5. 
 
 Done when: a sale is still there after a restart, the remaining prices add up to the money left in the league, a price above the max bid is refused, and unmarking a player puts that player back on the list.
 
-Status: subtask 1 is in the code. There is no new screen yet.
+Status: subtask 2 is on the screen. Draft shows the four figures and the max bid, and the current price table sits under them. The three lists are next.
 
 ### Task 8 — Budget and sales
 

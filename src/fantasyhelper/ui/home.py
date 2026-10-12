@@ -1,11 +1,11 @@
-"""Home screen: the open league, the price table, then the imported player tables."""
+"""Home screen: the open league, then Players and Draft."""
 
 import streamlit as st
 
 from fantasyhelper.stats.inbox import ImportReport, import_inbox
 from fantasyhelper.stats.store import Dataset, list_datasets, load_player_rows
+from fantasyhelper.ui.draft import render_draft
 from fantasyhelper.ui.league import render_league
-from fantasyhelper.ui.prices import render_prices
 
 _SOURCE_LABELS = {
     "bonus": "Bonus",
@@ -93,6 +93,19 @@ div[data-testid="stCaptionContainer"] p {
     font-size: 0.8rem;
     color: #767676;
 }
+.draft-figure-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 0;
+    color: #000000;
+}
+.draft-figure-line {
+    font-size: 0.95rem;
+    line-height: 1.35;
+    margin: 0.15rem 0 0;
+    color: #000000;
+}
 </style>
 """
 
@@ -103,13 +116,17 @@ def render() -> None:
     st.title("FantasyHelper")
     league = render_league()
     report = import_inbox()
-    if league is not None:
-        render_prices(league)
-    _render_datasets(report)
+    players, draft = st.tabs(["Players", "Draft"], key="main-tab")
+    with players:
+        _render_datasets(report)
+    with draft:
+        if league is None:
+            st.write("No league is loaded yet.")
+        else:
+            render_draft(league)
 
 
 def _render_datasets(report: ImportReport) -> None:
-    st.subheader("Players")
     if report.imported:
         st.success("  \n".join(report.imported))
     for message in report.refused:

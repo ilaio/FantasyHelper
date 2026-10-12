@@ -155,6 +155,45 @@ def apply_punt(
     return tuple(updated)
 
 
+@dataclass(frozen=True)
+class AuctionSummary:
+    """League and user money and spots, plus the user's max bid."""
+
+    league_spent: int
+    league_left: int
+    league_taken: int
+    league_open: int
+    yours_spent: int
+    yours_left: int
+    yours_taken: int
+    yours_open: int
+    max_bid: int | None
+
+
+def auction_summary(
+    team_count: int,
+    budget: int,
+    roster_size: int,
+    sales: tuple[Sale, ...],
+) -> AuctionSummary:
+    """Spent and left for the league and for this user."""
+    league_spent = sum(sale.price for sale in sales)
+    yours_spent = sum(sale.price for sale in sales if sale.side == MINE)
+    league_taken = len(sales)
+    yours_taken = sum(1 for sale in sales if sale.side == MINE)
+    return AuctionSummary(
+        league_spent=league_spent,
+        league_left=team_count * budget - league_spent,
+        league_taken=league_taken,
+        league_open=team_count * roster_size - league_taken,
+        yours_spent=yours_spent,
+        yours_left=budget - yours_spent,
+        yours_taken=yours_taken,
+        yours_open=roster_size - yours_taken,
+        max_bid=max_bid(budget, roster_size, sales),
+    )
+
+
 def max_bid(budget: int, roster_size: int, sales: tuple[Sale, ...]) -> int | None:
     """The most this user can bid and still fill every later spot at $1.
 

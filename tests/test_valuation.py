@@ -7,6 +7,7 @@ from fantasyhelper.valuation.prices import (
     apply_punt,
     assign_prices,
     build_price_table,
+    auction_summary,
     max_bid,
     reprice_remaining,
     sale_errors,
@@ -288,6 +289,22 @@ class ScoreTests(unittest.TestCase):
         self.assertIsNone(max_bid(200, 13, filled))
         almost = tuple(Sale(index, "mine", 10, "keeper") for index in range(1, 13))
         self.assertEqual(max_bid(200, 13, almost), 80)
+
+    def test_auction_summary_splits_the_league_and_the_user(self) -> None:
+        sales = (
+            Sale(1, "mine", 40, "keeper"),
+            Sale(2, "other", 15, "draft"),
+        )
+        summary = auction_summary(12, 200, 13, sales)
+        self.assertEqual(summary.league_spent, 55)
+        self.assertEqual(summary.league_left, 12 * 200 - 55)
+        self.assertEqual(summary.league_taken, 2)
+        self.assertEqual(summary.league_open, 12 * 13 - 2)
+        self.assertEqual(summary.yours_spent, 40)
+        self.assertEqual(summary.yours_left, 160)
+        self.assertEqual(summary.yours_taken, 1)
+        self.assertEqual(summary.yours_open, 12)
+        self.assertEqual(summary.max_bid, 149)
 
     def test_a_price_above_the_max_bid_is_refused(self) -> None:
         errors = sale_errors((), 1, "mine", 189, "keeper", 12, 200, 13)
