@@ -77,9 +77,9 @@ _LAYOUT = """
     padding-right: 1.25rem;
 }
 .league-name {
-    font-size: 1.4rem;
+    font-size: 2.4rem;
     font-weight: 600;
-    line-height: 1.3;
+    line-height: 1.2;
     margin: 0;
     color: #000000;
 }
@@ -106,6 +106,10 @@ div[data-testid="stCaptionContainer"] p {
     margin: 0.15rem 0 0;
     color: #000000;
 }
+div[data-testid="stTabs"] [data-testid="stTab"] {
+    flex: 1 1 0;
+    justify-content: center;
+}
 </style>
 """
 
@@ -113,7 +117,6 @@ div[data-testid="stCaptionContainer"] p {
 def render() -> None:
     st.set_page_config(page_title="FantasyHelper", layout="wide")
     st.markdown(_LAYOUT, unsafe_allow_html=True)
-    st.title("FantasyHelper")
     league = render_league()
     report = import_inbox()
     players, draft = st.tabs(["Players", "Draft"], key="main-tab")

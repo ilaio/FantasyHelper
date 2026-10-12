@@ -69,13 +69,6 @@ def render_prices(league: League) -> None:
     if not table.rows:
         st.write("No players are in the projection yet.")
         return
-    st.caption(
-        "Ranks and scores use every projected player. "
-        "Extra money above $1 goes to the top 10 players per team. "
-        "The rest of that rank's roster group stays at $1, and a player outside it costs $0. "
-        "Green is above the average and red is below it. "
-        "Games under 60 and minutes under 25 are yellow."
-    )
     punted = _selected_punts(league.id, settings.categories)
     rows = apply_punt(
         table.rows,

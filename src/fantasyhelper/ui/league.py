@@ -33,40 +33,22 @@ def render_league() -> League | None:
     _prepare_open(ids)
     current = st.session_state.get("open-league", ids[0])
     league = next(item for item in leagues if item.id == current)
-    left, right = st.columns([1.2, 1], vertical_alignment="center")
-    with left:
+    name, menu = st.columns([1, 0.08], vertical_alignment="center")
+    with name:
         _name(league.settings.name)
-        _details(summary(league))
-    with right:
-        edit, remove, create, switch = st.columns(4, vertical_alignment="bottom")
-        with edit:
-            if st.button("Edit league", key="edit-league", width="stretch"):
-                _edit_dialog(league)
-        with remove:
-            if st.button("Remove league", key="remove-league", width="stretch"):
-                remaining = tuple(item.id for item in leagues if item.id != league.id)
-                _remove_dialog(league.id, league.settings.name, remaining)
-        with create:
-            if st.button("Create league", key="create-league", width="stretch"):
-                st.session_state["create_generation"] = (
-                    st.session_state.get("create_generation", 0) + 1
-                )
-                _create_dialog()
-        with switch:
-            _switch_league(leagues)
+    with menu:
+        _league_menu(league, leagues)
+    _details(summary(league))
     return league
 
 
 def _render_empty() -> None:
-    left, right = st.columns([1.2, 1], vertical_alignment="center")
-    with left:
+    name, menu = st.columns([1, 0.08], vertical_alignment="center")
+    with name:
         _name("No league is loaded yet.")
-    with right:
-        if st.button("Create league", key="create-league", width="stretch"):
-            st.session_state["create_generation"] = (
-                st.session_state.get("create_generation", 0) + 1
-            )
-            _create_dialog()
+    with menu:
+        with _league_actions():
+            _create_button()
 
 
 def _name(text: str) -> None:
@@ -89,6 +71,32 @@ def _prepare_open(ids: list[int]) -> None:
         st.session_state["open-league"] = pending
     elif st.session_state.get("open-league") not in ids:
         st.session_state.pop("open-league", None)
+
+
+def _league_actions():
+    return st.popover(
+        "",
+        icon=":material/more_vert:",
+        type="tertiary",
+        help="League actions",
+    )
+
+
+def _league_menu(league: League, leagues: list[League]) -> None:
+    with _league_actions():
+        if st.button("Edit league", key="edit-league", width="stretch"):
+            _edit_dialog(league)
+        remaining = tuple(item.id for item in leagues if item.id != league.id)
+        if st.button("Remove league", key="remove-league", width="stretch"):
+            _remove_dialog(league.id, league.settings.name, remaining)
+        _create_button()
+        _switch_league(leagues)
+
+
+def _create_button() -> None:
+    if st.button("Create league", key="create-league", width="stretch"):
+        st.session_state["create_generation"] = st.session_state.get("create_generation", 0) + 1
+        _create_dialog()
 
 
 def _switch_league(leagues: list[League]) -> None:

@@ -23,17 +23,30 @@ def render_draft(league: League) -> None:
 
 
 def _figures(summary: AuctionSummary) -> None:
-    columns = st.columns(5)
-    figures = (
-        ("League money", (f"${summary.league_spent} spent", f"${summary.league_left} left")),
-        ("League spots", (f"{summary.league_taken} taken", f"{summary.league_open} left")),
-        ("Your money", (f"${summary.yours_spent} spent", f"${summary.yours_left} left")),
-        ("Your spots", (f"{summary.yours_taken} taken", f"{summary.yours_open} left")),
-        ("Max bid", (_bid(summary.max_bid),)),
-    )
-    for column, (title, lines) in zip(columns, figures):
-        with column:
-            _figure(title, lines)
+    league_money, league_spots = st.columns(2)
+    with league_money:
+        _figure(
+            "League money",
+            (f"${summary.league_spent} spent", f"${summary.league_left} left"),
+        )
+    with league_spots:
+        _figure(
+            "League spots",
+            (f"{summary.league_taken} taken", f"{summary.league_open} left"),
+        )
+    yours_money, yours_spots, bid = st.columns(3)
+    with yours_money:
+        _figure(
+            "Your money",
+            (f"${summary.yours_spent} spent", f"${summary.yours_left} left"),
+        )
+    with yours_spots:
+        _figure(
+            "Your spots",
+            (f"{summary.yours_taken} taken", f"{summary.yours_open} left"),
+        )
+    with bid:
+        _figure("Max bid", (_bid(summary.max_bid),))
 
 
 def _bid(amount: int | None) -> str:
