@@ -205,8 +205,8 @@ Not used. The auction reprice already makes the remaining prices add up to the m
 
 - Keep the league header. Under it, a Players tab for the dataset lists and a Draft tab for the auction.
 - On Draft, show league money, league spots, the user's money, and the user's spots, each as spent or taken and what is left, plus the max bid.
-- Three lists: players still available with the repriced amounts, the user's taken players, and other teams' taken players.
-- Search a player, or open the same view from a list row. The view shows that player's price-table line and the max bid.
+- Three lists: players still available with the repriced amounts, the user's taken players, and other teams' taken players. Your players and other teams show the name, the price paid, and keeper or draft. Projected category values can be added there later. Ranks and scores stay off those two lists.
+- Search sits above the lists. Choosing a player, or a row in a list, opens that player's view under the search. The lists stay on the page. The view shows that player's price-table line and the max bid.
 - Mark the player sold as a keeper or a draft sale, on the user's team or another team, with a price. Edit the price or unmark the player.
 - The punt switches stay on Draft. Category balance and nomination ideas stay later.
 

@@ -5,10 +5,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from fantasyhelper.leagues.league import League
-from fantasyhelper.stats.store import load_baseline_rows
-from fantasyhelper.valuation.prices import PriceRow, apply_punt, build_price_table
-from fantasyhelper.valuation.projection import lines_from_rows
+from fantasyhelper.valuation.prices import PriceRow
 
 # Plain z bands. A value on the edge takes the higher band.
 _DEEP_GREEN = "background-color: #8FCB9B"
@@ -52,37 +49,27 @@ _SWITCH_LABELS = {
 }
 
 
-def render_prices(league: League) -> None:
-    st.subheader("Prices")
-    settings = league.settings
-    players, seasons, projections = load_baseline_rows()
-    table = build_price_table(
-        lines_from_rows(players, seasons, projections),
-        settings.categories,
-        settings.team_count,
-        settings.budget,
-        settings.roster_size,
-    )
-    if table.error:
-        st.error(table.error)
-        return
-    if not table.rows:
-        st.write("No players are in the projection yet.")
-        return
-    punted = _selected_punts(league.id, settings.categories)
-    rows = apply_punt(
-        table.rows,
-        punted,
-        settings.team_count,
-        settings.budget,
-        settings.roster_size,
-    )
-    frame = _frame(rows, settings.categories, punted)
+def show_price_table(
+    rows: tuple[PriceRow, ...],
+    active: frozenset[str],
+    punted: frozenset[str],
+    *,
+    selection_key: str | None = None,
+    on_select=None,
+) -> None:
+    """Draw the price table. A selection key lets one row open the player view."""
+    frame = _frame(rows, active, punted)
+    kwargs = {}
+    if selection_key is not None:
+        kwargs["key"] = selection_key
+        kwargs["on_select"] = on_select
+        kwargs["selection_mode"] = "single-row"
     st.dataframe(
-        _styled(frame, rows, settings.categories, punted),
+        _styled(frame, rows, active, punted),
         hide_index=True,
         width="content",
         column_config={name: _column_config(name) for name in frame.columns},
+        **kwargs,
     )
 
 
@@ -190,8 +177,19 @@ def _guard_category_switch(
     st.session_state[message_key] = message
 
 
-def _selected_punts(league_id: int, active: frozenset[str]) -> frozenset[str]:
-    options = [(key, _SWITCH_LABELS[key]) for key, _label in _STAT_COLUMNS if key in active]
+def current_punts(league_id: int, active: frozenset[str]) -> frozenset[str]:
+    """Categories switched off. A missing switch counts as on."""
+    keys = _active_switch_keys(active)
+    if punt_limit(len(keys)) == 0:
+        return frozenset()
+    return frozenset(
+        key for key in keys if st.session_state.get(_switch_key(league_id, key)) is False
+    )
+
+
+def punt_switches(league_id: int, active: frozenset[str]) -> frozenset[str]:
+    """Draw the category switches and return the categories that are off."""
+    options = [(key, _SWITCH_LABELS[key]) for key in _active_switch_keys(active)]
     if punt_limit(len(options)) == 0:
         return frozenset()
     active_keys = tuple(key for key, _label in options)
@@ -211,9 +209,11 @@ def _selected_punts(league_id: int, active: frozenset[str]) -> frozenset[str]:
     message = st.session_state.get(message_key, "")
     if message:
         st.caption(message)
-    return frozenset(
-        key for key in active_keys if st.session_state.get(_switch_key(league_id, key)) is False
-    )
+    return current_punts(league_id, active)
+
+
+def _active_switch_keys(active: frozenset[str]) -> tuple[str, ...]:
+    return tuple(key for key, _label in _STAT_COLUMNS if key in active)
 
 
 def _frame(

@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: Task 7 subtask 2 is the Players and Draft tabs. The three lists are next. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 7 is on the screen: three Draft lists and the player view. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -344,9 +344,11 @@ Keepers and draft sales are one `sales` row. The rules are in sections 4 and 5. 
 3. Three lists on Draft: still available, yours, and other teams. The punt switches and the repriced list live here.
 4. One player view, from search or from a row: the price-table line, the max bid, and mark sold, edit, or unmark.
 
+Search sits above the lists. The player view opens under the search, and the lists stay on the page. Your players and other teams show the name, the price paid, and keeper or draft. Projected category values can be added to those two lists later. Ranks and scores stay off them.
+
 Done when: a sale is still there after a restart, the remaining prices add up to the money left in the league, a price above the max bid is refused, and unmarking a player puts that player back on the list.
 
-Status: subtask 2 is on the screen. Draft shows the four figures and the max bid, and the current price table sits under them. The three lists are next.
+Status: subtasks 3 and 4 are on the screen.
 
 ### Task 8 — Budget and sales
 
