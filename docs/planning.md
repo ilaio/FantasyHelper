@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: Task 6 adds the punt control on the price table. A punt is not saved. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 6 done. Next is Task 7, keepers. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -333,7 +333,7 @@ The punt control is on the price table and is not saved. The rules are in sectio
 
 Done when: choosing no punt matches the base table, punting one category moves a specialist in that category down My Z Rank, a second punt is allowed, a third is refused, and a punt that would leave no categories is refused.
 
-Status: in the app. The user has not checked it yet.
+Status: done. The user checked the punt switches and merged. A punt is not saved.
 
 ### Task 7 — Keepers
 
