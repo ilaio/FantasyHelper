@@ -167,14 +167,33 @@ div[data-testid="stCaptionContainer"] p {
 }
 [data-testid="stMarkdownContainer"] .draft-figure {
     font-size: 1rem;
-    line-height: 1.4;
-    margin: 0.15rem 0;
+    line-height: 1.15;
+    margin: 0;
     color: #000000;
     white-space: nowrap;
+}
+[data-testid="stMarkdownContainer"] .draft-figure strong {
+    font-weight: 700;
 }
 div[data-testid="stTabs"] [data-testid="stTab"] {
     flex: 1 1 0;
     justify-content: center;
+    border-radius: 0.6rem 0.6rem 0 0;
+    background-color: transparent;
+    color: #000000;
+}
+div[data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"] {
+    background-color: #F4F4F4;
+    color: #000000;
+    border: 1px solid #D4D4D4;
+    z-index: 1;
+}
+div[data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"] p {
+    font-weight: 600;
+    color: #000000;
+}
+div[data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"] .react-aria-SelectionIndicator {
+    display: none;
 }
 </style>
 """

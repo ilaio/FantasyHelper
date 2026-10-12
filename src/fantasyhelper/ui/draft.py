@@ -75,24 +75,26 @@ def render_draft(league: League) -> None:
 
 
 def _figures(summary: AuctionSummary) -> None:
-    _row(
-        f"League money: ${summary.league_left} left (${summary.league_spent} spent)",
-        f"League spots: {summary.league_open} left ({summary.league_taken} taken)",
-    )
-    _row(
-        f"Your money: ${summary.yours_left} left (${summary.yours_spent} spent)",
-        f"Your spots: {summary.yours_open} left ({summary.yours_taken} taken)",
-        f"Max bid: {_bid(summary.max_bid)}",
-    )
-
-
-def _row(*parts: str) -> None:
     with st.container(horizontal=True, gap="large", width="content", vertical_alignment="center"):
-        for part in parts:
-            st.markdown(
-                f"<p class='draft-figure'>{html.escape(part)}</p>",
-                unsafe_allow_html=True,
-            )
+        _figure(_money("Your money", summary.yours_left, summary.yours_spent))
+        _figure(_spots("Your spots", summary.yours_open, summary.yours_taken))
+        _figure(_money("League money", summary.league_left, summary.league_spent))
+        _figure(_spots("League spots", summary.league_open, summary.league_taken))
+
+
+def _money(label: str, left: int, spent: int) -> str:
+    return f"{html.escape(label)}: <strong>${left}</strong> left (${spent} spent)"
+
+
+def _spots(label: str, left: int, taken: int) -> str:
+    return f"{html.escape(label)}: <strong>{left}</strong> left ({taken} taken)"
+
+
+def _figure(markup: str) -> None:
+    st.markdown(
+        f"<p class='draft-figure'>{markup}</p>",
+        unsafe_allow_html=True,
+    )
 
 
 def _bid(amount: int | None) -> str:

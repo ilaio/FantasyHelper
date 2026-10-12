@@ -340,7 +340,7 @@ Status: done. The user checked the punt switches and merged. A punt is not saved
 Keepers and draft sales are one `sales` row. The rules are in sections 4 and 5. The league header stays. Under it, a Players tab keeps the dataset lists, and a Draft tab holds the auction. Four subtasks:
 
 1. Save the rows and reprice the remaining players. No new screen.
-2. Add the tabs. Draft shows league money, league spots, your money, your spots, and the max bid.
+2. Add the tabs. Draft shows your money, your spots, league money, and league spots on one left-aligned line. The leftover dollar amounts and spot counts are bold. The selected tab has a light filled background. The max bid stays on the player view.
 3. Three lists on Draft: still available, yours, and other teams. The punt switches and the repriced list live here.
 4. One player view, from search or from a row: the price-table line, the max bid, and mark sold, edit, or unmark.
 
