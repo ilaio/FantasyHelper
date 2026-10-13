@@ -157,7 +157,7 @@ def _player_view(
     if player_id is not None:
         shown = next((row for row in available if row.player_id == player_id), None)
     line = (shown,) if shown is not None else ((base,) if base is not None else ())
-    show_price_table(line, league.settings.categories, punted, height="content")
+    show_price_table(line, league.settings.categories, punted)
     _sale_form(league, player_id, sale, sales)
 
 

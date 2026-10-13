@@ -40,16 +40,19 @@ class ColorTests(unittest.TestCase):
         active = frozenset({"pts", "reb", "ast", "stl", "blk", "threes", "ft_pct", "to"})
         columns = table_columns(active)
         self.assertNotIn("FG% / FGA", columns)
-        self.assertEqual(columns[7], "FT% / FTA")
-        self.assertEqual(columns[:5], ["Name", "Z Rank", "Z Price", "C Rank", "C Price"])
-        self.assertEqual(columns[-2:], ["Z Score", "C Score"])
+        self.assertEqual(columns[11], "FT% / FTA")
+        self.assertEqual(
+            columns[:9],
+            ["Name", "TZ Rank", "TZ Price", "TC Rank", "TC Price", "PZ Rank", "PZ Price", "PC Rank", "PC Price"],
+        )
+        self.assertEqual(columns[-2:], ["TZ Score", "TC Score"])
         self.assertEqual(column_alignment("Name"), "left")
         self.assertTrue(all(column_alignment(name) == "center" for name in columns[1:]))
-        self.assertEqual(price_format("Z Price"), "$%d")
-        self.assertEqual(price_format("C Price"), "$%d")
-        self.assertEqual(price_format("My Z Price"), "$%d")
-        self.assertEqual(price_format("My C Price"), "$%d")
-        self.assertIsNone(price_format("Z Rank"))
+        self.assertEqual(price_format("TZ Price"), "$%d")
+        self.assertEqual(price_format("TC Price"), "$%d")
+        self.assertEqual(price_format("PZ Price"), "$%d")
+        self.assertEqual(price_format("PC Price"), "$%d")
+        self.assertIsNone(price_format("TZ Rank"))
         self.assertEqual(punt_limit(9), 2)
         self.assertEqual(punt_limit(2), 1)
         self.assertEqual(punt_limit(1), 0)
@@ -63,12 +66,12 @@ class ColorTests(unittest.TestCase):
         columns = table_columns(active, frozenset({"blk"}))
         self.assertEqual(
             columns[:9],
-            ["Name", "Z Rank", "Z Price", "C Rank", "C Price", "My Z Rank", "My Z Price", "My C Rank", "My C Price"],
+            ["Name", "TZ Rank", "TZ Price", "TC Rank", "TC Price", "PZ Rank", "PZ Price", "PC Rank", "PC Price"],
         )
         self.assertEqual(columns[9:11], ["Games", "Minutes"])
-        self.assertIn("Blocks (punt)", columns)
-        self.assertNotIn("Blocks", columns)
-        self.assertEqual(column_label("Blocks", False), "Blocks")
+        self.assertIn("Blk (p)", columns)
+        self.assertNotIn("Blk", columns)
+        self.assertEqual(column_label("Blk", False), "Blk")
 
     def test_usage_and_category_colors(self) -> None:
         row = PriceRow(
@@ -108,9 +111,9 @@ class ColorTests(unittest.TestCase):
         self.assertEqual(colors["Games"], "background-color: #F8E7A0")
         self.assertEqual(colors["Minutes"], "")
         self.assertEqual(colors["FG% / FGA"], "")
-        self.assertEqual(colors["Points"], _DEEP_GREEN)
-        self.assertEqual(colors["Turnovers"], _LIGHT_GREEN)
-        self.assertEqual(punt_colors["Blocks (punt)"], _DEEP_RED)
+        self.assertEqual(colors["Pts"], _DEEP_GREEN)
+        self.assertEqual(colors["Tov"], _LIGHT_GREEN)
+        self.assertEqual(punt_colors["Blk (p)"], _DEEP_RED)
 
 
 if __name__ == "__main__":

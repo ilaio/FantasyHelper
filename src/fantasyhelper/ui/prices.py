@@ -20,19 +20,45 @@ _YELLOW = "background-color: #F8E7A0"
 _STAT_COLUMNS = (
     ("fg_pct", "FG% / FGA"),
     ("ft_pct", "FT% / FTA"),
-    ("threes", "Threes"),
-    ("pts", "Points"),
-    ("reb", "Rebounds"),
-    ("ast", "Assists"),
-    ("stl", "Steals"),
-    ("blk", "Blocks"),
-    ("to", "Turnovers"),
+    ("threes", "3pt"),
+    ("pts", "Pts"),
+    ("reb", "Reb"),
+    ("ast", "Ast"),
+    ("stl", "Stl"),
+    ("blk", "Blk"),
+    ("to", "Tov"),
 )
-_IDENTITY = ("Name", "Z Rank", "Z Price", "C Rank", "C Price")
-_PERSONAL = ("My Z Rank", "My Z Price", "My C Rank", "My C Price")
+_IDENTITY = ("Name", "TZ Rank", "TZ Price", "TC Rank", "TC Price")
+_PERSONAL = ("PZ Rank", "PZ Price", "PC Rank", "PC Price")
 _USAGE = ("Games", "Minutes")
-_TOTALS = ("Z Score", "C Score")
-_PUNT_MARK = " (punt)"
+_TOTALS = ("TZ Score", "TC Score")
+_PUNT_MARK = " (p)"
+_NAME_WIDTH = 170
+_RANK_WIDTH = 60
+_PRICE_WIDTH = 60
+_SCORE_WIDTH = 60
+_GAMES_WIDTH = 60
+_MINUTES_WIDTH = 60
+_SHOT_WIDTH = 100
+_THREES_WIDTH = 60
+_POINTS_WIDTH = 60
+_REBOUNDS_WIDTH = 60
+_ASSISTS_WIDTH = 60
+_STEALS_WIDTH = 60
+_BLOCKS_WIDTH = 60
+_TURNOVERS_WIDTH = 60
+_RANK_HEADERS = frozenset({"TZ Rank", "TC Rank", "PZ Rank", "PC Rank"})
+_PRICE_HEADERS = frozenset({"TZ Price", "TC Price", "PZ Price", "PC Price"})
+_SCORE_HEADERS = frozenset({"TZ Score", "TC Score"})
+_CATEGORY_WIDTHS = {
+    "3pt": _THREES_WIDTH,
+    "Pts": _POINTS_WIDTH,
+    "Reb": _REBOUNDS_WIDTH,
+    "Ast": _ASSISTS_WIDTH,
+    "Stl": _STEALS_WIDTH,
+    "Blk": _BLOCKS_WIDTH,
+    "Tov": _TURNOVERS_WIDTH,
+}
 _GAMES_MARK = 60
 _MINUTES_MARK = 25
 _PUNT_LIMIT = 2
@@ -64,7 +90,7 @@ def show_price_table(
         frame = _frame(rows, active, punted)
         data = _styled(frame, rows, active, punted)
     else:
-        data = pd.DataFrame([{name: None for name in columns}])
+        data = pd.DataFrame([{name: "" for name in columns}])
     kwargs = {}
     if selection_key is not None:
         kwargs["key"] = selection_key
@@ -112,7 +138,7 @@ def column_alignment(name: str) -> str:
 
 def price_format(name: str) -> str | None:
     """Price columns show a dollar sign. The value stays a whole number."""
-    if name in ("Z Price", "C Price", "My Z Price", "My C Price"):
+    if name in _PRICE_HEADERS:
         return "$%d"
     return None
 
@@ -141,20 +167,39 @@ def column_label(label: str, punted: bool) -> str:
 
 
 def _column_config(name: str) -> dict:
+    width = _column_width(name)
     number_format = price_format(name)
     if number_format is not None:
         return st.column_config.NumberColumn(
             alignment=column_alignment(name),
             format=number_format,
+            width=width,
         )
-    return st.column_config.Column(alignment=column_alignment(name))
+    return st.column_config.Column(alignment=column_alignment(name), width=width)
+
+
+def _column_width(name: str) -> int:
+    """Each group has its own width so one column can change without the others."""
+    base = name.removesuffix(_PUNT_MARK)
+    if base == "Name":
+        return _NAME_WIDTH
+    if base in _RANK_HEADERS:
+        return _RANK_WIDTH
+    if base in _PRICE_HEADERS:
+        return _PRICE_WIDTH
+    if base in _SCORE_HEADERS:
+        return _SCORE_WIDTH
+    if base == "Games":
+        return _GAMES_WIDTH
+    if base == "Minutes":
+        return _MINUTES_WIDTH
+    if base in ("FG% / FGA", "FT% / FTA"):
+        return _SHOT_WIDTH
+    return _CATEGORY_WIDTHS[base]
 
 
 def table_columns(active: frozenset[str], punted: frozenset[str] = frozenset()) -> list[str]:
-    lead = list(_IDENTITY)
-    if punted:
-        lead.extend(_PERSONAL)
-    lead.extend(_USAGE)
+    lead = [*_IDENTITY, *_PERSONAL, *_USAGE]
     stats = [
         column_label(label, key in punted) for key, label in _STAT_COLUMNS if key in active
     ]
@@ -229,27 +274,23 @@ def _frame(
     punted: frozenset[str],
 ) -> pd.DataFrame:
     columns = table_columns(active, punted)
-    return pd.DataFrame([_values(row, active, punted) for row in rows], columns=columns)
+    return pd.DataFrame([_values(row, active) for row in rows], columns=columns)
 
 
-def _values(row: PriceRow, active: frozenset[str], punted: frozenset[str]) -> list[object]:
+def _values(row: PriceRow, active: frozenset[str]) -> list[object]:
     values: list[object] = [
         row.name,
         row.plain_rank,
         row.plain_price,
         row.curved_rank,
         row.curved_price,
+        _empty(row.personal_plain_rank),
+        _empty(row.personal_plain_price),
+        _empty(row.personal_curved_rank),
+        _empty(row.personal_curved_price),
+        row.games,
+        row.minutes_per_game,
     ]
-    if punted:
-        values.extend(
-            (
-                row.personal_plain_rank,
-                row.personal_plain_price,
-                row.personal_curved_rank,
-                row.personal_curved_price,
-            )
-        )
-    values.extend((row.games, row.minutes_per_game))
     for key, _label in _STAT_COLUMNS:
         if key not in active:
             continue
@@ -263,14 +304,21 @@ def _values(row: PriceRow, active: frozenset[str], punted: frozenset[str]) -> li
     return values
 
 
+def _empty(value: object) -> object:
+    """A missing number stays blank. A real zero stays zero."""
+    if value is None:
+        return ""
+    return value
+
+
 _RATE_FORMATS = {
-    "Threes": "{:.1f}",
-    "Points": "{:.1f}",
-    "Rebounds": "{:.1f}",
-    "Assists": "{:.1f}",
-    "Steals": "{:.2f}",
-    "Blocks": "{:.2f}",
-    "Turnovers": "{:.1f}",
+    "3pt": "{:.1f}",
+    "Pts": "{:.1f}",
+    "Reb": "{:.1f}",
+    "Ast": "{:.1f}",
+    "Stl": "{:.2f}",
+    "Blk": "{:.2f}",
+    "Tov": "{:.1f}",
 }
 
 
@@ -289,8 +337,8 @@ def _styled(
     number_formats = {
         "Games": "{:.1f}",
         "Minutes": "{:.1f}",
-        "Z Score": "{:.2f}",
-        "C Score": "{:.2f}",
+        "TZ Score": "{:.2f}",
+        "TC Score": "{:.2f}",
     }
     for column in columns:
         base = column.removesuffix(_PUNT_MARK)

@@ -194,7 +194,7 @@ Dollars left by rounding go one each to the highest ranks of the paid group, sta
 
 ### Price table
 
-One table, sorted by the plain rank. The columns are Name, Z Rank, Z Price, C Rank, C Price, Games, Minutes, then the active categories, then Z Score and C Score. Z is the plain total and C is the curved total. Names stay on the left. Every other value is centered. Z Price and C Price show a dollar sign in front of the whole-dollar amount. Each column is as wide as its own header or values, and the table stops there. The category order is FG% with FGA, FT% with FTA, threes, points, rebounds, assists, steals, blocks, and turnovers. A category the league has turned off is omitted. Turning off FG% also omits FGA, and turning off FT% also omits FTA.
+One table, sorted by the plain rank. The columns are Name, TZ Rank, TZ Price, TC Rank, TC Price, PZ Rank, PZ Price, PC Rank, PC Price, Games, Minutes, then the active categories, then TZ Score and TC Score. TZ is the plain total and TC is the curved total. PZ and PC are the personal rank and price. Those four columns stay on the table when nothing is punted, and their cells are empty. Names stay on the left. Every other value is centered. The price columns show a dollar sign in front of the whole-dollar amount. Name is 170 pixels wide. Rank, price, score, games, minutes, and the counting categories are 60. FG% / FGA and FT% / FTA are 100. The table stops at those widths. The category order is FG% with FGA, FT% with FTA, 3pt, Pts, Reb, Ast, Stl, Blk, and Tov. A category the league has turned off is omitted. Turning off FG% also omits FGA, and turning off FT% also omits FTA.
 
 FG% and FT% share a cell with their attempts. A blank percentage stays blank, and the attempts stay. The cell is colored from the plain category z, which already treats fewer turnovers as the good direction. A value on the edge takes the higher band: 2 and above is deep green, 1 to 2 is green, 0 to 1 is light green, −0.75 to 0 is light red, −1.5 to −0.75 is red, and below −1.5 is deep red. Games under 60 and minutes under 25 are yellow. 60 and 25 are not.
 
@@ -206,9 +206,9 @@ A punt is not saved. It lasts until the browser page is refreshed or the app sto
 
 One line above the price table lists each category the league has turned on, with a switch. A switch starts on. Turning it off punts that category. A third off switch is refused. Turning the last switch off is refused.
 
-With every switch on, the table is unchanged.
+With every switch on, the base columns stay as they are. The personal rank and price columns are empty.
 
-With a punt, four columns follow C Price: My Z Rank, My Z Price, My C Rank, and My C Price. The table sorts by My Z Rank. Z Rank, Z Price, C Rank, C Price, Z Score, and C Score stay the base numbers. The personal numbers use the same price rule, with the punted categories left out of both totals. Category z-scores are not recomputed. The colored projection stays, including a punted category, and that column's header is marked as a punt.
+PZ Rank, PZ Price, PC Rank, and PC Price follow TC Price. They stay on the table when nothing is punted, and those cells are empty. With a punt, the table sorts by PZ Rank. TZ Rank, TZ Price, TC Rank, TC Price, TZ Score, and TC Score stay the base numbers. The personal numbers use the same price rule, with the punted categories left out of both totals. Category z-scores are not recomputed. The colored projection stays, including a punted category, and that column's header is marked `(p)`.
 
 ### Auction reprice
 
@@ -331,7 +331,7 @@ Status: done. The user checked the price table and is merging. The score math us
 
 The punt control is on the price table and is not saved. The rules are in section 4.
 
-Done when: choosing no punt matches the base table, punting one category moves a specialist in that category down My Z Rank, a second punt is allowed, a third is refused, and a punt that would leave no categories is refused.
+Done when: choosing no punt matches the base table, punting one category moves a specialist in that category down PZ Rank, a second punt is allowed, a third is refused, and a punt that would leave no categories is refused.
 
 Status: done. The user checked the punt switches and merged. A punt is not saved.
 

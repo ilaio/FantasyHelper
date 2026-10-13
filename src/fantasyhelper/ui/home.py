@@ -122,11 +122,8 @@ header[data-testid="stHeader"] {
     width: fit-content;
     align-items: center;
 }
-[data-testid="stHorizontalBlock"]:has(.sale-price) {
-    width: 100%;
-}
 [data-testid="stHorizontalBlock"]:has(.sale-price) > div:last-child {
-    margin-left: auto;
+    margin-left: 0.75rem;
 }
 [data-testid="stHorizontalBlock"]:has(.draft-figure) > div {
     width: auto;
