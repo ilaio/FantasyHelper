@@ -204,7 +204,7 @@ Positions are not on the table.
 
 A punt is not saved. It lasts until the browser page is refreshed or the app stops.
 
-One line under the budget and above the player search lists each category the league has turned on, with a switch. A switch starts on. Turning it off punts that category. A third off switch is refused. Turning the last switch off is refused.
+One line under the summary table and above the player search lists each category the league has turned on, with a switch. A switch starts on. Turning it off punts that category. A third off switch is refused. Turning the last switch off is refused.
 
 With every switch on, the base columns stay as they are. The personal rank and price columns are empty.
 
@@ -230,9 +230,13 @@ A sale is refused when the player is already sold, the price is under $1, the us
 
 **Max bid** — your money left minus $1 for each of your spots that would still be open after this buy. When one of your spots remains, the max bid is your money left. When you have no spot left, there is no max bid. The number is the same for every player still available.
 
-**Category balance** — sum of per-game z-scores, by category, for the user’s keepers and purchases only. Punted categories are marked `punt`. Other categories are `strong` or `thin` by a simple threshold set in Task 12 (starting idea: above +0.5 combined z is strong, below −0.5 is thin, otherwise neutral). The threshold is written back here after we look at a real roster.
+**Category summary** — two rows at the top of Draft, in place of the budget line. The league row is every sold player, including the user's. The user's row is the user's sales only. A player still available is on neither row.
 
-**Nomination ideas** — among available players this user should not buy (personal price well below a likely room price, or most of their positive z sitting in punted categories), rank by how much money they figure to extract from the room. Show a handful, each with the category that makes them a trap for other teams. Task 11 keeps this rule to one function and a short list, and we tighten it only if a mock draft shows it suggesting players the user would actually want.
+The first columns are money left, money spent, spots left, and spots taken, using the formulas above. Each active category follows, in price-table order. A counting cell is the average per-game rate of the players on that row. FG% and FT% are the attempt-weighted percentage and the average attempts per game. Each player counts once. A missing percentage is left out of that percentage. A sold player with no projection is left out of the category cells and still counts in the money and spots.
+
+The cell color is the average plain z of those same players, using the same six bands as one player. The z-score is not shown. The summary does not mark a punt. The switches under the table are what change the player row and the lists. A row with no players leaves the category cells blank. Money and spots still show. Another team's purchase changes the league row and does not change the user's row.
+
+**Nomination ideas** — among available players this user should not buy (personal price well below a likely room price, or most of their positive z sitting in punted categories), rank by how much money they figure to extract from the room. Show a handful, each with the category that makes them a trap for other teams. Task 9 keeps this rule to one function and a short list, and we tighten it only if a mock draft shows it suggesting players the user would actually want.
 
 ## 6. Task list
 
@@ -348,23 +352,27 @@ Search sits above the lists. "Search player" sits to the left of the select. The
 
 Done when: a sale is still there after a restart, the remaining prices add up to the money left in the league, a price above the max bid is refused, and unmarking a player puts that player back on the list.
 
-Status: subtasks 3 and 4 are on the screen.
+Status: done. The user checked the screen and merged. The budget line from this task is replaced by the summary table in Task 10.
 
 ### Task 8 — Budget and sales
 
 Folded into Task 7. A keeper is a sale entered before the draft. Unmark or edit replaces a separate undo of only the last sale.
 
+Status: done. Merged with Task 7.
+
 ### Task 9 — Pool filters and nominations
 
-Filter the remaining pool by personal price and by category fit. Show nomination suggestions from section 5.
+Filter the remaining pool by personal price and by category fit. Show nomination suggestions from section 5. This waits until the category summary is checked.
 
 Done when: after a few mock sales, kept and sold players are gone, a punted specialist is off the target list and can appear as a nomination, and the suggestion text names the category.
 
-### Task 10 — Category balance
+### Task 10 — Category summary
 
-Show the user’s roster balance from section 5, updating with keepers and the user’s purchases.
+This is the next task. The rules are in section 5. A two-row table replaces the budget line and sits above the category switches. The league row is every sold player. The user's row is the user's players. Both rows show money left, money spent, spots left, spots taken, then each active category as an average, colored by the average plain z.
 
-Done when: buying a blocks specialist moves the blocks reading, a punted category stays marked as a punt, and another team’s purchase does not change the balance.
+Done when: the user's blocks cell reads stronger than the league's and the user's points cell reads behind it on the current keepers, another team's purchase moves only the league row, a punt leaves this table unchanged, and a row with no players leaves the category cells blank while money and spots still show.
+
+Status: on the screen.
 
 ### Task 11 — Inflation
 

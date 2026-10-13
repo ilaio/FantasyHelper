@@ -12,6 +12,7 @@ from fantasyhelper.ui.prices import (
     shot_text,
     strength_color,
     roster_columns,
+    summary_columns,
     table_columns,
 )
 from fantasyhelper.valuation.prices import PriceRow
@@ -85,6 +86,12 @@ class ColorTests(unittest.TestCase):
         self.assertNotIn("TZ Rank", columns)
         self.assertNotIn("PZ Price", columns)
         self.assertEqual(price_format("Price"), "$%d")
+
+    def test_the_summary_has_money_then_categories_and_no_punt_mark(self) -> None:
+        columns = summary_columns(frozenset({"pts", "blk", "fg_pct"}))
+        self.assertEqual(columns[:5], [" ", "Money left", "Spent", "Spots left", "Taken"])
+        self.assertEqual(columns[5:], ["FG% / FGA", "Pts", "Blk"])
+        self.assertNotIn("Blk (p)", columns)
 
     def test_usage_and_category_colors(self) -> None:
         row = PriceRow(

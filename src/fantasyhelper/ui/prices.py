@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from fantasyhelper.valuation.prices import DRAFT, KEEPER, PriceRow, Sale
+from fantasyhelper.valuation.prices import DRAFT, KEEPER, CategoryAverage, PriceRow, Sale, SideSummary
 
 # Plain z bands. A value on the edge takes the higher band.
 _DEEP_GREEN = "background-color: #8FCB9B"
@@ -56,6 +56,14 @@ _STEALS_WIDTH = 100
 _BLOCKS_WIDTH = 100
 _TURNOVERS_WIDTH = 100
 _SALE_WIDTH = 80
+_SUMMARY_LABEL_WIDTH = 120
+_MONEY_LEFT_WIDTH = 110
+_SPENT_WIDTH = 80
+_SPOTS_LEFT_WIDTH = 100
+_TAKEN_WIDTH = 80
+_SUMMARY_LABEL = " "
+_SUMMARY_MONEY = {"Money left": _MONEY_LEFT_WIDTH, "Spent": _SPENT_WIDTH}
+_SUMMARY_SPOTS = {"Spots left": _SPOTS_LEFT_WIDTH, "Taken": _TAKEN_WIDTH}
 _RANK_HEADERS = frozenset({"TZ Rank", "TC Rank", "PZ Rank", "PC Rank"})
 _PRICE_HEADERS = frozenset({"TZ Price", "TC Price", "PZ Price", "PC Price", "Price"})
 _SALE_LABELS = {DRAFT: "Draft", KEEPER: "Keeper"}
@@ -151,6 +159,87 @@ def show_roster_table(
         on_select=on_select,
         selection_mode="single-row",
     )
+
+
+def show_summary_table(
+    league: SideSummary,
+    yours: SideSummary,
+    active: frozenset[str],
+) -> None:
+    """Two rows: the whole league, then the user's team. A punt is not shown."""
+    columns = summary_columns(active)
+    records = [
+        _summary_record("League", league, active),
+        _summary_record("Your team", yours, active),
+    ]
+    frame = pd.DataFrame(records, columns=columns)
+    colors = [
+        _summary_colors(league, active, columns),
+        _summary_colors(yours, active, columns),
+    ]
+    st.dataframe(
+        _apply_style(frame, colors),
+        hide_index=True,
+        width="content",
+        column_config={name: _summary_column_config(name) for name in columns},
+        placeholder="",
+    )
+
+
+def _summary_record(label: str, side: SideSummary, active: frozenset[str]) -> dict[str, object]:
+    record: dict[str, object] = {
+        _SUMMARY_LABEL: label,
+        "Money left": side.money_left,
+        "Spent": side.money_spent,
+        "Spots left": side.spots_left,
+        "Taken": side.spots_taken,
+    }
+    for key, name in _STAT_COLUMNS:
+        if key not in active:
+            continue
+        record[name] = _summary_value(key, side.categories[key])
+    return record
+
+
+def _summary_value(key: str, average: CategoryAverage) -> object:
+    if key in ("fg_pct", "ft_pct"):
+        if average.attempts is None:
+            return ""
+        return shot_text(average.percentage, average.attempts)
+    return average.rate
+
+
+def _summary_colors(
+    side: SideSummary,
+    active: frozenset[str],
+    columns: list[str],
+) -> list[str]:
+    colors = {column: "" for column in columns}
+    for key, label in _STAT_COLUMNS:
+        if key not in active:
+            continue
+        score = side.categories[key].average_z
+        if score is not None:
+            colors[label] = strength_color(score)
+    return [colors[column] for column in columns]
+
+
+def _summary_column_config(name: str) -> dict:
+    if name == _SUMMARY_LABEL:
+        return st.column_config.Column(alignment="left", width=_SUMMARY_LABEL_WIDTH)
+    if name in _SUMMARY_MONEY:
+        return st.column_config.NumberColumn(
+            alignment="center",
+            format="$%d",
+            width=_SUMMARY_MONEY[name],
+        )
+    if name in _SUMMARY_SPOTS:
+        return st.column_config.NumberColumn(
+            alignment="center",
+            format="%d",
+            width=_SUMMARY_SPOTS[name],
+        )
+    return st.column_config.Column(alignment="center", width=_column_width(name))
 
 
 def strength_color(z: float) -> str:
@@ -259,6 +348,12 @@ def roster_columns(active: frozenset[str], punted: frozenset[str] = frozenset())
         column_label(label, key in punted) for key, label in _STAT_COLUMNS if key in active
     ]
     return ["Name", "Price", "Sale", *_USAGE, *stats]
+
+
+def summary_columns(active: frozenset[str]) -> list[str]:
+    """Money and spots, then each active category. A punt is not marked here."""
+    stats = [label for key, label in _STAT_COLUMNS if key in active]
+    return [_SUMMARY_LABEL, *_SUMMARY_MONEY, *_SUMMARY_SPOTS, *stats]
 
 
 def _switch_key(league_id: int, category: str) -> str:
