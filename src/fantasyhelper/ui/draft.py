@@ -8,7 +8,7 @@ import streamlit as st
 from fantasyhelper.leagues.league import League, LeagueSettings
 from fantasyhelper.leagues.sales import list_sales, record_sale, remove_sale, update_sale
 from fantasyhelper.stats.store import load_baseline_rows
-from fantasyhelper.ui.prices import current_punts, punt_switches, show_price_table
+from fantasyhelper.ui.prices import current_punts, punt_switches, show_price_table, show_roster_table
 from fantasyhelper.valuation.prices import (
     DRAFT,
     KEEPER,
@@ -78,8 +78,8 @@ def render_draft(league: League) -> None:
         )
     punt_switches(league.id, settings.categories)
     _available(league.id, priced.error, priced.rows, settings.categories, punted)
-    _taken(league.id, "Your players", "draft-yours", sales, MINE, names)
-    _taken(league.id, "Other teams", "draft-others", sales, OTHER, names)
+    _taken(league.id, "Your players", "draft-yours", sales, MINE, names, by_id, settings.categories, punted)
+    _taken(league.id, "Other teams", "draft-others", sales, OTHER, names, by_id, settings.categories, punted)
 
 
 def _figures(summary: AuctionSummary) -> None:
@@ -333,6 +333,9 @@ def _taken(
     sales: tuple[Sale, ...],
     side: str,
     names: dict[int, str],
+    rows_by_id: dict[int, PriceRow],
+    active: frozenset[str],
+    punted: frozenset[str],
 ) -> None:
     st.subheader(title)
     chosen = tuple(sale for sale in sales if sale.side == side)
@@ -341,25 +344,14 @@ def _taken(
         return
     ids = tuple(sale.player_id for sale in chosen)
     st.session_state[f"{key_name}-ids-{league_id}"] = ids
-    st.dataframe(
-        [
-            {
-                "Name": names.get(sale.player_id, "Unknown player"),
-                "Price": sale.price,
-                "Sale": _TYPE_LABELS[sale.sale_type],
-            }
-            for sale in chosen
-        ],
-        hide_index=True,
-        width="content",
-        column_config={
-            "Name": st.column_config.Column(alignment="left"),
-            "Price": st.column_config.NumberColumn(alignment="center", format="$%d"),
-            "Sale": st.column_config.Column(alignment="center"),
-        },
-        key=f"{key_name}-{league_id}",
+    show_roster_table(
+        chosen,
+        rows_by_id,
+        names,
+        active,
+        punted,
+        selection_key=f"{key_name}-{league_id}",
         on_select=_open_row(f"{key_name}-{league_id}", f"{key_name}-ids-{league_id}", _player_key(league_id)),
-        selection_mode="single-row",
     )
 
 

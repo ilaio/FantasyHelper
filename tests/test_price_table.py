@@ -11,6 +11,7 @@ from fantasyhelper.ui.prices import (
     punt_refusal,
     shot_text,
     strength_color,
+    roster_columns,
     table_columns,
 )
 from fantasyhelper.valuation.prices import PriceRow
@@ -74,6 +75,16 @@ class ColorTests(unittest.TestCase):
         self.assertIn("Blk (p)", columns)
         self.assertNotIn("Blk", columns)
         self.assertEqual(column_label("Blk", False), "Blk")
+
+    def test_a_taken_list_keeps_the_projection_and_drops_ranks(self) -> None:
+        active = frozenset({"pts", "reb", "blk", "fg_pct"})
+        columns = roster_columns(active, frozenset({"blk"}))
+        self.assertEqual(columns[:5], ["Name", "Price", "Sale", "Games", "Minutes"])
+        self.assertEqual(columns[5], "FG% / FGA")
+        self.assertIn("Blk (p)", columns)
+        self.assertNotIn("TZ Rank", columns)
+        self.assertNotIn("PZ Price", columns)
+        self.assertEqual(price_format("Price"), "$%d")
 
     def test_usage_and_category_colors(self) -> None:
         row = PriceRow(

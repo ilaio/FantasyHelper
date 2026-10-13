@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from fantasyhelper.valuation.prices import PriceRow
+from fantasyhelper.valuation.prices import DRAFT, KEEPER, PriceRow, Sale
 
 # Plain z bands. A value on the edge takes the higher band.
 _DEEP_GREEN = "background-color: #8FCB9B"
@@ -55,8 +55,10 @@ _ASSISTS_WIDTH = 100
 _STEALS_WIDTH = 100
 _BLOCKS_WIDTH = 100
 _TURNOVERS_WIDTH = 100
+_SALE_WIDTH = 80
 _RANK_HEADERS = frozenset({"TZ Rank", "TC Rank", "PZ Rank", "PC Rank"})
-_PRICE_HEADERS = frozenset({"TZ Price", "TC Price", "PZ Price", "PC Price"})
+_PRICE_HEADERS = frozenset({"TZ Price", "TC Price", "PZ Price", "PC Price", "Price"})
+_SALE_LABELS = {DRAFT: "Draft", KEEPER: "Keeper"}
 _CATEGORY_WIDTHS = {
     "3pt": _THREES_WIDTH,
     "Pts": _POINTS_WIDTH,
@@ -111,6 +113,43 @@ def show_price_table(
         column_config={name: _column_config(name) for name in columns},
         placeholder="",
         **kwargs,
+    )
+
+
+def show_roster_table(
+    sales: tuple[Sale, ...],
+    rows_by_id: dict[int, PriceRow],
+    names: dict[int, str],
+    active: frozenset[str],
+    punted: frozenset[str],
+    *,
+    selection_key: str,
+    on_select,
+) -> None:
+    """Your players or other teams: the paid price, the sale, and the colored projection."""
+    columns = roster_columns(active, punted)
+    records = []
+    colors = []
+    for sale in sales:
+        row = rows_by_id.get(sale.player_id)
+        name = row.name if row is not None else names.get(sale.player_id, "Unknown player")
+        records.append(
+            [name, sale.price, _SALE_LABELS[sale.sale_type], *_projection_values(row, active)]
+        )
+        if row is None:
+            colors.append([""] * len(columns))
+        else:
+            colors.append(_row_colors(row, active, punted, columns))
+    frame = pd.DataFrame(records, columns=columns)
+    st.dataframe(
+        _apply_style(frame, colors),
+        hide_index=True,
+        width="content",
+        column_config={name: _column_config(name) for name in columns},
+        placeholder="",
+        key=selection_key,
+        on_select=on_select,
+        selection_mode="single-row",
     )
 
 
@@ -199,6 +238,8 @@ def _column_width(name: str) -> int:
         return _GAMES_WIDTH
     if base == "Minutes":
         return _MINUTES_WIDTH
+    if base == "Sale":
+        return _SALE_WIDTH
     if base in ("FG% / FGA", "FT% / FTA"):
         return _SHOT_WIDTH
     return _CATEGORY_WIDTHS[base]
@@ -210,6 +251,14 @@ def table_columns(active: frozenset[str], punted: frozenset[str] = frozenset()) 
         column_label(label, key in punted) for key, label in _STAT_COLUMNS if key in active
     ]
     return [*lead, *stats]
+
+
+def roster_columns(active: frozenset[str], punted: frozenset[str] = frozenset()) -> list[str]:
+    """Taken lists keep the paid price and the sale, then the same projection columns."""
+    stats = [
+        column_label(label, key in punted) for key, label in _STAT_COLUMNS if key in active
+    ]
+    return ["Name", "Price", "Sale", *_USAGE, *stats]
 
 
 def _switch_key(league_id: int, category: str) -> str:
@@ -294,9 +343,16 @@ def _values(row: PriceRow, active: frozenset[str]) -> list[object]:
         _empty(row.personal_plain_price),
         _empty(row.personal_curved_rank),
         _empty(row.personal_curved_price),
-        row.games,
-        row.minutes_per_game,
+        *_projection_values(row, active),
     ]
+    return values
+
+
+def _projection_values(row: PriceRow | None, active: frozenset[str]) -> list[object]:
+    """Games, minutes, and each active category. A missing projection stays blank."""
+    if row is None:
+        return [""] * (len(_USAGE) + sum(1 for key, _label in _STAT_COLUMNS if key in active))
+    values: list[object] = [row.games, row.minutes_per_game]
     for key, _label in _STAT_COLUMNS:
         if key not in active:
             continue
@@ -335,6 +391,14 @@ def _styled(
 ) -> pd.io.formats.style.Styler:
     columns = list(frame.columns)
     colors = [_row_colors(row, active, punted, columns) for row in rows]
+    return _apply_style(frame, colors)
+
+
+def _apply_style(
+    frame: pd.DataFrame,
+    colors: list[list[str]],
+) -> pd.io.formats.style.Styler:
+    columns = list(frame.columns)
 
     def paint(_frame: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame(colors, index=_frame.index, columns=_frame.columns)

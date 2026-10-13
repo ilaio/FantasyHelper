@@ -344,7 +344,7 @@ Keepers and draft sales are one `sales` row. The rules are in sections 4 and 5. 
 3. Three lists on Draft: still available, yours, and other teams. The punt switches and the repriced list live here.
 4. One player view, from search or from a row: a price-table row that stays on the page, and one line for team, keeper or draft, price, the max bid, and mark sold, save, or unmark.
 
-Search sits above the lists. "Search player" sits to the left of the select. The player row stays under the search, empty until a player is chosen from the search or from a list. The sale controls sit on one line under that row. Save stays off until a sold player's values change. The lists stay on the page. Your players and other teams show the name, the price paid, and keeper or draft. Projected category values can be added to those two lists later. Ranks and scores stay off them.
+Search sits above the lists. "Search player" sits to the left of the select. The player row stays under the search, empty until a player is chosen from the search or from a list. The sale controls sit on one line under that row. Save stays off until a sold player's values change. The lists stay on the page. Your players and other teams show the name, the price paid, keeper or draft, then Games, Minutes, and each active category. Those cells use the same colors as the price table, including a paler band on a punt. Ranks and scores stay off them. Name, price, games, minutes, and category widths match the price table. Sale is 80 pixels wide.
 
 Done when: a sale is still there after a restart, the remaining prices add up to the money left in the league, a price above the max bid is refused, and unmarking a player puts that player back on the list.
 
