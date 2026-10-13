@@ -3,11 +3,15 @@
 import unittest
 
 from fantasyhelper.valuation.prices import (
+    MINE,
+    OTHER,
+    PriceRow,
     Sale,
     apply_punt,
     assign_prices,
-    build_price_table,
     auction_summary,
+    build_price_table,
+    category_summary,
     max_bid,
     reprice_remaining,
     sale_errors,
@@ -321,6 +325,103 @@ class ScoreTests(unittest.TestCase):
             ("That player is already sold.",),
         )
         self.assertEqual(sale_errors(sold, 1, "mine", 40, "draft", 12, 200, 13, replacing=True), ())
+
+
+def _summary_row(
+    player_id: int,
+    *,
+    points: float,
+    points_z: float,
+    fg_pct: float | None,
+    fg_z: float | None,
+    games: float,
+    fga: float,
+) -> PriceRow:
+    return PriceRow(
+        player_id=player_id,
+        name=str(player_id),
+        plain_rank=1,
+        plain_score=0,
+        plain_price=1,
+        curved_rank=1,
+        curved_score=0,
+        curved_price=1,
+        games=games,
+        minutes_per_game=30,
+        fga_per_game=fga,
+        fta_per_game=2,
+        fg_pct=fg_pct,
+        ft_pct=0.8,
+        counting={"pts": points},
+        plain_categories={"pts": points_z, "fg_pct": fg_z},
+        curved_categories={},
+    )
+
+
+class SummaryTests(unittest.TestCase):
+    def test_the_league_row_includes_the_user_and_averages_each_player(self) -> None:
+        rows = {
+            1: _summary_row(1, points=10, points_z=1, fg_pct=0.50, fg_z=0, games=60, fga=10),
+            2: _summary_row(2, points=20, points_z=3, fg_pct=0.40, fg_z=2, games=80, fga=20),
+            3: _summary_row(3, points=100, points_z=9, fg_pct=0.70, fg_z=4, games=70, fga=15),
+        }
+        sales = (
+            Sale(1, MINE, 30, "keeper"),
+            Sale(2, OTHER, 10, "draft"),
+        )
+        league, user = category_summary(rows, sales, frozenset({"pts", "fg_pct"}), 12, 200, 13)
+        self.assertEqual(league.money_left, 2400 - 40)
+        self.assertEqual(league.money_spent, 40)
+        self.assertEqual(league.spots_left, 156 - 2)
+        self.assertEqual(league.spots_taken, 2)
+        self.assertEqual(league.categories["pts"].rate, 15)
+        self.assertEqual(league.categories["pts"].average_z, 2)
+        self.assertAlmostEqual(league.categories["fg_pct"].percentage or 0, 940 / 2200)
+        self.assertEqual(league.categories["fg_pct"].attempts, 15)
+        self.assertEqual(user.money_left, 170)
+        self.assertEqual(user.money_spent, 30)
+        self.assertEqual(user.spots_left, 12)
+        self.assertEqual(user.spots_taken, 1)
+        self.assertEqual(user.categories["pts"].rate, 10)
+        self.assertEqual(user.categories["pts"].average_z, 1)
+        self.assertEqual(user.categories["fg_pct"].percentage, 0.50)
+        self.assertEqual(user.categories["fg_pct"].attempts, 10)
+
+    def test_a_missing_projection_counts_in_the_money_only(self) -> None:
+        rows = {
+            1: _summary_row(1, points=10, points_z=1, fg_pct=0.50, fg_z=0, games=60, fga=10),
+        }
+        sales = (
+            Sale(1, MINE, 30, "keeper"),
+            Sale(9, MINE, 5, "draft"),
+        )
+        _league, user = category_summary(rows, sales, frozenset({"pts"}), 12, 200, 13)
+        self.assertEqual(user.money_spent, 35)
+        self.assertEqual(user.spots_taken, 2)
+        self.assertEqual(user.categories["pts"].rate, 10)
+
+    def test_a_missing_percentage_is_left_out_of_the_average(self) -> None:
+        rows = {
+            1: _summary_row(1, points=10, points_z=1, fg_pct=None, fg_z=None, games=60, fga=10),
+            2: _summary_row(2, points=20, points_z=3, fg_pct=0.40, fg_z=2, games=80, fga=20),
+        }
+        sales = (Sale(1, MINE, 30, "keeper"), Sale(2, OTHER, 10, "draft"))
+        league, _user = category_summary(rows, sales, frozenset({"fg_pct"}), 12, 200, 13)
+        self.assertEqual(league.categories["fg_pct"].percentage, 0.40)
+        self.assertEqual(league.categories["fg_pct"].attempts, 15)
+        self.assertEqual(league.categories["fg_pct"].average_z, 2)
+
+    def test_an_empty_side_keeps_the_money_and_blanks_the_categories(self) -> None:
+        league, user = category_summary({}, (), frozenset({"pts", "blk"}), 12, 200, 13)
+        self.assertEqual(league.money_left, 2400)
+        self.assertEqual(league.money_spent, 0)
+        self.assertEqual(league.spots_left, 156)
+        self.assertEqual(league.spots_taken, 0)
+        self.assertEqual(user.money_left, 200)
+        self.assertEqual(user.spots_left, 13)
+        self.assertIsNone(league.categories["pts"].rate)
+        self.assertIsNone(league.categories["pts"].average_z)
+        self.assertIsNone(user.categories["blk"].rate)
 
 
 if __name__ == "__main__":

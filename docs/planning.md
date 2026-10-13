@@ -234,7 +234,7 @@ A sale is refused when the player is already sold, the price is under $1, the us
 
 The first columns are money left, money spent, spots left, and spots taken, using the formulas above. Each active category follows, in price-table order. A counting cell is the average per-game rate of the players on that row. FG% and FT% are the attempt-weighted percentage and the average attempts per game. Each player counts once. A missing percentage is left out of that percentage. A sold player with no projection is left out of the category cells and still counts in the money and spots.
 
-The cell color is the average plain z of those same players, using the same six bands as one player. The z-score is not shown. A punted category fades on the user's row only. The league row stays full strength, and the header is not marked as a punt. A row with no players leaves the category cells blank. Money and spots still show. Another team's purchase changes the league row and does not change the user's row.
+The cell color is the average plain z of those same players, using the same six bands as one player. The z-score is not shown. The summary does not mark a punt. The switches under the table are what change the player row and the lists. A row with no players leaves the category cells blank. Money and spots still show. Another team's purchase changes the league row and does not change the user's row.
 
 **Nomination ideas** — among available players this user should not buy (personal price well below a likely room price, or most of their positive z sitting in punted categories), rank by how much money they figure to extract from the room. Show a handful, each with the category that makes them a trap for other teams. Task 9 keeps this rule to one function and a short list, and we tighten it only if a mock draft shows it suggesting players the user would actually want.
 
@@ -370,7 +370,9 @@ Done when: after a few mock sales, kept and sold players are gone, a punted spec
 
 This is the next task. The rules are in section 5. A two-row table replaces the budget line and sits above the category switches. The league row is every sold player. The user's row is the user's players. Both rows show money left, money spent, spots left, spots taken, then each active category as an average, colored by the average plain z.
 
-Done when: the user's blocks cell reads stronger than the league's and the user's points cell reads behind it on the current keepers, another team's purchase moves only the league row, a punted category fades on the user's row only, and a row with no players leaves the category cells blank while money and spots still show.
+Done when: the user's blocks cell reads stronger than the league's and the user's points cell reads behind it on the current keepers, another team's purchase moves only the league row, a punt leaves this table unchanged, and a row with no players leaves the category cells blank while money and spots still show.
+
+Status: on the screen.
 
 ### Task 11 — Inflation
 

@@ -1,4 +1,4 @@
-"""Draft tab: money, the three lists, and one player view."""
+"""Draft tab: the summary, the three lists, and one player view."""
 
 import html
 from collections.abc import Callable, Sequence
@@ -8,17 +8,21 @@ import streamlit as st
 from fantasyhelper.leagues.league import League, LeagueSettings
 from fantasyhelper.leagues.sales import list_sales, record_sale, remove_sale, update_sale
 from fantasyhelper.stats.store import load_baseline_rows
-from fantasyhelper.ui.prices import punt_switches, show_price_table, show_roster_table
+from fantasyhelper.ui.prices import (
+    punt_switches,
+    show_price_table,
+    show_roster_table,
+    show_summary_table,
+)
 from fantasyhelper.valuation.prices import (
     DRAFT,
     KEEPER,
     MINE,
     OTHER,
-    AuctionSummary,
     PriceRow,
     Sale,
-    auction_summary,
     build_price_table,
+    category_summary,
     max_bid,
     reprice_remaining,
 )
@@ -31,13 +35,6 @@ _TYPE_LABELS = {DRAFT: "Draft", KEEPER: "Keeper"}
 def render_draft(league: League) -> None:
     settings = league.settings
     sales = list_sales(league.id)
-    summary = auction_summary(
-        settings.team_count,
-        settings.budget,
-        settings.roster_size,
-        sales,
-    )
-    _figures(summary)
     players, seasons, projections = load_baseline_rows()
     table = build_price_table(
         lines_from_rows(players, seasons, projections),
@@ -46,6 +43,16 @@ def render_draft(league: League) -> None:
         settings.budget,
         settings.roster_size,
     )
+    by_id = {row.player_id: row for row in table.rows}
+    league_side, user_side = category_summary(
+        by_id,
+        sales,
+        settings.categories,
+        settings.team_count,
+        settings.budget,
+        settings.roster_size,
+    )
+    show_summary_table(league_side, user_side, settings.categories)
     if table.error:
         st.error(table.error)
         return
@@ -54,7 +61,6 @@ def render_draft(league: League) -> None:
         return
 
     names = {int(player["id"]): str(player["name"]) for player in players}
-    by_id = {row.player_id: row for row in table.rows}
     punted = punt_switches(league.id, settings.categories)
     with st.container(gap="xsmall"):
         _search(league.id, table.rows)
@@ -79,22 +85,6 @@ def render_draft(league: League) -> None:
     _available(league.id, priced.error, priced.rows, settings.categories, punted)
     _taken(league.id, "Your players", "draft-yours", sales, MINE, names, by_id, settings.categories, punted)
     _taken(league.id, "Other teams", "draft-others", sales, OTHER, names, by_id, settings.categories, punted)
-
-
-def _figures(summary: AuctionSummary) -> None:
-    with st.container(horizontal=True, gap="large", width="content", vertical_alignment="center"):
-        _figure(_money("Your money", summary.yours_left, summary.yours_spent))
-        _figure(_spots("Your spots", summary.yours_open, summary.yours_taken))
-        _figure(_money("League money", summary.league_left, summary.league_spent))
-        _figure(_spots("League spots", summary.league_open, summary.league_taken))
-
-
-def _money(label: str, left: int, spent: int) -> str:
-    return f"{html.escape(label)}: <strong>${left}</strong> left (${spent} spent)"
-
-
-def _spots(label: str, left: int, taken: int) -> str:
-    return f"{html.escape(label)}: <strong>{left}</strong> left ({taken} taken)"
 
 
 def _figure(markup: str) -> None:

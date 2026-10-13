@@ -174,7 +174,7 @@ The first columns are money left, money spent, spots left, and spots taken. Leag
 
 Each active category follows, in the same order as the price table. A counting cell is the average per-game rate of the players on that row. FG% and FT% are the attempt-weighted percentage and the average attempts per game, in the same cell as the lists. Each player counts once. A missing percentage is left out of that percentage. A sold player with no projection is left out of the category cells and still counts in the money and spots.
 
-The cell color is the average plain z of those same players, using the same six bands as one player. The z-score is not shown. A punted category fades on the user's row only. The league row stays full strength, and the column header is not marked as a punt.
+The cell color is the average plain z of those same players, using the same six bands as one player. The z-score is not shown. The summary does not mark a punt. The switches under the table are what change the player row and the lists.
 
 A row with no players leaves the category cells blank. Money and spots still show.
 
@@ -224,7 +224,7 @@ Not used. The auction reprice already makes the remaining prices add up to the m
 - Two rows at the top of Draft: the league, then the user's team.
 - Money left, money spent, spots left, and spots taken, then each active category.
 - The league row averages every sold player. The user's row averages the user's players. The color is the average plain z, in the same six bands as one player.
-- A punted category fades on the user's row. The league row stays full strength.
+- The summary does not mark a punt. The switches under it change the player row and the lists.
 
 ### Inflation
 

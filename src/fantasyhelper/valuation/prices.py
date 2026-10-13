@@ -194,6 +194,132 @@ def auction_summary(
     )
 
 
+@dataclass(frozen=True)
+class CategoryAverage:
+    """One category on one summary row. An empty group stays blank."""
+
+    rate: float | None
+    percentage: float | None
+    attempts: float | None
+    average_z: float | None
+
+
+@dataclass(frozen=True)
+class SideSummary:
+    """Money, spots, and category averages for the league or the user."""
+
+    money_left: int
+    money_spent: int
+    spots_left: int
+    spots_taken: int
+    categories: dict[str, CategoryAverage]
+
+
+def category_summary(
+    rows_by_id: dict[int, PriceRow],
+    sales: tuple[Sale, ...],
+    categories: frozenset[str],
+    team_count: int,
+    budget: int,
+    roster_size: int,
+) -> tuple[SideSummary, SideSummary]:
+    """League first, then the user. Available players are on neither row."""
+    money = auction_summary(team_count, budget, roster_size, sales)
+    league_rows = _summary_rows(sales, rows_by_id)
+    user_rows = _summary_rows(
+        tuple(sale for sale in sales if sale.side == MINE),
+        rows_by_id,
+    )
+    return (
+        SideSummary(
+            money.league_left,
+            money.league_spent,
+            money.league_open,
+            money.league_taken,
+            _category_averages(league_rows, categories),
+        ),
+        SideSummary(
+            money.yours_left,
+            money.yours_spent,
+            money.yours_open,
+            money.yours_taken,
+            _category_averages(user_rows, categories),
+        ),
+    )
+
+
+def _summary_rows(
+    sales: tuple[Sale, ...],
+    rows_by_id: dict[int, PriceRow],
+) -> list[PriceRow]:
+    """Projected players on this side. A sale with no projection is left out."""
+    rows: list[PriceRow] = []
+    seen: set[int] = set()
+    for sale in sales:
+        if sale.player_id in seen:
+            continue
+        seen.add(sale.player_id)
+        row = rows_by_id.get(sale.player_id)
+        if row is not None:
+            rows.append(row)
+    return rows
+
+
+def _category_averages(
+    rows: list[PriceRow],
+    categories: frozenset[str],
+) -> dict[str, CategoryAverage]:
+    return {key: _category_average(rows, key) for key in categories}
+
+
+def _category_average(rows: list[PriceRow], key: str) -> CategoryAverage:
+    if not rows:
+        return CategoryAverage(None, None, None, None)
+    scores = [
+        row.plain_categories[key]
+        for row in rows
+        if key in row.plain_categories and row.plain_categories[key] is not None
+    ]
+    average_z = _mean(scores)
+    for pct_key, attempt_key in _PERCENTAGES:
+        if key == pct_key:
+            attempts = _mean([float(getattr(row, attempt_key)) for row in rows])
+            return CategoryAverage(
+                None,
+                _weighted_percentage(rows, pct_key, attempt_key),
+                attempts,
+                average_z,
+            )
+    rates = [float(row.counting[key]) for row in rows if key in row.counting]
+    return CategoryAverage(_mean(rates), None, None, average_z)
+
+
+def _weighted_percentage(
+    rows: list[PriceRow],
+    pct_key: str,
+    attempt_key: str,
+) -> float | None:
+    weighted: list[tuple[float, float]] = []
+    for row in rows:
+        pct = getattr(row, pct_key)
+        if pct is None:
+            continue
+        attempts = row.games * float(getattr(row, attempt_key))
+        if attempts > 0:
+            weighted.append((float(pct), attempts))
+    if not weighted:
+        return None
+    return sum(pct * attempts for pct, attempts in weighted) / sum(
+        attempts for _pct, attempts in weighted
+    )
+
+
+def _mean(values: list[float]) -> float | None:
+    if not values:
+        return None
+    return sum(values) / len(values)
+
+
 def max_bid(budget: int, roster_size: int, sales: tuple[Sale, ...]) -> int | None:
     """The most this user can bid and still fill every later spot at $1.
 
