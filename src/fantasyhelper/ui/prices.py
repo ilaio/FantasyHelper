@@ -31,25 +31,22 @@ _STAT_COLUMNS = (
 _IDENTITY = ("Name", "TZ Rank", "TZ Price", "TC Rank", "TC Price")
 _PERSONAL = ("PZ Rank", "PZ Price", "PC Rank", "PC Price")
 _USAGE = ("Games", "Minutes")
-_TOTALS = ("TZ Score", "TC Score")
 _PUNT_MARK = " (p)"
 _NAME_WIDTH = 170
-_RANK_WIDTH = 60
-_PRICE_WIDTH = 60
-_SCORE_WIDTH = 60
+_RANK_WIDTH = 65
+_PRICE_WIDTH = 65
 _GAMES_WIDTH = 60
 _MINUTES_WIDTH = 60
 _SHOT_WIDTH = 100
-_THREES_WIDTH = 60
-_POINTS_WIDTH = 60
-_REBOUNDS_WIDTH = 60
-_ASSISTS_WIDTH = 60
-_STEALS_WIDTH = 60
-_BLOCKS_WIDTH = 60
-_TURNOVERS_WIDTH = 60
+_THREES_WIDTH = 100
+_POINTS_WIDTH = 100
+_REBOUNDS_WIDTH = 100
+_ASSISTS_WIDTH = 100
+_STEALS_WIDTH = 100
+_BLOCKS_WIDTH = 100
+_TURNOVERS_WIDTH = 100
 _RANK_HEADERS = frozenset({"TZ Rank", "TC Rank", "PZ Rank", "PC Rank"})
 _PRICE_HEADERS = frozenset({"TZ Price", "TC Price", "PZ Price", "PC Price"})
-_SCORE_HEADERS = frozenset({"TZ Score", "TC Score"})
 _CATEGORY_WIDTHS = {
     "3pt": _THREES_WIDTH,
     "Pts": _POINTS_WIDTH,
@@ -102,6 +99,7 @@ def show_price_table(
         width="content",
         height=height,
         column_config={name: _column_config(name) for name in columns},
+        placeholder="",
         **kwargs,
     )
 
@@ -187,8 +185,6 @@ def _column_width(name: str) -> int:
         return _RANK_WIDTH
     if base in _PRICE_HEADERS:
         return _PRICE_WIDTH
-    if base in _SCORE_HEADERS:
-        return _SCORE_WIDTH
     if base == "Games":
         return _GAMES_WIDTH
     if base == "Minutes":
@@ -203,7 +199,7 @@ def table_columns(active: frozenset[str], punted: frozenset[str] = frozenset()) 
     stats = [
         column_label(label, key in punted) for key, label in _STAT_COLUMNS if key in active
     ]
-    return [*lead, *stats, *_TOTALS]
+    return [*lead, *stats]
 
 
 def _switch_key(league_id: int, category: str) -> str:
@@ -300,7 +296,6 @@ def _values(row: PriceRow, active: frozenset[str]) -> list[object]:
             values.append(shot_text(row.ft_pct, row.fta_per_game))
         else:
             values.append(row.counting[key])
-    values.extend((row.plain_score, row.curved_score))
     return values
 
 
@@ -337,8 +332,6 @@ def _styled(
     number_formats = {
         "Games": "{:.1f}",
         "Minutes": "{:.1f}",
-        "TZ Score": "{:.2f}",
-        "TC Score": "{:.2f}",
     }
     for column in columns:
         base = column.removesuffix(_PUNT_MARK)

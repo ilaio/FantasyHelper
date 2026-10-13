@@ -45,7 +45,9 @@ class ColorTests(unittest.TestCase):
             columns[:9],
             ["Name", "TZ Rank", "TZ Price", "TC Rank", "TC Price", "PZ Rank", "PZ Price", "PC Rank", "PC Price"],
         )
-        self.assertEqual(columns[-2:], ["TZ Score", "TC Score"])
+        self.assertNotIn("TZ Score", columns)
+        self.assertNotIn("TC Score", columns)
+        self.assertEqual(columns[-1], "Tov")
         self.assertEqual(column_alignment("Name"), "left")
         self.assertTrue(all(column_alignment(name) == "center" for name in columns[1:]))
         self.assertEqual(price_format("TZ Price"), "$%d")
