@@ -208,7 +208,7 @@ One line above the price table lists each category the league has turned on, wit
 
 With every switch on, the base columns stay as they are. The personal rank and price columns are empty.
 
-PZ Rank, PZ Price, PC Rank, and PC Price follow TC Price. They stay on the table when nothing is punted, and those cells are empty. With a punt, the table sorts by PZ Rank. TZ Rank, TZ Price, TC Rank, and TC Price stay the base numbers. The personal numbers use the same price rule, with the punted categories left out of both totals. Category z-scores are not recomputed. The colored projection stays, including a punted category, and that column's header is marked `(p)`.
+PZ Rank, PZ Price, PC Rank, and PC Price follow TC Price. They stay on the table when nothing is punted, and those cells are empty. With a punt, the table sorts by PZ Rank. TZ Rank, TZ Price, TC Rank, and TC Price stay the base numbers. The personal numbers use the same price rule, with the punted categories left out of both totals. Category z-scores are not recomputed. The colored projection stays, including a punted category. That column's header is marked `(p)`, and its cells use gray text and a paler color band.
 
 ### Auction reprice
 

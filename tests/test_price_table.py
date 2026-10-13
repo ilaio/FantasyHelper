@@ -115,7 +115,13 @@ class ColorTests(unittest.TestCase):
         self.assertEqual(colors["FG% / FGA"], "")
         self.assertEqual(colors["Pts"], _DEEP_GREEN)
         self.assertEqual(colors["Tov"], _LIGHT_GREEN)
-        self.assertEqual(punt_colors["Blk (p)"], _DEEP_RED)
+        self.assertEqual(punt_colors["Pts"], _DEEP_GREEN)
+        self.assertEqual(punt_colors["Blk (p)"], "background-color: #E8C2BF; color: #8A8A8A")
+        blank_columns = table_columns(active, frozenset({"fg_pct"}))
+        blank_colors = dict(
+            zip(blank_columns, _row_colors(row, active, frozenset({"fg_pct"}), blank_columns))
+        )
+        self.assertEqual(blank_colors["FG% / FGA (p)"], "color: #8A8A8A")
 
 
 if __name__ == "__main__":

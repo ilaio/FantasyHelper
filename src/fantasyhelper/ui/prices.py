@@ -15,6 +15,16 @@ _LIGHT_RED = "background-color: #FDECEC"
 _RED = "background-color: #F6C9C4"
 _DEEP_RED = "background-color: #E89B96"
 _YELLOW = "background-color: #F8E7A0"
+# Punted cells keep the band, washed halfway toward the page background, with gray text.
+_FADED_TEXT = "color: #8A8A8A"
+_FADED_BANDS = {
+    _DEEP_GREEN: "background-color: #BCDAC2; color: #8A8A8A",
+    _GREEN: "background-color: #D7E7DB; color: #8A8A8A",
+    _LIGHT_GREEN: "background-color: #E8EFEA; color: #8A8A8A",
+    _LIGHT_RED: "background-color: #F2EAEA; color: #8A8A8A",
+    _RED: "background-color: #EFD8D6; color: #8A8A8A",
+    _DEEP_RED: "background-color: #E8C2BF; color: #8A8A8A",
+}
 
 # Display order. A category the league turned off is omitted.
 _STAT_COLUMNS = (
@@ -355,7 +365,10 @@ def _row_colors(
     for key, label in _STAT_COLUMNS:
         if key not in active:
             continue
+        name = column_label(label, key in punted)
         z = row.plain_categories[key]
         if z is not None:
-            colors[column_label(label, key in punted)] = strength_color(z)
+            colors[name] = strength_color(z)
+        if key in punted:
+            colors[name] = _FADED_BANDS.get(colors[name], _FADED_TEXT)
     return [colors[column] for column in columns]
