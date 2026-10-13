@@ -83,8 +83,8 @@ In particular:
 - Turnovers are reversed so fewer is better.
 - A punt recomputes the total and the dollar scale. It does not subtract from a finished price.
 - Max bid leaves $1 for each spot that remains after the current player. The final spot can use the last dollar.
-- Another team’s purchase changes the pool and the auction prices. It does not change this team’s category balance.
-- Category labels treat a punt as a punt, even when the total is low.
+- Another team’s purchase changes the pool, the auction prices, and the league row of the summary. It does not change the user's row.
+- A punted category fades on the user's summary row. The league row stays full strength.
 
 Show the punt prices beside the base prices. The auction reprice replaces both dollar scales for the players still available. Do not keep a second inflation scale.
 
