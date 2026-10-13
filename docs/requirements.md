@@ -160,7 +160,7 @@ The user types each result as it happens: player, price, and “my team” or �
 
 After each entry the app updates the pool, the budget, the price list, and the category picture. Players who are kept or sold no longer appear as targets.
 
-Nominations and targets are two lists of five available players. They sit under the sale line. A row opens that player. A player on the nomination list is left off the targets.
+Nominations and targets are two lists of five available players. They sit side by side under the sale line, with targets on the right. Both lists use Name, TZ Price, TC Price or PC Price, and Category. A row opens that player. A player on the nomination list is left off the targets.
 
 A nomination is ordered by how far TZ Price sits above TC Price. With a punt, TC Price is replaced by PC Price. Only a positive gap qualifies. When the user's summary is deep green in a category, a z of 2 or more, players who are green or deep green in one of those categories come first. The row names each of those shared categories. If fewer than five match, the rest of the list is filled by the gap and those categories stay blank. With no deep green category, and before any of the user's players are rostered, every category stays blank.
 
@@ -220,7 +220,7 @@ Not used. The auction reprice already makes the remaining prices add up to the m
 - Under the row, one line holds the sale. My team or Another team, and Draft or Keeper, are each two buttons with one pressed. Price sits to the left of the amount, and the max bid or team budget sits to the right of it. Mark sold follows that, with a small gap, when the player is not sold. Save and Unmark follow it when the player is sold. Save stays off until team, keeper or draft, or price changes.
 - Mark the player sold as a keeper or a draft sale, on the user's team or another team, with a price. Edit those values or unmark the player.
 - The category switches stay on Draft, under the summary table and above the player search.
-- Nominations and targets sit under the sale line. Each list has at most five available players. A nomination is the room's plain price above the curved price, using PC Price when a punt is on. A target is green in the category where the user is furthest behind, ordered by TC Price or PC Price, and within the max bid. A nomination is not also a target.
+- Nominations and targets sit side by side under the sale line, targets on the right. Both lists use Name, TZ Price, TC Price or PC Price, and Category. Each list has at most five available players. A nomination is the room's plain price above the curved price, using PC Price when a punt is on. A target is green in the category where the user is furthest behind, ordered by TC Price or PC Price, and within the max bid. A nomination is not also a target.
 
 ### Category summary
 

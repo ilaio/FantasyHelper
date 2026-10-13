@@ -240,6 +240,8 @@ The cell color is the average plain z of those same players, using the same six 
 
 **Targets** — five available players who are not on the nomination list. The category is the kept one where the user is furthest behind the league. A punted category is never chosen. A player has to be green there, a z of at least 1, and the price the user would pay has to be within the max bid. The order is TC Price, or PC Price when a punt is on. When the user is ahead in every kept category, the category is the one where that lead is smallest. Before any of the user's players are rostered, there is no category to check, and the order is still TC Price or PC Price.
 
+The two lists sit side by side under the sale line, targets on the right. Both use Name, TZ Price, TC Price or PC Price, and Category.
+
 ## 6. Task list
 
 Each task is one vertical slice. The next task starts only after the current one is checked the way its “Done when” line says, and only after that next task has been planned in detail with the user. Commands are run by the user. The agent asks for a command and waits.
@@ -364,7 +366,7 @@ Status: done. Merged with Task 7.
 
 ### Task 9 — Nominations and targets
 
-The rules are in section 5. Two lists of five sit under the sale line. Nominations are the plain-price gap over the curved price. Targets are green where the roster is furthest behind, ordered by the curved price, and a nomination is left off that list.
+The rules are in section 5. Two lists of five sit side by side under the sale line, targets on the right. Both use Name, TZ Price, TC Price or PC Price, and Category. Nominations are the plain-price gap over the curved price. Targets are green where the roster is furthest behind, ordered by the curved price, and a nomination is left off that list.
 
 Done when: with no punt the nomination order is TZ above TC, a punt switches that curved price to PC, a deep green category brings green players in that category first, a nomination is absent from the targets, and a roster with no players still shows both lists with the category blank.
 

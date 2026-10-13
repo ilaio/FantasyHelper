@@ -14,6 +14,7 @@ from fantasyhelper.ui.prices import (
     roster_columns,
     summary_columns,
     table_columns,
+    _suggestion_columns,
 )
 from fantasyhelper.valuation.prices import PriceRow
 
@@ -92,6 +93,16 @@ class ColorTests(unittest.TestCase):
         self.assertEqual(columns[:5], [" ", "Money left", "Spent", "Spots left", "Taken"])
         self.assertEqual(columns[5:], ["FG% / FGA", "Pts", "Blk"])
         self.assertNotIn("Blk (p)", columns)
+
+    def test_nominations_and_targets_share_columns(self) -> None:
+        self.assertEqual(
+            _suggestion_columns(frozenset()),
+            ["Name", "TZ Price", "TC Price", "Category"],
+        )
+        self.assertEqual(
+            _suggestion_columns(frozenset({"blk"})),
+            ["Name", "TZ Price", "PC Price", "Category"],
+        )
 
     def test_usage_and_category_colors(self) -> None:
         row = PriceRow(

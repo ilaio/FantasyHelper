@@ -1,4 +1,4 @@
-"""Draft tab: the summary, the three lists, and one player view."""
+"""Draft tab: the summary, nominations and targets, the three lists, and one player view."""
 
 import html
 from collections.abc import Callable, Sequence
@@ -95,8 +95,13 @@ def render_draft(league: League) -> None:
             punted,
             max_bid(settings.budget, settings.roster_size, sales),
         )
-        _suggestions(league.id, "Nominations", "draft-nominations", nominations, punted, target=False)
-        _suggestions(league.id, "Targets", "draft-targets", targets, punted, target=True)
+        with st.container(horizontal=True, vertical_alignment="top", gap="medium", width="content"):
+            with st.container(width="content"):
+                _suggestions(
+                    league.id, "Nominations", "draft-nominations", nominations, punted, target=False
+                )
+            with st.container(width="content"):
+                _suggestions(league.id, "Targets", "draft-targets", targets, punted, target=True)
     _available(league.id, priced.error, priced.rows, settings.categories, punted)
     _taken(league.id, "Your players", "draft-yours", sales, MINE, names, by_id, settings.categories, punted)
     _taken(league.id, "Other teams", "draft-others", sales, OTHER, names, by_id, settings.categories, punted)
@@ -343,7 +348,6 @@ def _suggestions(
     show_suggestion_table(
         suggestions,
         punted,
-        target=target,
         selection_key=f"{key_name}-{league_id}",
         on_select=_open_row(
             f"{key_name}-{league_id}",

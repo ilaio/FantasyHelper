@@ -255,13 +255,12 @@ def show_suggestion_table(
     suggestions: tuple[Suggestion, ...],
     punted: frozenset[str],
     *,
-    target: bool,
     selection_key: str,
     on_select,
 ) -> None:
     """A short nomination or target list. A blank category means none was named."""
-    columns = _suggestion_columns(punted, target=target)
-    records = [_suggestion_record(item, columns, target) for item in suggestions]
+    columns = _suggestion_columns(punted)
+    records = [_suggestion_record(item, columns) for item in suggestions]
     frame = pd.DataFrame(records, columns=columns)
     st.dataframe(
         frame,
@@ -275,24 +274,16 @@ def show_suggestion_table(
     )
 
 
-def _suggestion_columns(punted: frozenset[str], *, target: bool) -> list[str]:
+def _suggestion_columns(punted: frozenset[str]) -> list[str]:
     balance = "PC Price" if punted else "TC Price"
-    if target:
-        pay = "PZ Price" if punted else "TZ Price"
-        return ["Name", balance, pay, "Category"]
     return ["Name", "TZ Price", balance, "Category"]
 
 
-def _suggestion_record(
-    item: Suggestion,
-    columns: list[str],
-    target: bool,
-) -> dict[str, object]:
-    prices = (item.balance_price, item.pay_price) if target else (item.room_price, item.balance_price)
+def _suggestion_record(item: Suggestion, columns: list[str]) -> dict[str, object]:
     return {
         "Name": item.name,
-        columns[1]: prices[0],
-        columns[2]: prices[1],
+        "TZ Price": item.room_price,
+        columns[2]: item.balance_price,
         "Category": ", ".join(_SWITCH_LABELS[key] for key in item.categories),
     }
 
