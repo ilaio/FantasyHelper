@@ -114,6 +114,13 @@ def _figure(markup: str) -> None:
     )
 
 
+def _list_title(title: str) -> None:
+    st.markdown(
+        f"<p class='list-title'>{html.escape(title)}</p>",
+        unsafe_allow_html=True,
+    )
+
+
 def _bid(amount: int | None) -> str:
     if amount is None:
         return "No spot left"
@@ -337,24 +344,25 @@ def _suggestions(
     *,
     target: bool,
 ) -> None:
-    st.subheader(title)
-    if not suggestions:
-        _drop_list_check(f"{key_name}-{league_id}")
-        st.write("No nominations." if not target else "No targets.")
-        return
-    ids = tuple(item.player_id for item in suggestions)
-    st.session_state[f"{key_name}-ids-{league_id}"] = ids
-    _sync_list_check(f"{key_name}-{league_id}", ids, st.session_state.get(_player_key(league_id)))
-    show_suggestion_table(
-        suggestions,
-        punted,
-        selection_key=f"{key_name}-{league_id}",
-        on_select=_open_row(
-            f"{key_name}-{league_id}",
-            f"{key_name}-ids-{league_id}",
-            _player_key(league_id),
-        ),
-    )
+    with st.container(gap="xxsmall"):
+        _list_title(title)
+        if not suggestions:
+            _drop_list_check(f"{key_name}-{league_id}")
+            st.write("No nominations." if not target else "No targets.")
+            return
+        ids = tuple(item.player_id for item in suggestions)
+        st.session_state[f"{key_name}-ids-{league_id}"] = ids
+        _sync_list_check(f"{key_name}-{league_id}", ids, st.session_state.get(_player_key(league_id)))
+        show_suggestion_table(
+            suggestions,
+            punted,
+            selection_key=f"{key_name}-{league_id}",
+            on_select=_open_row(
+                f"{key_name}-{league_id}",
+                f"{key_name}-ids-{league_id}",
+                _player_key(league_id),
+            ),
+        )
 
 
 def _available(
@@ -364,16 +372,17 @@ def _available(
     active: frozenset[str],
     punted: frozenset[str],
 ) -> None:
-    st.subheader("Still available")
-    if error:
-        _drop_list_check(f"draft-available-{league_id}")
-        st.error(error)
-        return
-    if not rows:
-        _drop_list_check(f"draft-available-{league_id}")
-        st.write("No players are still available.")
-        return
-    _selectable_prices(league_id, "draft-available", rows, active, punted)
+    with st.container(gap="xxsmall"):
+        _list_title("Still available")
+        if error:
+            _drop_list_check(f"draft-available-{league_id}")
+            st.error(error)
+            return
+        if not rows:
+            _drop_list_check(f"draft-available-{league_id}")
+            st.write("No players are still available.")
+            return
+        _selectable_prices(league_id, "draft-available", rows, active, punted)
 
 
 def _taken(
@@ -387,24 +396,25 @@ def _taken(
     active: frozenset[str],
     punted: frozenset[str],
 ) -> None:
-    st.subheader(title)
-    chosen = tuple(sale for sale in sales if sale.side == side)
-    if not chosen:
-        _drop_list_check(f"{key_name}-{league_id}")
-        st.write("No players yet.")
-        return
-    ids = tuple(sale.player_id for sale in chosen)
-    st.session_state[f"{key_name}-ids-{league_id}"] = ids
-    _sync_list_check(f"{key_name}-{league_id}", ids, st.session_state.get(_player_key(league_id)))
-    show_roster_table(
-        chosen,
-        rows_by_id,
-        names,
-        active,
-        punted,
-        selection_key=f"{key_name}-{league_id}",
-        on_select=_open_row(f"{key_name}-{league_id}", f"{key_name}-ids-{league_id}", _player_key(league_id)),
-    )
+    with st.container(gap="xxsmall"):
+        _list_title(title)
+        chosen = tuple(sale for sale in sales if sale.side == side)
+        if not chosen:
+            _drop_list_check(f"{key_name}-{league_id}")
+            st.write("No players yet.")
+            return
+        ids = tuple(sale.player_id for sale in chosen)
+        st.session_state[f"{key_name}-ids-{league_id}"] = ids
+        _sync_list_check(f"{key_name}-{league_id}", ids, st.session_state.get(_player_key(league_id)))
+        show_roster_table(
+            chosen,
+            rows_by_id,
+            names,
+            active,
+            punted,
+            selection_key=f"{key_name}-{league_id}",
+            on_select=_open_row(f"{key_name}-{league_id}", f"{key_name}-ids-{league_id}", _player_key(league_id)),
+        )
 
 
 def _selectable_prices(

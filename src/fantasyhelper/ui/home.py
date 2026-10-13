@@ -92,7 +92,8 @@ header[data-testid="stHeader"] {
     color: #000000;
 }
 [data-testid="stMarkdownContainer"]:has(.league-details),
-[data-testid="stMarkdownContainer"]:has(.draft-figure) {
+[data-testid="stMarkdownContainer"]:has(.draft-figure),
+[data-testid="stMarkdownContainer"]:has(.list-title) {
     margin-bottom: 0;
     width: auto;
 }
@@ -181,6 +182,13 @@ div[data-testid="stCaptionContainer"] p {
 }
 [data-testid="stMarkdownContainer"] .draft-figure strong {
     font-weight: 700;
+}
+[data-testid="stMarkdownContainer"] .list-title {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.15;
+    margin: 0;
+    color: #000000;
 }
 div[data-testid="stTabs"] [data-testid="stTab"] {
     flex: 1 1 0;

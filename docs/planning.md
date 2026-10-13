@@ -240,7 +240,7 @@ The cell color is the average plain z of those same players, using the same six 
 
 **Targets** — five available players who are not on the nomination list. The category is the kept one where the user is furthest behind the league. A punted category is never chosen. A player has to be green there, a z of at least 1, and the price the user would pay has to be within the max bid. The order is TC Price, or PC Price when a punt is on. When the user is ahead in every kept category, the category is the one where that lead is smallest. Before any of the user's players are rostered, there is no category to check, and the order is still TC Price or PC Price.
 
-The two lists sit side by side under the sale line, targets on the right. Both use Name, TZ Price, TC Price or PC Price, and Category.
+The two lists sit side by side under the sale line, targets on the right. Both use Name, TZ Price, TC Price or PC Price, and Category. Nominations, Targets, Still available, Your players, and Other teams use a small title close to the list.
 
 ## 6. Task list
 

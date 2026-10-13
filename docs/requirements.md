@@ -220,7 +220,7 @@ Not used. The auction reprice already makes the remaining prices add up to the m
 - Under the row, one line holds the sale. My team or Another team, and Draft or Keeper, are each two buttons with one pressed. Price sits to the left of the amount, and the max bid or team budget sits to the right of it. Mark sold follows that, with a small gap, when the player is not sold. Save and Unmark follow it when the player is sold. Save stays off until team, keeper or draft, or price changes.
 - Mark the player sold as a keeper or a draft sale, on the user's team or another team, with a price. Edit those values or unmark the player.
 - The category switches stay on Draft, under the summary table and above the player search.
-- Nominations and targets sit side by side under the sale line, targets on the right. Both lists use Name, TZ Price, TC Price or PC Price, and Category. Each list has at most five available players. A nomination is the room's plain price above the curved price, using PC Price when a punt is on. A target is green in the category where the user is furthest behind, ordered by TC Price or PC Price, and within the max bid. A nomination is not also a target.
+- Nominations and targets sit side by side under the sale line, targets on the right. Both lists use Name, TZ Price, TC Price or PC Price, and Category. Each list has at most five available players. Nominations, Targets, Still available, Your players, and Other teams use a small title close to the list. A nomination is the room's plain price above the curved price, using PC Price when a punt is on. A target is green in the category where the user is furthest behind, ordered by TC Price or PC Price, and within the max bid. A nomination is not also a target.
 
 ### Category summary
 
