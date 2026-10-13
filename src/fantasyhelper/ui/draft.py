@@ -9,9 +9,11 @@ from fantasyhelper.leagues.league import League, LeagueSettings
 from fantasyhelper.leagues.sales import list_sales, record_sale, remove_sale, update_sale
 from fantasyhelper.stats.store import load_baseline_rows
 from fantasyhelper.ui.prices import (
+    category_keys,
     punt_switches,
     show_price_table,
     show_roster_table,
+    show_suggestion_table,
     show_summary_table,
 )
 from fantasyhelper.valuation.prices import (
@@ -21,8 +23,10 @@ from fantasyhelper.valuation.prices import (
     OTHER,
     PriceRow,
     Sale,
+    Suggestion,
     build_price_table,
     category_summary,
+    draft_suggestions,
     max_bid,
     reprice_remaining,
 )
@@ -82,6 +86,17 @@ def render_draft(league: League) -> None:
             sales,
             punted,
         )
+    if priced.error is None:
+        nominations, targets = draft_suggestions(
+            priced.rows,
+            user_side,
+            league_side,
+            category_keys(settings.categories),
+            punted,
+            max_bid(settings.budget, settings.roster_size, sales),
+        )
+        _suggestions(league.id, "Nominations", "draft-nominations", nominations, punted, target=False)
+        _suggestions(league.id, "Targets", "draft-targets", targets, punted, target=True)
     _available(league.id, priced.error, priced.rows, settings.categories, punted)
     _taken(league.id, "Your players", "draft-yours", sales, MINE, names, by_id, settings.categories, punted)
     _taken(league.id, "Other teams", "draft-others", sales, OTHER, names, by_id, settings.categories, punted)
@@ -308,6 +323,36 @@ def _whole_dollars(price: object) -> int | None:
     return None
 
 
+def _suggestions(
+    league_id: int,
+    title: str,
+    key_name: str,
+    suggestions: tuple[Suggestion, ...],
+    punted: frozenset[str],
+    *,
+    target: bool,
+) -> None:
+    st.subheader(title)
+    if not suggestions:
+        _drop_list_check(f"{key_name}-{league_id}")
+        st.write("No nominations." if not target else "No targets.")
+        return
+    ids = tuple(item.player_id for item in suggestions)
+    st.session_state[f"{key_name}-ids-{league_id}"] = ids
+    _sync_list_check(f"{key_name}-{league_id}", ids, st.session_state.get(_player_key(league_id)))
+    show_suggestion_table(
+        suggestions,
+        punted,
+        target=target,
+        selection_key=f"{key_name}-{league_id}",
+        on_select=_open_row(
+            f"{key_name}-{league_id}",
+            f"{key_name}-ids-{league_id}",
+            _player_key(league_id),
+        ),
+    )
+
+
 def _available(
     league_id: int,
     error: str | None,
@@ -423,5 +468,5 @@ def _selected_rows(state: object) -> list[int]:
 
 
 def _clear_list_selection(league_id: int) -> None:
-    for name in ("draft-available", "draft-yours", "draft-others"):
+    for name in ("draft-nominations", "draft-targets", "draft-available", "draft-yours", "draft-others"):
         st.session_state.pop(f"{name}-{league_id}", None)

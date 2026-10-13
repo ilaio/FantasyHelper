@@ -160,9 +160,11 @@ The user types each result as it happens: player, price, and “my team” or �
 
 After each entry the app updates the pool, the budget, the price list, and the category picture. Players who are kept or sold no longer appear as targets.
 
-The remaining pool can be narrowed by the current punt and by what the roster still needs. A player who only helps a punted category sinks on the personal list. A player who helps a category the team is short in rises as a target, within the max bid.
+Nominations and targets are two lists of five available players. They sit under the sale line. A row opens that player. A player on the nomination list is left off the targets.
 
-Nomination suggestions look for a different kind of player: someone this build does not want, who is expensive to managers who do want that category. Typical case: the user is punting blocks, so they nominate a high-priced blocks specialist and let the rest of the room spend. Suggestions are a short list with a reason, not an automatic bid.
+A nomination is ordered by how far TZ Price sits above TC Price. With a punt, TC Price is replaced by PC Price. Only a positive gap qualifies. When the user's summary is deep green in a category, a z of 2 or more, players who are green or deep green in one of those categories come first. The row names each of those shared categories. If fewer than five match, the rest of the list is filled by the gap and those categories stay blank. With no deep green category, and before any of the user's players are rostered, every category stays blank.
+
+A target uses the kept category where the user is furthest behind the league. A punted category is never that category. The player has to be green there, a z of at least 1, and the price the user would pay has to be within the max bid. The order is TC Price, or PC Price when a punt is on. When the user is ahead in every kept category, the target category is the one where that lead is smallest. Before any of the user's players are rostered, there is no category to check, and the order is still TC Price or PC Price.
 
 ### 6.5 Category summary
 
@@ -217,7 +219,8 @@ Not used. The auction reprice already makes the remaining prices add up to the m
 - Search sits above the lists. "Search player" sits to the left of the select, which is about 50 characters wide. One price-table row stays under the search. With no player chosen, the row is empty. Choosing a player, or a row in a list, fills that row. One player is open at a time. The list that contains that player has the row checked, and the other lists are clear. Choosing a row or a name in the search moves the check. Clearing the check clears the player. The lists stay on the page.
 - Under the row, one line holds the sale. My team or Another team, and Draft or Keeper, are each two buttons with one pressed. Price sits to the left of the amount, and the max bid or team budget sits to the right of it. Mark sold follows that, with a small gap, when the player is not sold. Save and Unmark follow it when the player is sold. Save stays off until team, keeper or draft, or price changes.
 - Mark the player sold as a keeper or a draft sale, on the user's team or another team, with a price. Edit those values or unmark the player.
-- The category switches stay on Draft, under the summary table and above the player search. Nomination ideas stay later.
+- The category switches stay on Draft, under the summary table and above the player search.
+- Nominations and targets sit under the sale line. Each list has at most five available players. A nomination is the room's plain price above the curved price, using PC Price when a punt is on. A target is green in the category where the user is furthest behind, ordered by TC Price or PC Price, and within the max bid. A nomination is not also a target.
 
 ### Category summary
 

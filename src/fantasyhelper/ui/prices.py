@@ -5,7 +5,15 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from fantasyhelper.valuation.prices import DRAFT, KEEPER, CategoryAverage, PriceRow, Sale, SideSummary
+from fantasyhelper.valuation.prices import (
+    DRAFT,
+    KEEPER,
+    CategoryAverage,
+    PriceRow,
+    Sale,
+    SideSummary,
+    Suggestion,
+)
 
 # Plain z bands. A value on the edge takes the higher band.
 _DEEP_GREEN = "background-color: #8FCB9B"
@@ -62,6 +70,7 @@ _SPENT_WIDTH = 80
 _SPOTS_LEFT_WIDTH = 100
 _TAKEN_WIDTH = 80
 _SUMMARY_LABEL = " "
+_SUGGESTION_CATEGORY_WIDTH = 180
 _SUMMARY_MONEY = {"Money left": _MONEY_LEFT_WIDTH, "Spent": _SPENT_WIDTH}
 _SUMMARY_SPOTS = {"Spots left": _SPOTS_LEFT_WIDTH, "Taken": _TAKEN_WIDTH}
 _RANK_HEADERS = frozenset({"TZ Rank", "TC Rank", "PZ Rank", "PC Rank"})
@@ -242,6 +251,64 @@ def _summary_column_config(name: str) -> dict:
     return st.column_config.Column(alignment="center", width=_column_width(name))
 
 
+def show_suggestion_table(
+    suggestions: tuple[Suggestion, ...],
+    punted: frozenset[str],
+    *,
+    target: bool,
+    selection_key: str,
+    on_select,
+) -> None:
+    """A short nomination or target list. A blank category means none was named."""
+    columns = _suggestion_columns(punted, target=target)
+    records = [_suggestion_record(item, columns, target) for item in suggestions]
+    frame = pd.DataFrame(records, columns=columns)
+    st.dataframe(
+        frame,
+        hide_index=True,
+        width="content",
+        column_config={name: _suggestion_column_config(name) for name in columns},
+        placeholder="",
+        key=selection_key,
+        on_select=on_select,
+        selection_mode="single-row",
+    )
+
+
+def _suggestion_columns(punted: frozenset[str], *, target: bool) -> list[str]:
+    balance = "PC Price" if punted else "TC Price"
+    if target:
+        pay = "PZ Price" if punted else "TZ Price"
+        return ["Name", balance, pay, "Category"]
+    return ["Name", "TZ Price", balance, "Category"]
+
+
+def _suggestion_record(
+    item: Suggestion,
+    columns: list[str],
+    target: bool,
+) -> dict[str, object]:
+    prices = (item.balance_price, item.pay_price) if target else (item.room_price, item.balance_price)
+    return {
+        "Name": item.name,
+        columns[1]: prices[0],
+        columns[2]: prices[1],
+        "Category": ", ".join(_SWITCH_LABELS[key] for key in item.categories),
+    }
+
+
+def _suggestion_column_config(name: str) -> dict:
+    if name == "Name":
+        return st.column_config.Column(alignment="left", width=_NAME_WIDTH)
+    if name == "Category":
+        return st.column_config.Column(alignment="center", width=_SUGGESTION_CATEGORY_WIDTH)
+    return st.column_config.NumberColumn(
+        alignment="center",
+        format="$%d",
+        width=_PRICE_WIDTH,
+    )
+
+
 def strength_color(z: float) -> str:
     """CSS background for one plain category z."""
     if z >= 2:
@@ -354,6 +421,11 @@ def summary_columns(active: frozenset[str]) -> list[str]:
     """Money and spots, then each active category. A punt is not marked here."""
     stats = [label for key, label in _STAT_COLUMNS if key in active]
     return [_SUMMARY_LABEL, *_SUMMARY_MONEY, *_SUMMARY_SPOTS, *stats]
+
+
+def category_keys(active: frozenset[str]) -> tuple[str, ...]:
+    """Active categories in price-table order."""
+    return tuple(key for key, _label in _STAT_COLUMNS if key in active)
 
 
 def _switch_key(league_id: int, category: str) -> str:

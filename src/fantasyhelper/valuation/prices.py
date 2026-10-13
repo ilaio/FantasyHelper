@@ -320,6 +320,179 @@ def _mean(values: list[float]) -> float | None:
     return sum(values) / len(values)
 
 
+_HANDFUL = 5
+_DEEP_GREEN = 2
+_GREEN = 1
+
+
+@dataclass(frozen=True)
+class Suggestion:
+    """One nomination or target. Categories are empty when none can be named."""
+
+    player_id: int
+    name: str
+    room_price: int
+    balance_price: int
+    pay_price: int
+    categories: tuple[str, ...]
+
+
+def draft_suggestions(
+    available: tuple[PriceRow, ...],
+    user: SideSummary,
+    league: SideSummary,
+    categories: tuple[str, ...],
+    punted: frozenset[str],
+    bid: int | None,
+) -> tuple[tuple[Suggestion, ...], tuple[Suggestion, ...]]:
+    """Up to five nominations, then up to five targets.
+
+    A nomination is ordered by how far the room's plain price sits above the
+    curved price. With a punt, that curved price is the personal one. When the
+    user is deep green in a category, players who are green there come first.
+    A target never repeats a nomination.
+    """
+    nominations = _nominations(available, user, categories, punted)
+    nominated = {item.player_id for item in nominations}
+    targets = _targets(available, user, league, categories, punted, bid, nominated)
+    return nominations, targets
+
+
+def _nominations(
+    available: tuple[PriceRow, ...],
+    user: SideSummary,
+    categories: tuple[str, ...],
+    punted: frozenset[str],
+) -> tuple[Suggestion, ...]:
+    deep = _deep_categories(user, categories)
+    ranked: list[tuple[bool, int, int, str, Suggestion]] = []
+    for row in available:
+        balance = _balance_price(row, punted)
+        if balance is None:
+            continue
+        gap = row.plain_price - balance
+        if gap <= 0:
+            continue
+        shared = _shared_categories(row, deep)
+        pay = _pay_price(row, punted)
+        ranked.append(
+            (
+                not shared,
+                -gap,
+                -row.plain_price,
+                row.name.casefold(),
+                Suggestion(
+                    row.player_id,
+                    row.name,
+                    row.plain_price,
+                    balance,
+                    row.plain_price if pay is None else pay,
+                    shared,
+                ),
+            )
+        )
+    ranked.sort(key=lambda item: (item[0], item[1], item[2], item[3], item[4].name))
+    return tuple(item[4] for item in ranked[:_HANDFUL])
+
+
+def _targets(
+    available: tuple[PriceRow, ...],
+    user: SideSummary,
+    league: SideSummary,
+    categories: tuple[str, ...],
+    punted: frozenset[str],
+    bid: int | None,
+    nominated: set[int],
+) -> tuple[Suggestion, ...]:
+    if bid is None:
+        return ()
+    need = _need_category(user, league, categories, punted)
+    ranked: list[tuple[int, str, Suggestion]] = []
+    for row in available:
+        if row.player_id in nominated:
+            continue
+        balance = _balance_price(row, punted)
+        pay = _pay_price(row, punted)
+        if balance is None or pay is None or pay < 1 or pay > bid:
+            continue
+        if need is not None:
+            score = row.plain_categories.get(need)
+            if score is None or score < _GREEN:
+                continue
+        ranked.append(
+            (
+                -balance,
+                row.name.casefold(),
+                Suggestion(
+                    row.player_id,
+                    row.name,
+                    row.plain_price,
+                    balance,
+                    pay,
+                    (need,) if need is not None else (),
+                ),
+            )
+        )
+    ranked.sort(key=lambda item: (item[0], item[1], item[2].name))
+    return tuple(item[2] for item in ranked[:_HANDFUL])
+
+
+def _deep_categories(user: SideSummary, categories: tuple[str, ...]) -> tuple[str, ...]:
+    found: list[str] = []
+    for key in categories:
+        average = user.categories.get(key)
+        if average is not None and average.average_z is not None and average.average_z >= _DEEP_GREEN:
+            found.append(key)
+    return tuple(found)
+
+
+def _shared_categories(row: PriceRow, deep: tuple[str, ...]) -> tuple[str, ...]:
+    return tuple(
+        key
+        for key in deep
+        if row.plain_categories.get(key) is not None and row.plain_categories[key] >= _GREEN
+    )
+
+
+def _need_category(
+    user: SideSummary,
+    league: SideSummary,
+    categories: tuple[str, ...],
+    punted: frozenset[str],
+) -> str | None:
+    """The kept category where the user is furthest behind, or the smallest lead."""
+    ranked: list[tuple[float, int, str]] = []
+    for index, key in enumerate(categories):
+        if key in punted:
+            continue
+        user_average = user.categories.get(key)
+        league_average = league.categories.get(key)
+        if (
+            user_average is None
+            or league_average is None
+            or user_average.average_z is None
+            or league_average.average_z is None
+        ):
+            continue
+        ranked.append((league_average.average_z - user_average.average_z, -index, key))
+    if not ranked:
+        return None
+    ranked.sort(reverse=True)
+    return ranked[0][2]
+
+
+def _balance_price(row: PriceRow, punted: frozenset[str]) -> int | None:
+    if punted:
+        return row.personal_curved_price
+    return row.curved_price
+
+
+def _pay_price(row: PriceRow, punted: frozenset[str]) -> int | None:
+    if punted:
+        return row.personal_plain_price
+    return row.plain_price
+
+
 def max_bid(budget: int, roster_size: int, sales: tuple[Sale, ...]) -> int | None:
     """The most this user can bid and still fill every later spot at $1.
 

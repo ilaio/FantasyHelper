@@ -236,7 +236,9 @@ The first columns are money left, money spent, spots left, and spots taken, usin
 
 The cell color is the average plain z of those same players, using the same six bands as one player. The z-score is not shown. The summary does not mark a punt. The switches under the table are what change the player row and the lists. A row with no players leaves the category cells blank. Money and spots still show. Another team's purchase changes the league row and does not change the user's row.
 
-**Nomination ideas** — among available players this user should not buy (personal price well below a likely room price, or most of their positive z sitting in punted categories), rank by how much money they figure to extract from the room. Show a handful, each with the category that makes them a trap for other teams. Task 9 keeps this rule to one function and a short list, and we tighten it only if a mock draft shows it suggesting players the user would actually want.
+**Nominations** — five available players, ordered by how far TZ Price sits above TC Price. With a punt, the curved price is PC Price. Only a positive gap qualifies. When the user's summary is deep green in a category, a z of 2 or more, players who are green or deep green there come first, and the row names each shared category. Fewer than five matches are filled by the gap, with the category left blank. With no deep green category, every category is blank.
+
+**Targets** — five available players who are not on the nomination list. The category is the kept one where the user is furthest behind the league. A punted category is never chosen. A player has to be green there, a z of at least 1, and the price the user would pay has to be within the max bid. The order is TC Price, or PC Price when a punt is on. When the user is ahead in every kept category, the category is the one where that lead is smallest. Before any of the user's players are rostered, there is no category to check, and the order is still TC Price or PC Price.
 
 ## 6. Task list
 
@@ -360,19 +362,21 @@ Folded into Task 7. A keeper is a sale entered before the draft. Unmark or edit 
 
 Status: done. Merged with Task 7.
 
-### Task 9 — Pool filters and nominations
+### Task 9 — Nominations and targets
 
-Filter the remaining pool by personal price and by category fit. Show nomination suggestions from section 5. This waits until the category summary is checked.
+The rules are in section 5. Two lists of five sit under the sale line. Nominations are the plain-price gap over the curved price. Targets are green where the roster is furthest behind, ordered by the curved price, and a nomination is left off that list.
 
-Done when: after a few mock sales, kept and sold players are gone, a punted specialist is off the target list and can appear as a nomination, and the suggestion text names the category.
+Done when: with no punt the nomination order is TZ above TC, a punt switches that curved price to PC, a deep green category brings green players in that category first, a nomination is absent from the targets, and a roster with no players still shows both lists with the category blank.
+
+Status: on the screen.
 
 ### Task 10 — Category summary
 
-This is the next task. The rules are in section 5. A two-row table replaces the budget line and sits above the category switches. The league row is every sold player. The user's row is the user's players. Both rows show money left, money spent, spots left, spots taken, then each active category as an average, colored by the average plain z.
+The rules are in section 5. A two-row table replaces the budget line and sits above the category switches. The league row is every sold player. The user's row is the user's players. Both rows show money left, money spent, spots left, spots taken, then each active category as an average, colored by the average plain z.
 
 Done when: the user's blocks cell reads stronger than the league's and the user's points cell reads behind it on the current keepers, another team's purchase moves only the league row, a punt leaves this table unchanged, and a row with no players leaves the category cells blank while money and spots still show.
 
-Status: on the screen.
+Status: done. The user checked the summary and merged.
 
 ### Task 11 — Inflation
 
