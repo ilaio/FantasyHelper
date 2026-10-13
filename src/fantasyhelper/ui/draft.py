@@ -115,6 +115,16 @@ def _player_key(league_id: int) -> str:
     return f"draft-player-{league_id}"
 
 
+def checked_row(ids: Sequence[int], player_id: int | None) -> list[int]:
+    """The row of the open player, or no row when that player is not in the list."""
+    if player_id is None:
+        return []
+    try:
+        return [ids.index(player_id)]
+    except ValueError:
+        return []
+
+
 def _search(league_id: int, rows: tuple[PriceRow, ...]) -> None:
     ordered = tuple(sorted(rows, key=lambda row: (row.name.casefold(), row.name)))
     ids = [row.player_id for row in ordered]
@@ -318,9 +328,11 @@ def _available(
 ) -> None:
     st.subheader("Still available")
     if error:
+        _drop_list_check(f"draft-available-{league_id}")
         st.error(error)
         return
     if not rows:
+        _drop_list_check(f"draft-available-{league_id}")
         st.write("No players are still available.")
         return
     _selectable_prices(league_id, "draft-available", rows, active, punted)
@@ -340,10 +352,12 @@ def _taken(
     st.subheader(title)
     chosen = tuple(sale for sale in sales if sale.side == side)
     if not chosen:
+        _drop_list_check(f"{key_name}-{league_id}")
         st.write("No players yet.")
         return
     ids = tuple(sale.player_id for sale in chosen)
     st.session_state[f"{key_name}-ids-{league_id}"] = ids
+    _sync_list_check(f"{key_name}-{league_id}", ids, st.session_state.get(_player_key(league_id)))
     show_roster_table(
         chosen,
         rows_by_id,
@@ -364,6 +378,7 @@ def _selectable_prices(
 ) -> None:
     ids = tuple(row.player_id for row in rows)
     st.session_state[f"{key_name}-ids-{league_id}"] = ids
+    _sync_list_check(f"{key_name}-{league_id}", ids, st.session_state.get(_player_key(league_id)))
     show_price_table(
         rows,
         active,
@@ -383,8 +398,10 @@ def _open_row(table_key: str, ids_key: str, player_key: str) -> Callable[[], Non
         ids: Sequence[int] = st.session_state.get(ids_key) or ()
         if state is None or not ids:
             return
-        picked = state.selection.rows
+        picked = _selected_rows(state)
         if not picked:
+            if st.session_state.get(player_key) in ids:
+                st.session_state.pop(player_key, None)
             return
         index = picked[0]
         if index < 0 or index >= len(ids):
@@ -392,6 +409,28 @@ def _open_row(table_key: str, ids_key: str, player_key: str) -> Callable[[], Non
         st.session_state[player_key] = ids[index]
 
     return _open
+
+
+def _sync_list_check(table_key: str, ids: Sequence[int], player_id: int | None) -> None:
+    """Keep this list's check on the open player, and clear it otherwise."""
+    wanted = checked_row(ids, player_id)
+    if _selected_rows(st.session_state.get(table_key)) == wanted:
+        return
+    st.session_state[table_key] = {
+        "selection": {"rows": wanted, "columns": [], "cells": []},
+    }
+
+
+def _drop_list_check(table_key: str) -> None:
+    st.session_state.pop(table_key, None)
+
+
+def _selected_rows(state: object) -> list[int]:
+    if state is None:
+        return []
+    selection = state["selection"] if isinstance(state, dict) else state.selection
+    rows = selection["rows"] if isinstance(selection, dict) else selection.rows
+    return list(rows)
 
 
 def _clear_list_selection(league_id: int) -> None:
