@@ -1,11 +1,11 @@
-"""Home screen: the open league, the price table, then the imported player tables."""
+"""Home screen: the open league, then Players and Draft."""
 
 import streamlit as st
 
 from fantasyhelper.stats.inbox import ImportReport, import_inbox
 from fantasyhelper.stats.store import Dataset, list_datasets, load_player_rows
+from fantasyhelper.ui.draft import render_draft
 from fantasyhelper.ui.league import render_league
-from fantasyhelper.ui.prices import render_prices
 
 _SOURCE_LABELS = {
     "bonus": "Bonus",
@@ -69,6 +69,9 @@ _RATE_LABELS = (
 
 _LAYOUT = """
 <style>
+header[data-testid="stHeader"] {
+    display: none;
+}
 [data-testid="stMainBlockContainer"],
 .block-container {
     max-width: 100%;
@@ -76,22 +79,128 @@ _LAYOUT = """
     padding-left: 1.25rem;
     padding-right: 1.25rem;
 }
-.league-name {
-    font-size: 1.4rem;
+[data-testid="stMarkdownContainer"]:has(.league-name) {
+    font-size: 2.5rem;
+    margin-bottom: 0;
+    width: auto;
+}
+[data-testid="stMarkdownContainer"] .league-name {
+    font-size: 1em;
     font-weight: 600;
-    line-height: 1.3;
+    line-height: 1.15;
     margin: 0;
     color: #000000;
 }
-.league-details {
-    font-size: 0.85rem;
+[data-testid="stMarkdownContainer"]:has(.league-details),
+[data-testid="stMarkdownContainer"]:has(.draft-figure) {
+    margin-bottom: 0;
+    width: auto;
+}
+[data-testid="stMarkdownContainer"] .league-details {
+    font-size: 0.95rem;
     line-height: 1.4;
-    margin: 0.2rem 0 0;
-    color: #000000;
+    margin: 0;
+    padding-bottom: 3px;
+    width: fit-content;
+    color: #8A8A8A;
+}
+[data-testid="stHorizontalBlock"]:has(.league-name) {
+    width: 100%;
+    align-items: center;
+}
+[data-testid="stHorizontalBlock"]:has(.league-name) > div {
+    width: auto;
+    flex: 0 0 auto;
+}
+[data-testid="stHorizontalBlock"]:has(.league-name) > div:last-child {
+    margin-left: auto;
+}
+[data-testid="stHorizontalBlock"]:has(.league-name):has(.league-details) > div:nth-child(2) {
+    align-self: flex-end;
+}
+[data-testid="stHorizontalBlock"]:has(.draft-figure) {
+    width: fit-content;
+    align-items: center;
+}
+[data-testid="stHorizontalBlock"]:has(.sale-price) > div:last-child {
+    margin-left: 0.75rem;
+}
+[data-testid="stHorizontalBlock"]:has(.draft-figure) > div {
+    width: auto;
+    flex: 0 0 auto;
+}
+[data-testid="stHorizontalBlock"]:has(.search-player) > div:has([data-testid="stSelectbox"]) {
+    width: 50ch;
+    flex: 0 0 50ch;
+}
+button[data-testid="stPopoverButton"] {
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid #D4D4D4;
+    background-color: #F7F7F7;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+button[data-testid="stPopoverButton"]:hover {
+    background-color: #D9D9D9;
+}
+button[data-testid="stPopoverButton"] > div {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+[data-testid="stPopoverButton"] [data-testid="stIconMaterial"] {
+    font-size: 1.35rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translateX(-2px);
+}
+[data-testid="stPopoverButton"] > div > div:last-child {
+    display: none;
 }
 div[data-testid="stCaptionContainer"] p {
     font-size: 0.8rem;
     color: #767676;
+}
+[data-testid="stMarkdownContainer"] .draft-figure {
+    font-size: 1rem;
+    line-height: 1.15;
+    margin: 0;
+    color: #000000;
+    white-space: nowrap;
+}
+[data-testid="stMarkdownContainer"] .draft-figure strong {
+    font-weight: 700;
+}
+div[data-testid="stTabs"] [data-testid="stTab"] {
+    flex: 1 1 0;
+    justify-content: center;
+    border-radius: 0.6rem 0.6rem 0 0;
+    background-color: transparent;
+    color: #000000;
+}
+div[data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"] {
+    background-color: #F4F4F4;
+    color: #000000;
+    border: 1px solid #D4D4D4;
+    z-index: 1;
+}
+div[data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"] p {
+    font-weight: 600;
+    color: #000000;
+}
+div[data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"] .react-aria-SelectionIndicator {
+    display: none;
 }
 </style>
 """
@@ -100,16 +209,19 @@ div[data-testid="stCaptionContainer"] p {
 def render() -> None:
     st.set_page_config(page_title="FantasyHelper", layout="wide")
     st.markdown(_LAYOUT, unsafe_allow_html=True)
-    st.title("FantasyHelper")
     league = render_league()
     report = import_inbox()
-    if league is not None:
-        render_prices(league)
-    _render_datasets(report)
+    players, draft = st.tabs(["Players", "Draft"], key="main-tab")
+    with players:
+        _render_datasets(report)
+    with draft:
+        if league is None:
+            st.write("No league is loaded yet.")
+        else:
+            render_draft(league)
 
 
 def _render_datasets(report: ImportReport) -> None:
-    st.subheader("Players")
     if report.imported:
         st.success("  \n".join(report.imported))
     for message in report.refused:

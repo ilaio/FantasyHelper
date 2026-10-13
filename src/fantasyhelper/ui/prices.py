@@ -5,10 +5,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from fantasyhelper.leagues.league import League
-from fantasyhelper.stats.store import load_baseline_rows
-from fantasyhelper.valuation.prices import PriceRow, apply_punt, build_price_table
-from fantasyhelper.valuation.projection import lines_from_rows
+from fantasyhelper.valuation.prices import DRAFT, KEEPER, PriceRow, Sale
 
 # Plain z bands. A value on the edge takes the higher band.
 _DEEP_GREEN = "background-color: #8FCB9B"
@@ -18,24 +15,59 @@ _LIGHT_RED = "background-color: #FDECEC"
 _RED = "background-color: #F6C9C4"
 _DEEP_RED = "background-color: #E89B96"
 _YELLOW = "background-color: #F8E7A0"
+# Punted cells keep the band, washed halfway toward the page background, with gray text.
+_FADED_TEXT = "color: #8A8A8A"
+_FADED_BANDS = {
+    _DEEP_GREEN: "background-color: #BCDAC2; color: #8A8A8A",
+    _GREEN: "background-color: #D7E7DB; color: #8A8A8A",
+    _LIGHT_GREEN: "background-color: #E8EFEA; color: #8A8A8A",
+    _LIGHT_RED: "background-color: #F2EAEA; color: #8A8A8A",
+    _RED: "background-color: #EFD8D6; color: #8A8A8A",
+    _DEEP_RED: "background-color: #E8C2BF; color: #8A8A8A",
+}
 
 # Display order. A category the league turned off is omitted.
 _STAT_COLUMNS = (
     ("fg_pct", "FG% / FGA"),
     ("ft_pct", "FT% / FTA"),
-    ("threes", "Threes"),
-    ("pts", "Points"),
-    ("reb", "Rebounds"),
-    ("ast", "Assists"),
-    ("stl", "Steals"),
-    ("blk", "Blocks"),
-    ("to", "Turnovers"),
+    ("threes", "3pt"),
+    ("pts", "Pts"),
+    ("reb", "Reb"),
+    ("ast", "Ast"),
+    ("stl", "Stl"),
+    ("blk", "Blk"),
+    ("to", "Tov"),
 )
-_IDENTITY = ("Name", "Z Rank", "Z Price", "C Rank", "C Price")
-_PERSONAL = ("My Z Rank", "My Z Price", "My C Rank", "My C Price")
+_IDENTITY = ("Name", "TZ Rank", "TZ Price", "TC Rank", "TC Price")
+_PERSONAL = ("PZ Rank", "PZ Price", "PC Rank", "PC Price")
 _USAGE = ("Games", "Minutes")
-_TOTALS = ("Z Score", "C Score")
-_PUNT_MARK = " (punt)"
+_PUNT_MARK = " (p)"
+_NAME_WIDTH = 170
+_RANK_WIDTH = 65
+_PRICE_WIDTH = 65
+_GAMES_WIDTH = 60
+_MINUTES_WIDTH = 60
+_SHOT_WIDTH = 100
+_THREES_WIDTH = 100
+_POINTS_WIDTH = 100
+_REBOUNDS_WIDTH = 100
+_ASSISTS_WIDTH = 100
+_STEALS_WIDTH = 100
+_BLOCKS_WIDTH = 100
+_TURNOVERS_WIDTH = 100
+_SALE_WIDTH = 80
+_RANK_HEADERS = frozenset({"TZ Rank", "TC Rank", "PZ Rank", "PC Rank"})
+_PRICE_HEADERS = frozenset({"TZ Price", "TC Price", "PZ Price", "PC Price", "Price"})
+_SALE_LABELS = {DRAFT: "Draft", KEEPER: "Keeper"}
+_CATEGORY_WIDTHS = {
+    "3pt": _THREES_WIDTH,
+    "Pts": _POINTS_WIDTH,
+    "Reb": _REBOUNDS_WIDTH,
+    "Ast": _ASSISTS_WIDTH,
+    "Stl": _STEALS_WIDTH,
+    "Blk": _BLOCKS_WIDTH,
+    "Tov": _TURNOVERS_WIDTH,
+}
 _GAMES_MARK = 60
 _MINUTES_MARK = 25
 _PUNT_LIMIT = 2
@@ -52,44 +84,72 @@ _SWITCH_LABELS = {
 }
 
 
-def render_prices(league: League) -> None:
-    st.subheader("Prices")
-    settings = league.settings
-    players, seasons, projections = load_baseline_rows()
-    table = build_price_table(
-        lines_from_rows(players, seasons, projections),
-        settings.categories,
-        settings.team_count,
-        settings.budget,
-        settings.roster_size,
-    )
-    if table.error:
-        st.error(table.error)
-        return
-    if not table.rows:
-        st.write("No players are in the projection yet.")
-        return
-    st.caption(
-        "Ranks and scores use every projected player. "
-        "Extra money above $1 goes to the top 10 players per team. "
-        "The rest of that rank's roster group stays at $1, and a player outside it costs $0. "
-        "Green is above the average and red is below it. "
-        "Games under 60 and minutes under 25 are yellow."
-    )
-    punted = _selected_punts(league.id, settings.categories)
-    rows = apply_punt(
-        table.rows,
-        punted,
-        settings.team_count,
-        settings.budget,
-        settings.roster_size,
-    )
-    frame = _frame(rows, settings.categories, punted)
+def show_price_table(
+    rows: tuple[PriceRow, ...],
+    active: frozenset[str],
+    punted: frozenset[str],
+    *,
+    selection_key: str | None = None,
+    on_select=None,
+    height: int | str = "auto",
+) -> None:
+    """Draw the price table. No rows draws one blank row in the same columns."""
+    columns = table_columns(active, punted)
+    if rows:
+        frame = _frame(rows, active, punted)
+        data = _styled(frame, rows, active, punted)
+    else:
+        data = pd.DataFrame([{name: "" for name in columns}])
+    kwargs = {}
+    if selection_key is not None:
+        kwargs["key"] = selection_key
+        kwargs["on_select"] = on_select
+        kwargs["selection_mode"] = "single-row"
     st.dataframe(
-        _styled(frame, rows, settings.categories, punted),
+        data,
         hide_index=True,
         width="content",
-        column_config={name: _column_config(name) for name in frame.columns},
+        height=height,
+        column_config={name: _column_config(name) for name in columns},
+        placeholder="",
+        **kwargs,
+    )
+
+
+def show_roster_table(
+    sales: tuple[Sale, ...],
+    rows_by_id: dict[int, PriceRow],
+    names: dict[int, str],
+    active: frozenset[str],
+    punted: frozenset[str],
+    *,
+    selection_key: str,
+    on_select,
+) -> None:
+    """Your players or other teams: the paid price, the sale, and the colored projection."""
+    columns = roster_columns(active, punted)
+    records = []
+    colors = []
+    for sale in sales:
+        row = rows_by_id.get(sale.player_id)
+        name = row.name if row is not None else names.get(sale.player_id, "Unknown player")
+        records.append(
+            [name, sale.price, _SALE_LABELS[sale.sale_type], *_projection_values(row, active)]
+        )
+        if row is None:
+            colors.append([""] * len(columns))
+        else:
+            colors.append(_row_colors(row, active, punted, columns))
+    frame = pd.DataFrame(records, columns=columns)
+    st.dataframe(
+        _apply_style(frame, colors),
+        hide_index=True,
+        width="content",
+        column_config={name: _column_config(name) for name in columns},
+        placeholder="",
+        key=selection_key,
+        on_select=on_select,
+        selection_mode="single-row",
     )
 
 
@@ -125,7 +185,7 @@ def column_alignment(name: str) -> str:
 
 def price_format(name: str) -> str | None:
     """Price columns show a dollar sign. The value stays a whole number."""
-    if name in ("Z Price", "C Price", "My Z Price", "My C Price"):
+    if name in _PRICE_HEADERS:
         return "$%d"
     return None
 
@@ -154,24 +214,51 @@ def column_label(label: str, punted: bool) -> str:
 
 
 def _column_config(name: str) -> dict:
+    width = _column_width(name)
     number_format = price_format(name)
     if number_format is not None:
         return st.column_config.NumberColumn(
             alignment=column_alignment(name),
             format=number_format,
+            width=width,
         )
-    return st.column_config.Column(alignment=column_alignment(name))
+    return st.column_config.Column(alignment=column_alignment(name), width=width)
+
+
+def _column_width(name: str) -> int:
+    """Each group has its own width so one column can change without the others."""
+    base = name.removesuffix(_PUNT_MARK)
+    if base == "Name":
+        return _NAME_WIDTH
+    if base in _RANK_HEADERS:
+        return _RANK_WIDTH
+    if base in _PRICE_HEADERS:
+        return _PRICE_WIDTH
+    if base == "Games":
+        return _GAMES_WIDTH
+    if base == "Minutes":
+        return _MINUTES_WIDTH
+    if base == "Sale":
+        return _SALE_WIDTH
+    if base in ("FG% / FGA", "FT% / FTA"):
+        return _SHOT_WIDTH
+    return _CATEGORY_WIDTHS[base]
 
 
 def table_columns(active: frozenset[str], punted: frozenset[str] = frozenset()) -> list[str]:
-    lead = list(_IDENTITY)
-    if punted:
-        lead.extend(_PERSONAL)
-    lead.extend(_USAGE)
+    lead = [*_IDENTITY, *_PERSONAL, *_USAGE]
     stats = [
         column_label(label, key in punted) for key, label in _STAT_COLUMNS if key in active
     ]
-    return [*lead, *stats, *_TOTALS]
+    return [*lead, *stats]
+
+
+def roster_columns(active: frozenset[str], punted: frozenset[str] = frozenset()) -> list[str]:
+    """Taken lists keep the paid price and the sale, then the same projection columns."""
+    stats = [
+        column_label(label, key in punted) for key, label in _STAT_COLUMNS if key in active
+    ]
+    return ["Name", "Price", "Sale", *_USAGE, *stats]
 
 
 def _switch_key(league_id: int, category: str) -> str:
@@ -197,8 +284,19 @@ def _guard_category_switch(
     st.session_state[message_key] = message
 
 
-def _selected_punts(league_id: int, active: frozenset[str]) -> frozenset[str]:
-    options = [(key, _SWITCH_LABELS[key]) for key, _label in _STAT_COLUMNS if key in active]
+def current_punts(league_id: int, active: frozenset[str]) -> frozenset[str]:
+    """Categories switched off. A missing switch counts as on."""
+    keys = _active_switch_keys(active)
+    if punt_limit(len(keys)) == 0:
+        return frozenset()
+    return frozenset(
+        key for key in keys if st.session_state.get(_switch_key(league_id, key)) is False
+    )
+
+
+def punt_switches(league_id: int, active: frozenset[str]) -> frozenset[str]:
+    """Draw the category switches and return the categories that are off."""
+    options = [(key, _SWITCH_LABELS[key]) for key in _active_switch_keys(active)]
     if punt_limit(len(options)) == 0:
         return frozenset()
     active_keys = tuple(key for key, _label in options)
@@ -218,9 +316,11 @@ def _selected_punts(league_id: int, active: frozenset[str]) -> frozenset[str]:
     message = st.session_state.get(message_key, "")
     if message:
         st.caption(message)
-    return frozenset(
-        key for key in active_keys if st.session_state.get(_switch_key(league_id, key)) is False
-    )
+    return current_punts(league_id, active)
+
+
+def _active_switch_keys(active: frozenset[str]) -> tuple[str, ...]:
+    return tuple(key for key, _label in _STAT_COLUMNS if key in active)
 
 
 def _frame(
@@ -229,27 +329,30 @@ def _frame(
     punted: frozenset[str],
 ) -> pd.DataFrame:
     columns = table_columns(active, punted)
-    return pd.DataFrame([_values(row, active, punted) for row in rows], columns=columns)
+    return pd.DataFrame([_values(row, active) for row in rows], columns=columns)
 
 
-def _values(row: PriceRow, active: frozenset[str], punted: frozenset[str]) -> list[object]:
+def _values(row: PriceRow, active: frozenset[str]) -> list[object]:
     values: list[object] = [
         row.name,
         row.plain_rank,
         row.plain_price,
         row.curved_rank,
         row.curved_price,
+        _empty(row.personal_plain_rank),
+        _empty(row.personal_plain_price),
+        _empty(row.personal_curved_rank),
+        _empty(row.personal_curved_price),
+        *_projection_values(row, active),
     ]
-    if punted:
-        values.extend(
-            (
-                row.personal_plain_rank,
-                row.personal_plain_price,
-                row.personal_curved_rank,
-                row.personal_curved_price,
-            )
-        )
-    values.extend((row.games, row.minutes_per_game))
+    return values
+
+
+def _projection_values(row: PriceRow | None, active: frozenset[str]) -> list[object]:
+    """Games, minutes, and each active category. A missing projection stays blank."""
+    if row is None:
+        return [""] * (len(_USAGE) + sum(1 for key, _label in _STAT_COLUMNS if key in active))
+    values: list[object] = [row.games, row.minutes_per_game]
     for key, _label in _STAT_COLUMNS:
         if key not in active:
             continue
@@ -259,18 +362,24 @@ def _values(row: PriceRow, active: frozenset[str], punted: frozenset[str]) -> li
             values.append(shot_text(row.ft_pct, row.fta_per_game))
         else:
             values.append(row.counting[key])
-    values.extend((row.plain_score, row.curved_score))
     return values
 
 
+def _empty(value: object) -> object:
+    """A missing number stays blank. A real zero stays zero."""
+    if value is None:
+        return ""
+    return value
+
+
 _RATE_FORMATS = {
-    "Threes": "{:.1f}",
-    "Points": "{:.1f}",
-    "Rebounds": "{:.1f}",
-    "Assists": "{:.1f}",
-    "Steals": "{:.2f}",
-    "Blocks": "{:.2f}",
-    "Turnovers": "{:.1f}",
+    "3pt": "{:.1f}",
+    "Pts": "{:.1f}",
+    "Reb": "{:.1f}",
+    "Ast": "{:.1f}",
+    "Stl": "{:.2f}",
+    "Blk": "{:.2f}",
+    "Tov": "{:.1f}",
 }
 
 
@@ -282,6 +391,14 @@ def _styled(
 ) -> pd.io.formats.style.Styler:
     columns = list(frame.columns)
     colors = [_row_colors(row, active, punted, columns) for row in rows]
+    return _apply_style(frame, colors)
+
+
+def _apply_style(
+    frame: pd.DataFrame,
+    colors: list[list[str]],
+) -> pd.io.formats.style.Styler:
+    columns = list(frame.columns)
 
     def paint(_frame: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame(colors, index=_frame.index, columns=_frame.columns)
@@ -289,8 +406,6 @@ def _styled(
     number_formats = {
         "Games": "{:.1f}",
         "Minutes": "{:.1f}",
-        "Z Score": "{:.2f}",
-        "C Score": "{:.2f}",
     }
     for column in columns:
         base = column.removesuffix(_PUNT_MARK)
@@ -314,7 +429,10 @@ def _row_colors(
     for key, label in _STAT_COLUMNS:
         if key not in active:
             continue
+        name = column_label(label, key in punted)
         z = row.plain_categories[key]
         if z is not None:
-            colors[column_label(label, key in punted)] = strength_color(z)
+            colors[name] = strength_color(z)
+        if key in punted:
+            colors[name] = _FADED_BANDS.get(colors[name], _FADED_TEXT)
     return [colors[column] for column in columns]

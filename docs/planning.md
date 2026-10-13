@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: Task 6 adds the punt control on the price table. A punt is not saved. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 7 is on the screen: three Draft lists and the player view. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -117,13 +117,11 @@ Names can change when we create the schema. The contents should not grow beyond 
 
 **status_flags** — not created in Task 2. Inbox files have no injury column.
 
-**leagues** — many rows. `name` unique among active leagues, `season` (`2026-27`), `team_count`, `budget`, `roster_size`, one flag per scoring category, and `status` (`active` or `deleted`). The chooser loads active rows. Which league is open, and which dataset is showing, last until the browser page is refreshed or the app stops. A browser refresh or a new visit starts on the first active league and the first dataset. A punt is not stored on the league. Removing a league sets `status` to `deleted`. Its keepers and sales stay.
+**leagues** — many rows. `name` unique among active leagues, `season` (`2026-27`), `team_count`, `budget`, `roster_size`, one flag per scoring category, and `status` (`active` or `deleted`). The chooser loads active rows. Which league is open, and which dataset is showing, last until the browser page is refreshed or the app stops. A browser refresh or a new visit starts on the first active league and the first dataset. A punt is not stored on the league. Removing a league sets `status` to `deleted`. Its sales stay.
 
-**keepers** — belong to one league (`league_id`). Player, price or null, `mine` or `other`. They stay when the league is hidden.
+**sales** — one row per player in a league. `league_id`, `player_id`, `side` (`mine` or `other`), `price` (whole dollars, at least $1), `sale_type` (`keeper` or `draft`). A keeper is a sale entered before the draft. The mark does not change the math. A player appears once. Rows stay when the league is hidden.
 
-**sales** — belong to one league (`league_id`). Ordered list: player, price, `mine` or `other`, time. Undo deletes the last row. They stay when the league is hidden.
-
-Derived facts are calculated, not stored: our projection, z-scores, prices, dollars left, spots left, max bid, inflation, category balance. Storing them would create a second source of truth that can drift from the inputs.
+Derived facts are calculated, not stored: our projection, z-scores, prices, dollars left, spots left, max bid, category balance. Storing them would create a second source of truth that can drift from the inputs.
 
 ## 4. Valuation approach
 
@@ -196,7 +194,7 @@ Dollars left by rounding go one each to the highest ranks of the paid group, sta
 
 ### Price table
 
-One table, sorted by the plain rank. The columns are Name, Z Rank, Z Price, C Rank, C Price, Games, Minutes, then the active categories, then Z Score and C Score. Z is the plain total and C is the curved total. Names stay on the left. Every other value is centered. Z Price and C Price show a dollar sign in front of the whole-dollar amount. Each column is as wide as its own header or values, and the table stops there. The category order is FG% with FGA, FT% with FTA, threes, points, rebounds, assists, steals, blocks, and turnovers. A category the league has turned off is omitted. Turning off FG% also omits FGA, and turning off FT% also omits FTA.
+One table, sorted by the plain rank. The columns are Name, TZ Rank, TZ Price, TC Rank, TC Price, PZ Rank, PZ Price, PC Rank, PC Price, Games, Minutes, then the active categories. TZ is the plain total and TC is the curved total. PZ and PC are the personal rank and price. Those four columns stay on the table when nothing is punted, and their cells are empty. A missing price stays blank. Names stay on the left. Every other value is centered. The price columns show a dollar sign in front of the whole-dollar amount. Name is 170 pixels wide. Rank columns and price columns are 65. Games and minutes are 60. FG% / FGA, FT% / FTA, and each counting category are 100. The table stops at those widths. The category order is FG% with FGA, FT% with FTA, 3pt, Pts, Reb, Ast, Stl, Blk, and Tov. A category the league has turned off is omitted. Turning off FG% also omits FGA, and turning off FT% also omits FTA. The score totals stay in the calculation and are not shown.
 
 FG% and FT% share a cell with their attempts. A blank percentage stays blank, and the attempts stay. The cell is colored from the plain category z, which already treats fewer turnovers as the good direction. A value on the edge takes the higher band: 2 and above is deep green, 1 to 2 is green, 0 to 1 is light green, −0.75 to 0 is light red, −1.5 to −0.75 is red, and below −1.5 is deep red. Games under 60 and minutes under 25 are yellow. 60 and 25 are not.
 
@@ -206,29 +204,31 @@ Positions are not on the table.
 
 A punt is not saved. It lasts until the browser page is refreshed or the app stops.
 
-One line above the price table lists each category the league has turned on, with a switch. A switch starts on. Turning it off punts that category. A third off switch is refused. Turning the last switch off is refused.
+One line under the budget and above the player search lists each category the league has turned on, with a switch. A switch starts on. Turning it off punts that category. A third off switch is refused. Turning the last switch off is refused.
 
-With every switch on, the table is unchanged.
+With every switch on, the base columns stay as they are. The personal rank and price columns are empty.
 
-With a punt, four columns follow C Price: My Z Rank, My Z Price, My C Rank, and My C Price. The table sorts by My Z Rank. Z Rank, Z Price, C Rank, C Price, Z Score, and C Score stay the base numbers. The personal numbers use the same price rule, with the punted categories left out of both totals. Category z-scores are not recomputed. The colored projection stays, including a punted category, and that column's header is marked as a punt.
+PZ Rank, PZ Price, PC Rank, and PC Price follow TC Price. They stay on the table when nothing is punted, and those cells are empty. With a punt, the table sorts by PZ Rank. TZ Rank, TZ Price, TC Rank, and TC Price stay the base numbers. The personal numbers use the same price rule, with the punted categories left out of both totals. Category z-scores are not recomputed. The colored projection stays, including a punted category. That column's header is marked `(p)`, and its cells use gray text and a paler color band.
 
-### Inflation (Task 13)
+### Auction reprice
 
-`factor = dollars still unspent in the whole league / sum of model prices of players still available`
+Sold players leave the price list. Their spots are no longer for sale, and their prices come out of the league pot, `teams × budget`. Category z-scores stay as they are. The same price rule then runs on the players still available, with the spots and money that are left. A punt uses that same remaining pot and those same remaining spots, with the punted categories left out of both totals.
 
-`adjusted price = model price × factor`
+The remaining prices add up to the money still in the league. A separate inflation factor would be 1 after this reprice, so that factor is not used.
 
-The user’s own remaining budget does not replace this factor. Inflation describes the room. The max bid still caps what this user can pay.
+A sale is refused when the player is already sold, the price is under $1, the user's price is above the user's max bid, another team's price is above that team's budget, the user's roster or the league roster is already full, or the sale would leave the league short of $1 for every open spot. The row does not name which other team bought the player, so that team's own max bid is not computed.
 
 ## 5. Draft calculations
 
-**Money spent** — sum of the user’s keeper prices and the user’s purchases.
+**League money spent** — sum of every sale price. **League money left** — `teams × budget` minus that sum.
 
-**Money left** — budget − money spent.
+**League spots taken** — the number of sales. **League spots left** — `teams × roster size` minus that number.
 
-**Spots left** — roster size − user’s keepers − user’s purchases.
+**Your money spent** — sum of your sale prices. **Your money left** — budget minus that sum.
 
-**Max bid** — money left − $1 × (spots left − 1), and never below $1 while a spot remains. When one spot remains, max bid equals money left.
+**Your spots taken** — the number of your sales. **Your spots left** — roster size minus that number.
+
+**Max bid** — your money left minus $1 for each of your spots that would still be open after this buy. When one of your spots remains, the max bid is your money left. When you have no spot left, there is no max bid. The number is the same for every player still available.
 
 **Category balance** — sum of per-game z-scores, by category, for the user’s keepers and purchases only. Punted categories are marked `punt`. Other categories are `strong` or `thin` by a simple threshold set in Task 12 (starting idea: above +0.5 combined z is strong, below −0.5 is thin, otherwise neutral). The threshold is written back here after we look at a real roster.
 
@@ -301,13 +301,13 @@ Status: deferred.
 Agreed source and scope:
 
 - Many leagues. Create, edit, and remove them. One league is open during a visit. Choosing a league or a dataset holds until the browser page is refreshed or the app stops. A browser refresh or a new visit starts on the first active league and the first dataset.
-- The open league is a compact header: the name, then the other settings in small type separated by " - ". Edit and create open a form over the screen. Remove asks in a confirmation over the screen. Switch league is a select. The form is not on the page otherwise.
+- The open league is the page heading. The name is on the left, the other settings sit beside it in lighter type, separated by " - ", and a round ⋮ button is on the right. Edit and create open a form over the screen. Remove asks in a confirmation over the screen. The form is not on the page otherwise.
 - Each league stores a name, season, teams, budget, roster size, and which of the 9 categories are on. The name is unique among active leagues. A new league starts as `My league`, `2026-27`, 12 teams, $200, 13 spots, and all 9 categories.
 - Season is the season being drafted, in the `YYYY-YY` shape. It does not change the 2025-26 price baseline.
 - Teams are a whole number from 2 to 30. Budget is whole dollars from 1 to 10000. Roster spots are a whole number from 1 to 30. At least one category stays on. A bad entry is refused and is not saved.
 - Punts wait. Saving does not calculate prices.
 - Players and imported files are shared. They are not copied per league.
-- Removing a league asks first. Its status becomes `deleted`, and it leaves the list. Keepers, sales, and punts stay. Removing the open league opens another active league. Removing the last active league returns the screen to “No league is loaded yet.” There is no list of deleted leagues and no undo.
+- Removing a league asks first. Its status becomes `deleted`, and it leaves the list. Sales stay. Punts are not stored. Removing the open league opens another active league. Removing the last active league returns the screen to “No league is loaded yet.” There is no list of deleted leagues and no undo.
 - A second league is how a demo draft is kept. There is no separate demo flag.
 - The player table stays on the screen.
 
@@ -331,21 +331,28 @@ Status: done. The user checked the price table and is merging. The score math us
 
 The punt control is on the price table and is not saved. The rules are in section 4.
 
-Done when: choosing no punt matches the base table, punting one category moves a specialist in that category down My Z Rank, a second punt is allowed, a third is refused, and a punt that would leave no categories is refused.
+Done when: choosing no punt matches the base table, punting one category moves a specialist in that category down PZ Rank, a second punt is allowed, a third is refused, and a punt that would leave no categories is refused.
 
-Status: in the app. The user has not checked it yet.
+Status: done. The user checked the punt switches and merged. A punt is not saved.
 
-### Task 7 — Keepers
+### Task 7 — Sales and the auction
 
-Enter, edit, and remove the user’s keepers (player + price) and other teams’ keepers (player + optional price). Remove them from the available list. Apply the user’s keepers to money, spots, and category totals.
+Keepers and draft sales are one `sales` row. The rules are in sections 4 and 5. The league header stays. Under it, a Players tab keeps the dataset lists, and a Draft tab holds the auction. Four subtasks:
 
-Done when: the user can enter a keeper, see the budget drop by that price and the spots drop by one, restart, and see the same keeper still applied.
+1. Save the rows and reprice the remaining players. No new screen.
+2. Add the tabs. Draft shows your money, your spots, league money, and league spots on one left-aligned line. The leftover dollar amounts and spot counts are bold. The selected tab has a light filled background. The max bid stays on the player view.
+3. Three lists on Draft: still available, yours, and other teams. The punt switches sit under the budget line and above the player search. The repriced list lives here.
+4. One player view, from search or from a row: a price-table row that stays on the page, and one line for team, keeper or draft, price, the max bid, and mark sold, save, or unmark.
+
+Search sits above the lists. "Search player" sits to the left of the select. The player row stays under the search, empty until a player is chosen from the search or from a list. The sale controls sit on one line under that row. Save stays off until a sold player's values change. The lists stay on the page. One player is open at a time. The list that contains that player has the row checked, and the other lists are clear. Choosing a row or a name in the search moves the check. Clearing the check clears the player. Your players and other teams show the name, the price paid, keeper or draft, then Games, Minutes, and each active category. Those cells use the same colors as the price table, including a paler band on a punt. Ranks and scores stay off them. Name, price, games, minutes, and category widths match the price table. Sale is 80 pixels wide.
+
+Done when: a sale is still there after a restart, the remaining prices add up to the money left in the league, a price above the max bid is refused, and unmarking a player puts that player back on the list.
+
+Status: subtasks 3 and 4 are on the screen.
 
 ### Task 8 — Budget and sales
 
-Show spent, remaining, spots, and max bid. Record a sale to the user or to another team. Undo the last sale.
-
-Done when: the user can enter a short sequence of sales, including one of their own, and the max bid matches the formula in section 5. Undo restores the previous numbers. Rows in `sales` match what was entered.
+Folded into Task 7. A keeper is a sale entered before the draft. Unmark or edit replaces a separate undo of only the last sale.
 
 ### Task 9 — Pool filters and nominations
 
@@ -361,9 +368,7 @@ Done when: buying a blocks specialist moves the blocks reading, a punted categor
 
 ### Task 11 — Inflation
 
-Implement the factor in section 4. Show it and the adjusted prices. Keep the unadjusted personal price visible.
-
-Done when: a small example where the room has overspent produces a factor above 1, and the adjusted column moves while the personal price stays put.
+Retired. The auction reprice in section 4 already assigns the money still in the league, so the old inflation factor would be 1.
 
 ### After this list
 

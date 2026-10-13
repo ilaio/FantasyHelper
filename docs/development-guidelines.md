@@ -83,10 +83,10 @@ In particular:
 - Turnovers are reversed so fewer is better.
 - A punt recomputes the total and the dollar scale. It does not subtract from a finished price.
 - Max bid leaves $1 for each spot that remains after the current player. The final spot can use the last dollar.
-- Another team’s purchase changes the pool and inflation. It does not change this team’s category balance.
+- Another team’s purchase changes the pool and the auction prices. It does not change this team’s category balance.
 - Category labels treat a punt as a punt, even when the total is low.
 
-Show both the personal price and, once inflation exists, the adjusted price. Do not replace the personal price silently.
+Show the punt prices beside the base prices. The auction reprice replaces both dollar scales for the players still available. Do not keep a second inflation scale.
 
 ## 8. Interface
 
@@ -102,7 +102,7 @@ Visual design stays plain. The app is light gray with black text, darker gray bo
 
 Add a dependency only when a task needs it. Prefer the standard library, then the tools already chosen: Python, pandas, numpy, SQLite, and Streamlit. Reading the inbox files uses the standard library. Do not add an HTTP client for stats or projections.
 
-Tools for this stage are free, widely used, and under our control. A tool has to let us turn off anything that sends our data or usage data to a third party. Calls that leave the machine wait until a task needs one. Stat and projection files are local, so importing them does not. Streamlit stays the interface. Its usage statistics are off in `.streamlit/config.toml`. Whether a tool could later run outside a local machine is a low-priority preference, checked only when the other requirements are already met.
+Tools for this stage are free, widely used, and under our control. A tool has to let us turn off anything that sends our data or usage data to a third party. Calls that leave the machine wait until a task needs one. Stat and projection files are local, so importing them does not. Streamlit stays the interface. Its usage statistics are off in `.streamlit/config.toml`, and that file also hides the top bar. Whether a tool could later run outside a local machine is a low-priority preference, checked only when the other requirements are already met.
 
 Pin versions in the project dependency file once Task 1 creates it, so the user’s machine and later work install the same stack.
 

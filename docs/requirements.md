@@ -132,19 +132,19 @@ Punting means the user has decided not to compete in one or two categories. Thos
 
 The list is a guide for this build. It is not a prediction of what the room will pay.
 
-### 6.2 Keeper league support
+### 6.2 Keepers and sales
 
-Before the draft, the user records keepers.
+A keeper and a draft sale are the same kind of entry. A keeper is entered before the draft. Both require a whole-dollar price of at least $1.
 
-Their own keepers are already on the roster at a locked price. That price is already spent, that spot is already filled, and that player’s category production already counts toward the team. The player is not in the bidding pool and is not nominated.
+The entry records the player, the user's team or another team, the price, and keeper or draft. One player is sold once in a league. The keeper or draft mark does not change the price.
 
-Other teams’ keepers are off the board. They leave the pool so the assistant does not recommend them. A price can be entered when the user knows it, because money already spent in the room matters for inflation. If the price is unknown, the player is still removed from the pool.
+The player leaves the available list. That spot is no longer for sale, and the price comes out of the league pot. Category z-scores stay as they are. The same price rule runs again for the players still available, with the spots and money that are left. A punt uses that same remaining pot.
 
-Keepers are entered before values and budget are trusted. Changing a keeper recalculates the remaining budget, the open spots, and the price list.
+The user's price cannot exceed the user's max bid. Another team's price cannot exceed that team's budget. A sale that would leave the league short of $1 for every open spot is refused. Unmarking the player or editing the price recalculates the list. The row does not name which other team bought the player.
 
 ### 6.3 Budget tracker
 
-The tracker shows money spent, money left, and roster spots left.
+The tracker shows four pairs: league money spent and left, league spots taken and left, the user's money spent and left, and the user's spots taken and left. League money starts at teams times the budget. League spots start at teams times the roster size.
 
 The max bid is the most the user can offer for the player currently up for auction and still fill every remaining spot at $1:
 
@@ -152,7 +152,7 @@ The max bid is the most the user can offer for the player currently up for aucti
 
 If one spot is left, the max bid is the entire remainder. This is the working rule. The shorthand “leave a dollar per remaining spot” means a dollar for each spot that still has to be filled after the current bid, not an extra dollar held back from the last spot.
 
-Spent money includes keeper prices. Spots left start from the roster size minus the user’s keepers, then drop as the user buys players.
+Spent money includes every sale. The user's spots left start from the roster size and drop with each of the user's sales.
 
 ### 6.4 Live draft assistant
 
@@ -174,9 +174,7 @@ A punted category is labeled as a punt even if the number is low. A low number i
 
 ### 6.6 Price inflation tracking
 
-Priority: low. Build it after the draft loop works.
-
-Auction prices drift from a model because the room spends faster or slower than the price list. Inflation compares money still in the auction with the model value of players still available, then scales the remaining prices. The user can see the factor and the adjusted prices. Until this exists, the base personal prices are still the list the user drafts from.
+Not used. The auction reprice already makes the remaining prices add up to the money still in the league, so a second scale would be 1.
 
 ## 7. Feature breakdown
 
@@ -198,24 +196,20 @@ Auction prices drift from a model because the room spends faster or slower than 
 
 ### Price list
 
-- One price table sorted by the plain rank. Headers are Name, Z Rank, Z Price, C Rank, C Price, Games, Minutes, each active category, then Z Score and C Score. Z is the plain total and C is the curved total. Names stay on the left. Every other value is centered. Z Price and C Price show a dollar sign in front of the whole-dollar amount. Each column is as wide as its own header or values, and the table stops there. Each category's projection is colored by its plain z. FG% and FT% share a cell with their attempts. Games under 60 and minutes under 25 are marked. Positions are not shown.
-- One line above the table lists each category the league has turned on, with a switch. A switch starts on. Turning it off punts that category. A third off switch is refused. Turning the last switch off is refused. The choice is not saved.
-- With a punt, My Z Rank, My Z Price, My C Rank, and My C Price follow C Price. The table sorts by My Z Rank. The base ranks, prices, and score totals stay. The punted category stays on the table and its header is marked.
-- Exclude kept and drafted players from the available list.
+- One price table sorted by the plain rank. Headers are Name, TZ Rank, TZ Price, TC Rank, TC Price, PZ Rank, PZ Price, PC Rank, PC Price, Games, Minutes, then each active category. TZ is the plain total and TC is the curved total. PZ and PC are the personal rank and price. Those four columns stay on the table when nothing is punted, and their cells are empty. A missing price stays blank. Names stay on the left. Every other value is centered. The price columns show a dollar sign in front of the whole-dollar amount. Name is 170 pixels wide. Rank columns and price columns are 65. Games and minutes are 60. FG% / FGA, FT% / FTA, and each counting category are 100. The table stops at those widths. Each category's projection is colored by its plain z. FG% and FT% share a cell with their attempts. Games under 60 and minutes under 25 are marked. Positions are not shown. The score totals stay in the calculation and are not shown.
+- One line under the budget and above the player search lists each category the league has turned on, with a switch. A switch starts on. Turning it off punts that category. A third off switch is refused. Turning the last switch off is refused. The choice is not saved.
+- PZ Rank, PZ Price, PC Rank, and PC Price follow TC Price. With a punt, the table sorts by PZ Rank. The base ranks and prices stay. The personal numbers use the same price rule, with the punted categories left out of both totals. With no punt, those four columns stay and their cells are empty. The punted category stays on the table and its header is marked `(p)`. Its cells use gray text and a paler color band. Counting headers are 3pt, Pts, Reb, Ast, Stl, Blk, and Tov.
+- Leave sold players off the list, and reprice the players still available from the spots and money that are left.
 
-### Keepers
+### Draft
 
-- Add and remove the user’s keepers with a locked price.
-- Add and remove other teams’ kept players, with an optional price.
-- Apply those facts to budget, spots, pool, and category balance immediately.
-
-### Draft board
-
-- Record a sale: player, price, my team or another team.
-- Undo the last sale, in case of a mistype.
-- Show spent, remaining, spots left, and max bid at all times during the draft.
-- Filter the remaining pool.
-- Show a short nomination list with a one-line reason tied to the punt.
+- Keep the league header. Under it, a Players tab for the dataset lists and a Draft tab for the auction. The selected tab has a light filled background.
+- On Draft, one left-aligned line shows your money, your spots, league money, and league spots. Each figure is what is left, with spent or taken in parentheses. The leftover dollar amounts and spot counts are bold. The max bid stays on the player view.
+- Three lists: players still available with the repriced amounts, the user's taken players, and other teams' taken players. Your players and other teams show the name, the price paid, keeper or draft, then Games, Minutes, and each active category. Those cells use the same colors as the price table, including a paler band on a punt. Ranks and scores stay off those two lists. Name, price, games, minutes, and category widths match the price table. Sale is 80 pixels wide.
+- Search sits above the lists. "Search player" sits to the left of the select, which is about 50 characters wide. One price-table row stays under the search. With no player chosen, the row is empty. Choosing a player, or a row in a list, fills that row. One player is open at a time. The list that contains that player has the row checked, and the other lists are clear. Choosing a row or a name in the search moves the check. Clearing the check clears the player. The lists stay on the page.
+- Under the row, one line holds the sale. My team or Another team, and Draft or Keeper, are each two buttons with one pressed. Price sits to the left of the amount, and the max bid or team budget sits to the right of it. Mark sold follows that, with a small gap, when the player is not sold. Save and Unmark follow it when the player is sold. Save stays off until team, keeper or draft, or price changes.
+- Mark the player sold as a keeper or a draft sale, on the user's team or another team, with a price. Edit those values or unmark the player.
+- The category switches stay on Draft, under the budget line and above the player search. Category balance and nomination ideas stay later.
 
 ### Category balance
 
@@ -226,9 +220,7 @@ Auction prices drift from a model because the room spends faster or slower than 
 
 ### Inflation
 
-- A single inflation factor from money left versus value left.
-- Adjusted prices for remaining players.
-- Clearly secondary to the personal price. The user can ignore it.
+- Not used. The auction reprice is the price list during the draft.
 
 ## 8. Main flows
 
@@ -255,8 +247,8 @@ Auction prices drift from a model because the room spends faster or slower than 
 
 ### A mistype
 
-1. User undoes the last sale.
-2. The player returns to the pool and the budget returns to the previous numbers.
+1. User edits the price or unmarks the player.
+2. The list and the money match the sales that remain.
 
 ## 9. What “done” means for this stage
 
@@ -268,7 +260,7 @@ A user can, on one machine, with instructions from the README:
 - Enter keepers and see budget and roster effects.
 - Run through a mock or real draft by typing sales.
 - See max bid and category balance change after each of their own buys.
-- Optionally see inflation-adjusted prices.
+- See the repriced list for the players still available.
 
 They cannot manage the season after the draft in this stage. That is a later scope.
 
@@ -286,6 +278,6 @@ These are product decisions, so implementation should follow them unless we chan
 - Position text is stored and shown. The draft does not enforce position eligibility in this stage.
 - Punt means drop that category and recompute, for one or two categories.
 - Max bid reserves $1 for every spot still open after the player being bid on.
-- Other teams’ keepers come off the board even when their price is blank.
-- Inflation is last and optional for the draft to be usable.
+- A keeper and a draft sale are the same row. Both require a price of at least $1.
+- The auction reprice replaces a separate inflation factor.
 - The league host is not integrated. Draft results are manual.

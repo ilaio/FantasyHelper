@@ -1,6 +1,12 @@
 [browser]
 gatherUsageStats = false
 
+[client]
+toolbarMode = "minimal"
+
+[ui]
+hideTopBar = true
+
 [theme]
 base = "light"
 primaryColor = "#8A8A8A"
