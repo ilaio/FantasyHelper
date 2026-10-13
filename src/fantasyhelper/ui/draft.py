@@ -8,7 +8,7 @@ import streamlit as st
 from fantasyhelper.leagues.league import League, LeagueSettings
 from fantasyhelper.leagues.sales import list_sales, record_sale, remove_sale, update_sale
 from fantasyhelper.stats.store import load_baseline_rows
-from fantasyhelper.ui.prices import current_punts, punt_switches, show_price_table, show_roster_table
+from fantasyhelper.ui.prices import punt_switches, show_price_table, show_roster_table
 from fantasyhelper.valuation.prices import (
     DRAFT,
     KEEPER,
@@ -55,10 +55,10 @@ def render_draft(league: League) -> None:
 
     names = {int(player["id"]): str(player["name"]) for player in players}
     by_id = {row.player_id: row for row in table.rows}
+    punted = punt_switches(league.id, settings.categories)
     with st.container(gap="xsmall"):
         _search(league.id, table.rows)
         chosen = st.session_state.get(_player_key(league.id))
-        punted = current_punts(league.id, settings.categories)
         priced = reprice_remaining(
             table.rows,
             sales,
@@ -76,7 +76,6 @@ def render_draft(league: League) -> None:
             sales,
             punted,
         )
-    punt_switches(league.id, settings.categories)
     _available(league.id, priced.error, priced.rows, settings.categories, punted)
     _taken(league.id, "Your players", "draft-yours", sales, MINE, names, by_id, settings.categories, punted)
     _taken(league.id, "Other teams", "draft-others", sales, OTHER, names, by_id, settings.categories, punted)

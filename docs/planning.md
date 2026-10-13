@@ -204,7 +204,7 @@ Positions are not on the table.
 
 A punt is not saved. It lasts until the browser page is refreshed or the app stops.
 
-One line above the price table lists each category the league has turned on, with a switch. A switch starts on. Turning it off punts that category. A third off switch is refused. Turning the last switch off is refused.
+One line under the budget and above the player search lists each category the league has turned on, with a switch. A switch starts on. Turning it off punts that category. A third off switch is refused. Turning the last switch off is refused.
 
 With every switch on, the base columns stay as they are. The personal rank and price columns are empty.
 
@@ -341,7 +341,7 @@ Keepers and draft sales are one `sales` row. The rules are in sections 4 and 5. 
 
 1. Save the rows and reprice the remaining players. No new screen.
 2. Add the tabs. Draft shows your money, your spots, league money, and league spots on one left-aligned line. The leftover dollar amounts and spot counts are bold. The selected tab has a light filled background. The max bid stays on the player view.
-3. Three lists on Draft: still available, yours, and other teams. The punt switches and the repriced list live here.
+3. Three lists on Draft: still available, yours, and other teams. The punt switches sit under the budget line and above the player search. The repriced list lives here.
 4. One player view, from search or from a row: a price-table row that stays on the page, and one line for team, keeper or draft, price, the max bid, and mark sold, save, or unmark.
 
 Search sits above the lists. "Search player" sits to the left of the select. The player row stays under the search, empty until a player is chosen from the search or from a list. The sale controls sit on one line under that row. Save stays off until a sold player's values change. The lists stay on the page. One player is open at a time. The list that contains that player has the row checked, and the other lists are clear. Choosing a row or a name in the search moves the check. Clearing the check clears the player. Your players and other teams show the name, the price paid, keeper or draft, then Games, Minutes, and each active category. Those cells use the same colors as the price table, including a paler band on a punt. Ranks and scores stay off them. Name, price, games, minutes, and category widths match the price table. Sale is 80 pixels wide.

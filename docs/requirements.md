@@ -197,7 +197,7 @@ Not used. The auction reprice already makes the remaining prices add up to the m
 ### Price list
 
 - One price table sorted by the plain rank. Headers are Name, TZ Rank, TZ Price, TC Rank, TC Price, PZ Rank, PZ Price, PC Rank, PC Price, Games, Minutes, then each active category. TZ is the plain total and TC is the curved total. PZ and PC are the personal rank and price. Those four columns stay on the table when nothing is punted, and their cells are empty. A missing price stays blank. Names stay on the left. Every other value is centered. The price columns show a dollar sign in front of the whole-dollar amount. Name is 170 pixels wide. Rank columns and price columns are 65. Games and minutes are 60. FG% / FGA, FT% / FTA, and each counting category are 100. The table stops at those widths. Each category's projection is colored by its plain z. FG% and FT% share a cell with their attempts. Games under 60 and minutes under 25 are marked. Positions are not shown. The score totals stay in the calculation and are not shown.
-- One line above the table lists each category the league has turned on, with a switch. A switch starts on. Turning it off punts that category. A third off switch is refused. Turning the last switch off is refused. The choice is not saved.
+- One line under the budget and above the player search lists each category the league has turned on, with a switch. A switch starts on. Turning it off punts that category. A third off switch is refused. Turning the last switch off is refused. The choice is not saved.
 - PZ Rank, PZ Price, PC Rank, and PC Price follow TC Price. With a punt, the table sorts by PZ Rank. The base ranks and prices stay. The personal numbers use the same price rule, with the punted categories left out of both totals. With no punt, those four columns stay and their cells are empty. The punted category stays on the table and its header is marked `(p)`. Its cells use gray text and a paler color band. Counting headers are 3pt, Pts, Reb, Ast, Stl, Blk, and Tov.
 - Leave sold players off the list, and reprice the players still available from the spots and money that are left.
 
@@ -209,7 +209,7 @@ Not used. The auction reprice already makes the remaining prices add up to the m
 - Search sits above the lists. "Search player" sits to the left of the select, which is about 50 characters wide. One price-table row stays under the search. With no player chosen, the row is empty. Choosing a player, or a row in a list, fills that row. One player is open at a time. The list that contains that player has the row checked, and the other lists are clear. Choosing a row or a name in the search moves the check. Clearing the check clears the player. The lists stay on the page.
 - Under the row, one line holds the sale. My team or Another team, and Draft or Keeper, are each two buttons with one pressed. Price sits to the left of the amount, and the max bid or team budget sits to the right of it. Mark sold follows that, with a small gap, when the player is not sold. Save and Unmark follow it when the player is sold. Save stays off until team, keeper or draft, or price changes.
 - Mark the player sold as a keeper or a draft sale, on the user's team or another team, with a price. Edit those values or unmark the player.
-- The punt switches stay on Draft. Category balance and nomination ideas stay later.
+- The category switches stay on Draft, under the budget line and above the player search. Category balance and nomination ideas stay later.
 
 ### Category balance
 
