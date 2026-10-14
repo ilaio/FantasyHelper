@@ -78,6 +78,7 @@ def render_draft(league: League) -> None:
             punted,
         )
         player_id = chosen if isinstance(chosen, int) else None
+        st.session_state[_shown_key(league.id)] = player_id
         _player_view(
             league,
             player_id,
@@ -129,6 +130,29 @@ def _bid(amount: int | None) -> str:
 
 def _player_key(league_id: int) -> str:
     return f"draft-player-{league_id}"
+
+
+def _shown_key(league_id: int) -> str:
+    return f"draft-player-shown-{league_id}"
+
+
+def search_pick_stands(current: int | None, shown: int | None, *, shown_known: bool) -> bool:
+    """A search choice in this interaction stays. A list click still replaces the open player."""
+    return shown_known and current != shown
+
+
+def open_player_after_check(
+    current: int | None, ids: Sequence[int], picked: Sequence[int]
+) -> int | None:
+    """The player a list check leaves open. Clearing that player's row clears the search."""
+    if not picked:
+        if current in ids:
+            return None
+        return current
+    index = picked[0]
+    if index < 0 or index >= len(ids):
+        return current
+    return ids[index]
 
 
 def checked_row(ids: Sequence[int], player_id: int | None) -> list[int]:
@@ -361,6 +385,7 @@ def _suggestions(
                 f"{key_name}-{league_id}",
                 f"{key_name}-ids-{league_id}",
                 _player_key(league_id),
+                _shown_key(league_id),
             ),
         )
 
@@ -413,7 +438,12 @@ def _taken(
             active,
             punted,
             selection_key=f"{key_name}-{league_id}",
-            on_select=_open_row(f"{key_name}-{league_id}", f"{key_name}-ids-{league_id}", _player_key(league_id)),
+            on_select=_open_row(
+                f"{key_name}-{league_id}",
+                f"{key_name}-ids-{league_id}",
+                _player_key(league_id),
+                _shown_key(league_id),
+            ),
         )
 
 
@@ -436,25 +466,33 @@ def _selectable_prices(
             f"{key_name}-{league_id}",
             f"{key_name}-ids-{league_id}",
             _player_key(league_id),
+            _shown_key(league_id),
         ),
     )
 
 
-def _open_row(table_key: str, ids_key: str, player_key: str) -> Callable[[], None]:
+def _open_row(table_key: str, ids_key: str, player_key: str, shown_key: str) -> Callable[[], None]:
     def _open() -> None:
+        if search_pick_stands(
+            st.session_state.get(player_key),
+            st.session_state.get(shown_key),
+            shown_known=shown_key in st.session_state,
+        ):
+            return
         state = st.session_state.get(table_key)
         ids: Sequence[int] = st.session_state.get(ids_key) or ()
         if state is None or not ids:
             return
         picked = _selected_rows(state)
         if not picked:
-            if st.session_state.get(player_key) in ids:
-                st.session_state.pop(player_key, None)
-            return
-        index = picked[0]
-        if index < 0 or index >= len(ids):
-            return
-        st.session_state[player_key] = ids[index]
+            # An uncheck does not replace the stored selection on its own.
+            st.session_state[table_key] = _selection_state(())
+        current = st.session_state.get(player_key)
+        current_id = current if isinstance(current, int) else None
+        remembered = open_player_after_check(current_id, ids, picked)
+        if remembered != current:
+            # None is stored on purpose. Dropping the key lets the search keep the old player.
+            st.session_state[player_key] = remembered
 
     return _open
 
@@ -464,9 +502,7 @@ def _sync_list_check(table_key: str, ids: Sequence[int], player_id: int | None) 
     wanted = checked_row(ids, player_id)
     if _selected_rows(st.session_state.get(table_key)) == wanted:
         return
-    st.session_state[table_key] = {
-        "selection": {"rows": wanted, "columns": [], "cells": []},
-    }
+    st.session_state[table_key] = _selection_state(wanted)
 
 
 def _drop_list_check(table_key: str) -> None:
@@ -481,6 +517,12 @@ def _selected_rows(state: object) -> list[int]:
     return list(rows)
 
 
+def _selection_state(rows: Sequence[int]) -> dict[str, dict[str, list[int]]]:
+    return {"selection": {"rows": list(rows), "columns": [], "cells": []}}
+
+
 def _clear_list_selection(league_id: int) -> None:
+    """Drop every list check. An empty selection is sent so a removed row cannot stay checked."""
+    empty = _selection_state(())
     for name in ("draft-nominations", "draft-targets", "draft-available", "draft-yours", "draft-others"):
-        st.session_state.pop(f"{name}-{league_id}", None)
+        st.session_state[f"{name}-{league_id}"] = empty
