@@ -80,7 +80,7 @@ Projection columns, in order:
 
 `fg_pct` and `ft_pct` are decimals with three digits after the decimal, so `0.553` is 55.3%. A blank percentage means the player had no attempts. It is not zero. Makes are not a column. `source_rank` and `source_dollars` belong to that projection. They are not our prices. Category values from a projection are not in the file.
 
-`positions` on a projection may be several codes joined by slashes, such as `PG/SG`. On a stats file it is the single position from that season. `team` is the abbreviation that file used. The same player can have a different team on a projection than on a past season. Those abbreviations are stored as written. This task does not merge `CHO` with `CHA` or `BRK` with `BKN`.
+`positions` on a projection may be several codes joined by slashes, such as `PG/SG`. On Draft, Pos keeps a code when at least one projection file lists it, in the order PG, SG, SF, PF, C. Stats files are not part of that cell. On a stats file it is the single position from that season. `team` is the abbreviation that file used. The same player can have a different team on a projection than on a past season. Those abbreviations are stored as written. This task does not merge `CHO` with `CHA` or `BRK` with `BKN`.
 
 Each inbox file is already one row per player. The app does not look for combined team rows.
 
@@ -194,11 +194,11 @@ Dollars left by rounding go one each to the highest ranks of the paid group, sta
 
 ### Price table
 
-One table, sorted by the plain rank. The columns are Name, TZ Rank, TZ Price, TC Rank, TC Price, PZ Rank, PZ Price, PC Rank, PC Price, Games, Minutes, then the active categories. TZ is the plain total and TC is the curved total. PZ and PC are the personal rank and price. Those four columns stay on the table when nothing is punted, and their cells are empty. A missing price stays blank. Names stay on the left. Every other value is centered. The price columns show a dollar sign in front of the whole-dollar amount. Name is 170 pixels wide. Rank columns and price columns are 65. Games and minutes are 60. FG% / FGA, FT% / FTA, and each counting category are 100. The table stops at those widths. The category order is FG% with FGA, FT% with FTA, 3pt, Pts, Reb, Ast, Stl, Blk, and Tov. A category the league has turned off is omitted. Turning off FG% also omits FGA, and turning off FT% also omits FTA. The score totals stay in the calculation and are not shown.
+One table, sorted by the plain rank. The columns are Name, Pos, TZ Rank, TZ Price, TC Rank, TC Price, PZ Rank, PZ Price, PC Rank, PC Price, Games, Minutes, then the active categories. TZ is the plain total and TC is the curved total. PZ and PC are the personal rank and price. Those four columns stay on the table when nothing is punted, and their cells are empty. A missing price stays blank. Names stay on the left. Every other value is centered. The price columns show a dollar sign in front of the whole-dollar amount. Name is 170 pixels wide. Pos is 80. Rank columns and price columns are 65. Games and minutes are 60. FG% / FGA, FT% / FTA, and each counting category are 100. The table stops at those widths. The category order is FG% with FGA, FT% with FTA, 3pt, Pts, Reb, Ast, Stl, Blk, and Tov. A category the league has turned off is omitted. Turning off FG% also omits FGA, and turning off FT% also omits FTA. The score totals stay in the calculation and are not shown.
 
 FG% and FT% share a cell with their attempts. A blank percentage stays blank, and the attempts stay. The cell is colored from the plain category z, which already treats fewer turnovers as the good direction. A value on the edge takes the higher band: 2 and above is deep green, 1 to 2 is green, 0 to 1 is light green, −0.75 to 0 is light red, −1.5 to −0.75 is red, and below −1.5 is deep red. Games under 60 and minutes under 25 are yellow. 60 and 25 are not.
 
-Positions are not on the table.
+Pos follows Name on every Draft table that lists a player: the price table, the player row, nominations, targets, still available, your players, and other teams. The cell is every position from the projection files, kept when at least one file lists it, written PG/SG/SF/PF/C. A player with no projection leaves it blank.
 
 ### Punt
 
@@ -240,7 +240,7 @@ The cell color is the average plain z of those same players, using the same six 
 
 **Targets** — five available players who are not on the nomination list. The category is the kept one where the user is furthest behind the league. A punted category is never chosen. A player has to be green there, a z of at least 1, and the price the user would pay has to be within the max bid. The order is TC Price, or PC Price when a punt is on. When the user is ahead in every kept category, the category is the one where that lead is smallest. Before any of the user's players are rostered, there is no category to check, and the order is still TC Price or PC Price.
 
-The two lists sit side by side under the sale line, targets on the right. Both use Name, TZ Price, TC Price or PC Price, and Category. Nominations, Targets, Still available, Your players, and Other teams use a small title close to the list.
+The two lists sit side by side under the sale line, targets on the right. Both use Name, Pos, TZ Price, TC Price or PC Price, and Category. Nominations, Targets, Still available, Your players, and Other teams use a small title close to the list.
 
 ## 6. Task list
 
@@ -254,7 +254,6 @@ Raise these before the task they affect. They do not change the text above until
 
 - **Later, when a new file splits a player the alias list does not already join.** The user can merge two imported players who are the same person. A merge recalculates prices. How the merge and that recalculation work is decided with the feature.
 - **Before next season.** The price list reads three fixed seasons: projections `2026-27`, last season `2025-26`, and the season before `2024-25`. Those years are written in the projection code and again in the query that loads the rows. The league season field does not move them. Next season the three years have to move together. Leave them fixed until that task.
-- **Later, positions on the price table.** The projection files often disagree on a single position. The price table leaves positions off until that is settled.
 
 ### Task 0 — Preparation files
 
@@ -366,7 +365,7 @@ Status: done. Merged with Task 7.
 
 ### Task 9 — Nominations and targets
 
-The rules are in section 5. Two lists of five sit side by side under the sale line, targets on the right. Both use Name, TZ Price, TC Price or PC Price, and Category. Nominations are the plain-price gap over the curved price. Targets are green where the roster is furthest behind, ordered by the curved price, and a nomination is left off that list.
+The rules are in section 5. Two lists of five sit side by side under the sale line, targets on the right. Both use Name, Pos, TZ Price, TC Price or PC Price, and Category. Nominations are the plain-price gap over the curved price. Targets are green where the roster is furthest behind, ordered by the curved price, and a nomination is left off that list.
 
 Done when: with no punt the nomination order is TZ above TC, a punt switches that curved price to PC, a deep green category brings green players in that category first, a nomination is absent from the targets, and a roster with no players still shows both lists with the category blank.
 

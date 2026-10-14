@@ -36,6 +36,7 @@ class PriceRow:
     personal_plain_price: int | None = None
     personal_curved_rank: int | None = None
     personal_curved_price: int | None = None
+    positions: str = ""
 
 
 @dataclass(frozen=True)
@@ -335,6 +336,7 @@ class Suggestion:
     balance_price: int
     pay_price: int
     categories: tuple[str, ...]
+    positions: str = ""
 
 
 def draft_suggestions(
@@ -388,6 +390,7 @@ def _nominations(
                     balance,
                     row.plain_price if pay is None else pay,
                     shared,
+                    row.positions,
                 ),
             )
         )
@@ -430,6 +433,7 @@ def _targets(
                     balance,
                     pay,
                     (need,) if need is not None else (),
+                    row.positions,
                 ),
             )
         )
@@ -859,4 +863,5 @@ def _row(
         counting=line.counting,
         plain_categories=plain_categories,
         curved_categories=curved_categories,
+        positions=line.positions,
     )

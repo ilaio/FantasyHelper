@@ -51,6 +51,7 @@ _PERSONAL = ("PZ Rank", "PZ Price", "PC Rank", "PC Price")
 _USAGE = ("Games", "Minutes")
 _PUNT_MARK = " (p)"
 _NAME_WIDTH = 170
+_POS_WIDTH = 80
 _RANK_WIDTH = 65
 _PRICE_WIDTH = 65
 _GAMES_WIDTH = 60
@@ -150,8 +151,9 @@ def show_roster_table(
     for sale in sales:
         row = rows_by_id.get(sale.player_id)
         name = row.name if row is not None else names.get(sale.player_id, "Unknown player")
+        positions = row.positions if row is not None else ""
         records.append(
-            [name, sale.price, _SALE_LABELS[sale.sale_type], *_projection_values(row, active)]
+            [name, positions, sale.price, _SALE_LABELS[sale.sale_type], *_projection_values(row, active)]
         )
         if row is None:
             colors.append([""] * len(columns))
@@ -276,14 +278,15 @@ def show_suggestion_table(
 
 def _suggestion_columns(punted: frozenset[str]) -> list[str]:
     balance = "PC Price" if punted else "TC Price"
-    return ["Name", "TZ Price", balance, "Category"]
+    return ["Name", "Pos", "TZ Price", balance, "Category"]
 
 
 def _suggestion_record(item: Suggestion, columns: list[str]) -> dict[str, object]:
     return {
         "Name": item.name,
+        "Pos": item.positions,
         "TZ Price": item.room_price,
-        columns[2]: item.balance_price,
+        columns[3]: item.balance_price,
         "Category": ", ".join(_SWITCH_LABELS[key] for key in item.categories),
     }
 
@@ -291,6 +294,8 @@ def _suggestion_record(item: Suggestion, columns: list[str]) -> dict[str, object
 def _suggestion_column_config(name: str) -> dict:
     if name == "Name":
         return st.column_config.Column(alignment="left", width=_NAME_WIDTH)
+    if name == "Pos":
+        return st.column_config.Column(alignment="center", width=_POS_WIDTH)
     if name == "Category":
         return st.column_config.Column(alignment="center", width=_SUGGESTION_CATEGORY_WIDTH)
     return st.column_config.NumberColumn(
@@ -377,6 +382,8 @@ def _column_width(name: str) -> int:
     base = name.removesuffix(_PUNT_MARK)
     if base == "Name":
         return _NAME_WIDTH
+    if base == "Pos":
+        return _POS_WIDTH
     if base in _RANK_HEADERS:
         return _RANK_WIDTH
     if base in _PRICE_HEADERS:
@@ -393,7 +400,7 @@ def _column_width(name: str) -> int:
 
 
 def table_columns(active: frozenset[str], punted: frozenset[str] = frozenset()) -> list[str]:
-    lead = [*_IDENTITY, *_PERSONAL, *_USAGE]
+    lead = ["Name", "Pos", *_IDENTITY[1:], *_PERSONAL, *_USAGE]
     stats = [
         column_label(label, key in punted) for key, label in _STAT_COLUMNS if key in active
     ]
@@ -405,7 +412,7 @@ def roster_columns(active: frozenset[str], punted: frozenset[str] = frozenset())
     stats = [
         column_label(label, key in punted) for key, label in _STAT_COLUMNS if key in active
     ]
-    return ["Name", "Price", "Sale", *_USAGE, *stats]
+    return ["Name", "Pos", "Price", "Sale", *_USAGE, *stats]
 
 
 def summary_columns(active: frozenset[str]) -> list[str]:
@@ -493,6 +500,7 @@ def _frame(
 def _values(row: PriceRow, active: frozenset[str]) -> list[object]:
     values: list[object] = [
         row.name,
+        row.positions,
         row.plain_rank,
         row.plain_price,
         row.curved_rank,

@@ -59,6 +59,7 @@ def _file(
     minutes: float = 30,
     fg_pct: float | None = 0.45,
     points: float = 18,
+    positions: str = "",
 ) -> FileProjection:
     return FileProjection(
         games=games,
@@ -68,6 +69,7 @@ def _file(
         fg_pct=fg_pct,
         ft_pct=0.75,
         counting=_counting(pts=points),
+        positions=positions,
     )
 
 
@@ -113,6 +115,15 @@ class ProjectionTests(unittest.TestCase):
         assert line is not None
         self.assertEqual(line.games, 75)
         self.assertEqual(line.minutes_per_game, 30)
+
+    def test_positions_keep_every_code_from_any_projection_file(self) -> None:
+        files = (_file(positions="PG"), _file(positions="PG/SG"), _file(positions="SF/PG"))
+        line = project_player(PlayerSources(1, "Guard", None, None, files))
+        assert line is not None
+        self.assertEqual(line.positions, "PG/SG/SF")
+        blank = project_player(PlayerSources(2, "Blank", None, None, (_file(),)))
+        assert blank is not None
+        self.assertEqual(blank.positions, "")
 
     def test_close_minutes_keep_last_season_counting_rates(self) -> None:
         last = _totals(50, minutes=30 * 50)

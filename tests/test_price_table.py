@@ -43,10 +43,10 @@ class ColorTests(unittest.TestCase):
         active = frozenset({"pts", "reb", "ast", "stl", "blk", "threes", "ft_pct", "to"})
         columns = table_columns(active)
         self.assertNotIn("FG% / FGA", columns)
-        self.assertEqual(columns[11], "FT% / FTA")
+        self.assertEqual(columns[12], "FT% / FTA")
         self.assertEqual(
-            columns[:9],
-            ["Name", "TZ Rank", "TZ Price", "TC Rank", "TC Price", "PZ Rank", "PZ Price", "PC Rank", "PC Price"],
+            columns[:10],
+            ["Name", "Pos", "TZ Rank", "TZ Price", "TC Rank", "TC Price", "PZ Rank", "PZ Price", "PC Rank", "PC Price"],
         )
         self.assertNotIn("TZ Score", columns)
         self.assertNotIn("TC Score", columns)
@@ -70,10 +70,10 @@ class ColorTests(unittest.TestCase):
         active = frozenset({"pts", "reb", "blk"})
         columns = table_columns(active, frozenset({"blk"}))
         self.assertEqual(
-            columns[:9],
-            ["Name", "TZ Rank", "TZ Price", "TC Rank", "TC Price", "PZ Rank", "PZ Price", "PC Rank", "PC Price"],
+            columns[:10],
+            ["Name", "Pos", "TZ Rank", "TZ Price", "TC Rank", "TC Price", "PZ Rank", "PZ Price", "PC Rank", "PC Price"],
         )
-        self.assertEqual(columns[9:11], ["Games", "Minutes"])
+        self.assertEqual(columns[10:12], ["Games", "Minutes"])
         self.assertIn("Blk (p)", columns)
         self.assertNotIn("Blk", columns)
         self.assertEqual(column_label("Blk", False), "Blk")
@@ -81,8 +81,8 @@ class ColorTests(unittest.TestCase):
     def test_a_taken_list_keeps_the_projection_and_drops_ranks(self) -> None:
         active = frozenset({"pts", "reb", "blk", "fg_pct"})
         columns = roster_columns(active, frozenset({"blk"}))
-        self.assertEqual(columns[:5], ["Name", "Price", "Sale", "Games", "Minutes"])
-        self.assertEqual(columns[5], "FG% / FGA")
+        self.assertEqual(columns[:6], ["Name", "Pos", "Price", "Sale", "Games", "Minutes"])
+        self.assertEqual(columns[6], "FG% / FGA")
         self.assertIn("Blk (p)", columns)
         self.assertNotIn("TZ Rank", columns)
         self.assertNotIn("PZ Price", columns)
@@ -97,11 +97,11 @@ class ColorTests(unittest.TestCase):
     def test_nominations_and_targets_share_columns(self) -> None:
         self.assertEqual(
             _suggestion_columns(frozenset()),
-            ["Name", "TZ Price", "TC Price", "Category"],
+            ["Name", "Pos", "TZ Price", "TC Price", "Category"],
         )
         self.assertEqual(
             _suggestion_columns(frozenset({"blk"})),
-            ["Name", "TZ Price", "PC Price", "Category"],
+            ["Name", "Pos", "TZ Price", "PC Price", "Category"],
         )
 
     def test_usage_and_category_colors(self) -> None:
