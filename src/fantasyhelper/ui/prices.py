@@ -5,7 +5,15 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from fantasyhelper.valuation.prices import DRAFT, KEEPER, CategoryAverage, PriceRow, Sale, SideSummary
+from fantasyhelper.valuation.prices import (
+    DRAFT,
+    KEEPER,
+    CategoryAverage,
+    PriceRow,
+    Sale,
+    SideSummary,
+    Suggestion,
+)
 
 # Plain z bands. A value on the edge takes the higher band.
 _DEEP_GREEN = "background-color: #8FCB9B"
@@ -43,6 +51,7 @@ _PERSONAL = ("PZ Rank", "PZ Price", "PC Rank", "PC Price")
 _USAGE = ("Games", "Minutes")
 _PUNT_MARK = " (p)"
 _NAME_WIDTH = 170
+_POS_WIDTH = 80
 _RANK_WIDTH = 65
 _PRICE_WIDTH = 65
 _GAMES_WIDTH = 60
@@ -62,6 +71,7 @@ _SPENT_WIDTH = 80
 _SPOTS_LEFT_WIDTH = 100
 _TAKEN_WIDTH = 80
 _SUMMARY_LABEL = " "
+_SUGGESTION_CATEGORY_WIDTH = 180
 _SUMMARY_MONEY = {"Money left": _MONEY_LEFT_WIDTH, "Spent": _SPENT_WIDTH}
 _SUMMARY_SPOTS = {"Spots left": _SPOTS_LEFT_WIDTH, "Taken": _TAKEN_WIDTH}
 _RANK_HEADERS = frozenset({"TZ Rank", "TC Rank", "PZ Rank", "PC Rank"})
@@ -141,8 +151,9 @@ def show_roster_table(
     for sale in sales:
         row = rows_by_id.get(sale.player_id)
         name = row.name if row is not None else names.get(sale.player_id, "Unknown player")
+        positions = row.positions if row is not None else ""
         records.append(
-            [name, sale.price, _SALE_LABELS[sale.sale_type], *_projection_values(row, active)]
+            [name, positions, sale.price, _SALE_LABELS[sale.sale_type], *_projection_values(row, active)]
         )
         if row is None:
             colors.append([""] * len(columns))
@@ -242,6 +253,58 @@ def _summary_column_config(name: str) -> dict:
     return st.column_config.Column(alignment="center", width=_column_width(name))
 
 
+def show_suggestion_table(
+    suggestions: tuple[Suggestion, ...],
+    punted: frozenset[str],
+    *,
+    selection_key: str,
+    on_select,
+) -> None:
+    """A short nomination or target list. A blank category means none was named."""
+    columns = _suggestion_columns(punted)
+    records = [_suggestion_record(item, columns) for item in suggestions]
+    frame = pd.DataFrame(records, columns=columns)
+    st.dataframe(
+        frame,
+        hide_index=True,
+        width="content",
+        column_config={name: _suggestion_column_config(name) for name in columns},
+        placeholder="",
+        key=selection_key,
+        on_select=on_select,
+        selection_mode="single-row",
+    )
+
+
+def _suggestion_columns(punted: frozenset[str]) -> list[str]:
+    balance = "PC Price" if punted else "TC Price"
+    return ["Name", "Pos", "TZ Price", balance, "Category"]
+
+
+def _suggestion_record(item: Suggestion, columns: list[str]) -> dict[str, object]:
+    return {
+        "Name": item.name,
+        "Pos": item.positions,
+        "TZ Price": item.room_price,
+        columns[3]: item.balance_price,
+        "Category": ", ".join(_SWITCH_LABELS[key] for key in item.categories),
+    }
+
+
+def _suggestion_column_config(name: str) -> dict:
+    if name == "Name":
+        return st.column_config.Column(alignment="left", width=_NAME_WIDTH)
+    if name == "Pos":
+        return st.column_config.Column(alignment="center", width=_POS_WIDTH)
+    if name == "Category":
+        return st.column_config.Column(alignment="center", width=_SUGGESTION_CATEGORY_WIDTH)
+    return st.column_config.NumberColumn(
+        alignment="center",
+        format="$%d",
+        width=_PRICE_WIDTH,
+    )
+
+
 def strength_color(z: float) -> str:
     """CSS background for one plain category z."""
     if z >= 2:
@@ -319,6 +382,8 @@ def _column_width(name: str) -> int:
     base = name.removesuffix(_PUNT_MARK)
     if base == "Name":
         return _NAME_WIDTH
+    if base == "Pos":
+        return _POS_WIDTH
     if base in _RANK_HEADERS:
         return _RANK_WIDTH
     if base in _PRICE_HEADERS:
@@ -335,7 +400,7 @@ def _column_width(name: str) -> int:
 
 
 def table_columns(active: frozenset[str], punted: frozenset[str] = frozenset()) -> list[str]:
-    lead = [*_IDENTITY, *_PERSONAL, *_USAGE]
+    lead = ["Name", "Pos", *_IDENTITY[1:], *_PERSONAL, *_USAGE]
     stats = [
         column_label(label, key in punted) for key, label in _STAT_COLUMNS if key in active
     ]
@@ -347,13 +412,18 @@ def roster_columns(active: frozenset[str], punted: frozenset[str] = frozenset())
     stats = [
         column_label(label, key in punted) for key, label in _STAT_COLUMNS if key in active
     ]
-    return ["Name", "Price", "Sale", *_USAGE, *stats]
+    return ["Name", "Pos", "Price", "Sale", *_USAGE, *stats]
 
 
 def summary_columns(active: frozenset[str]) -> list[str]:
     """Money and spots, then each active category. A punt is not marked here."""
     stats = [label for key, label in _STAT_COLUMNS if key in active]
     return [_SUMMARY_LABEL, *_SUMMARY_MONEY, *_SUMMARY_SPOTS, *stats]
+
+
+def category_keys(active: frozenset[str]) -> tuple[str, ...]:
+    """Active categories in price-table order."""
+    return tuple(key for key, _label in _STAT_COLUMNS if key in active)
 
 
 def _switch_key(league_id: int, category: str) -> str:
@@ -430,6 +500,7 @@ def _frame(
 def _values(row: PriceRow, active: frozenset[str]) -> list[object]:
     values: list[object] = [
         row.name,
+        row.positions,
         row.plain_rank,
         row.plain_price,
         row.curved_rank,

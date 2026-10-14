@@ -241,7 +241,7 @@ def load_baseline_rows() -> tuple[list[dict[str, object]], list[dict[str, object
             dict(row)
             for row in conn.execute(
                 """
-                SELECT player_id, games, minutes_per_game, points_per_game,
+                SELECT player_id, positions, games, minutes_per_game, points_per_game,
                        threes_per_game, rebounds_per_game, assists_per_game,
                        steals_per_game, blocks_per_game, turnovers_per_game,
                        fg_pct, fga_per_game, ft_pct, fta_per_game

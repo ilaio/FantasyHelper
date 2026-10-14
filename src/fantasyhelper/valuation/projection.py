@@ -40,6 +40,7 @@ class FileProjection:
     fg_pct: float | None
     ft_pct: float | None
     counting: dict[str, float]
+    positions: str = ""
 
 
 @dataclass(frozen=True)
@@ -62,6 +63,7 @@ class ProjectionLine:
     fg_pct: float | None
     ft_pct: float | None
     counting: dict[str, float]
+    positions: str = ""
 
 
 def lines_from_rows(
@@ -121,6 +123,7 @@ def project_player(player: PlayerSources) -> ProjectionLine | None:
         fg_pct=_percentage("fg_pct", last, player.prior_season, files),
         ft_pct=_percentage("ft_pct", last, player.prior_season, files),
         counting=_counting_rates(last, files, minutes),
+        positions=merged_positions(tuple(item.positions for item in files)),
     )
 
 
@@ -168,6 +171,22 @@ def _minutes_are_close(projected_minutes: float, last_minutes_per_game: float) -
     return gap < MINUTES_GAP and not math.isclose(gap, MINUTES_GAP)
 
 
+_POSITIONS = ("PG", "SG", "SF", "PF", "C")
+
+
+def merged_positions(texts: tuple[str, ...]) -> str:
+    """Positions listed on at least one projection, in PG/SG/SF/PF/C order."""
+    found: set[str] = set()
+    for text in texts:
+        for part in text.split("/"):
+            code = part.strip()
+            if code:
+                found.add(code)
+    ordered = [code for code in _POSITIONS if code in found]
+    rest = sorted(found.difference(_POSITIONS))
+    return "/".join([*ordered, *rest])
+
+
 def _played(season: SeasonTotals | None) -> bool:
     return season is not None and season.games > 0
 
@@ -197,6 +216,7 @@ def _file_from_row(row: dict[str, object]) -> FileProjection:
         fg_pct=_optional_float(row["fg_pct"]),
         ft_pct=_optional_float(row["ft_pct"]),
         counting={key: float(row[rate]) for key, _column, rate in COUNTING},
+        positions=str(row["positions"]),
     )
 
 
