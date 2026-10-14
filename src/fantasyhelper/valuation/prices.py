@@ -350,9 +350,11 @@ def draft_suggestions(
     """Up to five nominations, then up to five targets.
 
     A nomination is ordered by how far the room's plain price sits above the
-    curved price. With a punt, that curved price is the personal one. When the
-    user is deep green in a category, players who are green there come first.
-    A target never repeats a nomination.
+    curved price. The same gap uses how far the plain rank sits above that
+    curved rank. With a punt, the curved price and rank are the personal ones.
+    When the user is deep green in a category, players who are green there come
+    first. A target never repeats a nomination. The same curved price uses that
+    curved rank.
     """
     nominations = _nominations(available, user, categories, punted)
     nominated = {item.player_id for item in nominations}
@@ -381,7 +383,7 @@ def _nominations(
             (
                 not shared,
                 -gap,
-                -row.plain_price,
+                -_rank_gap(row, punted),
                 row.name.casefold(),
                 Suggestion(
                     row.player_id,
@@ -410,7 +412,7 @@ def _targets(
     if bid is None:
         return ()
     need = _need_category(user, league, categories, punted)
-    ranked: list[tuple[int, str, Suggestion]] = []
+    ranked: list[tuple[int, int, str, Suggestion]] = []
     for row in available:
         if row.player_id in nominated:
             continue
@@ -425,6 +427,7 @@ def _targets(
         ranked.append(
             (
                 -balance,
+                _curved_rank(row, punted),
                 row.name.casefold(),
                 Suggestion(
                     row.player_id,
@@ -437,8 +440,8 @@ def _targets(
                 ),
             )
         )
-    ranked.sort(key=lambda item: (item[0], item[1], item[2].name))
-    return tuple(item[2] for item in ranked[:_HANDFUL])
+    ranked.sort(key=lambda item: (item[0], item[1], item[2], item[3].name))
+    return tuple(item[3] for item in ranked[:_HANDFUL])
 
 
 def _deep_categories(user: SideSummary, categories: tuple[str, ...]) -> tuple[str, ...]:
@@ -483,6 +486,17 @@ def _need_category(
         return None
     ranked.sort(reverse=True)
     return ranked[0][2]
+
+
+def _rank_gap(row: PriceRow, punted: frozenset[str]) -> int:
+    """How far TZ Rank sits above the curved rank. A lower rank number is better."""
+    return _curved_rank(row, punted) - row.plain_rank
+
+
+def _curved_rank(row: PriceRow, punted: frozenset[str]) -> int:
+    if punted and row.personal_curved_rank is not None:
+        return row.personal_curved_rank
+    return row.curved_rank
 
 
 def _balance_price(row: PriceRow, punted: frozenset[str]) -> int | None:
