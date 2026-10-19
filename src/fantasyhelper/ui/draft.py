@@ -27,6 +27,7 @@ from fantasyhelper.valuation.prices import (
     build_price_table,
     category_summary,
     draft_suggestions,
+    apply_punt,
     avoid_bid,
     max_bid,
     reprice_remaining,
@@ -98,6 +99,14 @@ def render_draft(league: League) -> None:
                         league,
                         player_id,
                         by_id.get(player_id) if player_id is not None else None,
+                        _opening_row(
+                            table.rows,
+                            player_id,
+                            punted,
+                            settings.team_count,
+                            settings.budget,
+                            settings.roster_size,
+                        ),
                         priced.rows,
                         sales,
                         punted,
@@ -295,15 +304,44 @@ def _search(league_id: int, rows: tuple[PriceRow, ...]) -> None:
         )
 
 
-def player_price_line(row: PriceRow | None, bid: str, avoid: str, higher: int | None) -> str:
+def _opening_row(
+    rows: tuple[PriceRow, ...],
+    player_id: int | None,
+    punted: frozenset[str],
+    team_count: int,
+    budget: int,
+    roster_size: int,
+) -> PriceRow | None:
+    """This player's prices from before any sale. A punt uses the full pool."""
+    if player_id is None:
+        return None
+    pool = rows
+    if punted:
+        pool = apply_punt(rows, punted, team_count, budget, roster_size)
+    return next((row for row in pool if row.player_id == player_id), None)
+
+
+def _price_pair(current: int | None, opening: int | None) -> str:
+    """The price now, then the price from before any sale."""
+    return f"{_dollar(current)} / {_dollar(opening)}"
+
+
+def player_price_line(
+    row: PriceRow | None,
+    opening: PriceRow | None,
+    bid: str,
+    avoid: str,
+    higher: int | None,
+) -> str:
     """TZ, TC, and PC under the open player, then the bid guides and how many rank higher.
 
+    Each price shows the amount now, then the amount from before any sale.
     PZ stays off this line. A missing price reads $--.
     """
     parts = (
-        f"TZ Price: {_bold(_dollar(None if row is None else row.plain_price))}",
-        f"TC Price: {_bold(_dollar(None if row is None else row.curved_price))}",
-        f"PC Price: {_bold(_dollar(None if row is None else row.personal_curved_price))}",
+        f"TZ Price: {_bold(_price_pair(_amount(row, 'plain_price'), _amount(opening, 'plain_price')))}",
+        f"TC Price: {_bold(_price_pair(_amount(row, 'curved_price'), _amount(opening, 'curved_price')))}",
+        f"PC Price: {_bold(_price_pair(_amount(row, 'personal_curved_price'), _amount(opening, 'personal_curved_price')))}",
         f"Max bid: {_bold(bid)}",
         f"Avoid bid: {_bold(avoid)}",
         f"Higher ranked: {_bold('--' if higher is None else str(higher))}",
@@ -353,6 +391,12 @@ def form_changed(sale: Sale, sale_type: str | None, price: object) -> bool:
     return not (sale_type == sale.sale_type and _whole_dollars(price) == sale.price)
 
 
+def _amount(row: PriceRow | None, name: str) -> int | None:
+    if row is None:
+        return None
+    return getattr(row, name)
+
+
 def _dollar(amount: int | None) -> str:
     if amount is None:
         return "$--"
@@ -367,6 +411,7 @@ def _player_view(
     league: League,
     player_id: int | None,
     base: PriceRow | None,
+    opening: PriceRow | None,
     available: tuple[PriceRow, ...],
     sales: tuple[Sale, ...],
     punted: frozenset[str],
@@ -381,7 +426,7 @@ def _player_view(
     bid = _bid(max_bid(league.settings.budget, league.settings.roster_size, rest))
     avoid = _bid(avoid_bid(league.settings.budget, league.settings.roster_size, rest))
     st.markdown(
-        f"<p class='draft-figure'>{player_price_line(row, bid, avoid, higher_ranked(row, available, punted))}</p>",
+        f"<p class='draft-figure'>{player_price_line(row, opening, bid, avoid, higher_ranked(row, available, punted))}</p>",
         unsafe_allow_html=True,
     )
 

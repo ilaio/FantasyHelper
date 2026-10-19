@@ -118,12 +118,13 @@ class TakenListTests(unittest.TestCase):
 
 class PlayerPriceLineTests(unittest.TestCase):
     def test_the_line_shows_tz_tc_pc_and_the_max_bid(self) -> None:
-        row = _price_row(plain_price=14, curved_price=9, personal_curved_price=6)
+        row = _price_row(plain_price=60, curved_price=40, personal_curved_price=30)
+        opening = _price_row(plain_price=70, curved_price=55, personal_curved_price=48)
         self.assertEqual(
-            player_price_line(row, "$40", "$30", 3),
-            "<span class='price-param'>TZ Price: <strong>$14</strong></span>"
-            "<span class='price-param'>TC Price: <strong>$9</strong></span>"
-            "<span class='price-param'>PC Price: <strong>$6</strong></span>"
+            player_price_line(row, opening, "$40", "$30", 3),
+            "<span class='price-param'>TZ Price: <strong>$60 / $70</strong></span>"
+            "<span class='price-param'>TC Price: <strong>$40 / $55</strong></span>"
+            "<span class='price-param'>PC Price: <strong>$30 / $48</strong></span>"
             "<span class='price-param'>Max bid: <strong>$40</strong></span>"
             "<span class='price-param'>Avoid bid: <strong>$30</strong></span>"
             "<span class='price-param'>Higher ranked: <strong>3</strong></span>",
@@ -131,11 +132,12 @@ class PlayerPriceLineTests(unittest.TestCase):
 
     def test_a_missing_price_reads_as_a_blank_dollar(self) -> None:
         row = _price_row(plain_price=1, curved_price=0, personal_curved_price=None)
+        opening = _price_row(plain_price=4, curved_price=2, personal_curved_price=None)
         self.assertEqual(
-            player_price_line(row, "No spot left", "No spot left", 0),
-            "<span class='price-param'>TZ Price: <strong>$1</strong></span>"
-            "<span class='price-param'>TC Price: <strong>$0</strong></span>"
-            "<span class='price-param'>PC Price: <strong>$--</strong></span>"
+            player_price_line(row, opening, "No spot left", "No spot left", 0),
+            "<span class='price-param'>TZ Price: <strong>$1 / $4</strong></span>"
+            "<span class='price-param'>TC Price: <strong>$0 / $2</strong></span>"
+            "<span class='price-param'>PC Price: <strong>$-- / $--</strong></span>"
             "<span class='price-param'>Max bid: <strong>No spot left</strong></span>"
             "<span class='price-param'>Avoid bid: <strong>No spot left</strong></span>"
             "<span class='price-param'>Higher ranked: <strong>0</strong></span>",
@@ -143,10 +145,10 @@ class PlayerPriceLineTests(unittest.TestCase):
 
     def test_no_player_leaves_the_prices_and_the_count_blank(self) -> None:
         self.assertEqual(
-            player_price_line(None, "$200", "$72", None),
-            "<span class='price-param'>TZ Price: <strong>$--</strong></span>"
-            "<span class='price-param'>TC Price: <strong>$--</strong></span>"
-            "<span class='price-param'>PC Price: <strong>$--</strong></span>"
+            player_price_line(None, None, "$200", "$72", None),
+            "<span class='price-param'>TZ Price: <strong>$-- / $--</strong></span>"
+            "<span class='price-param'>TC Price: <strong>$-- / $--</strong></span>"
+            "<span class='price-param'>PC Price: <strong>$-- / $--</strong></span>"
             "<span class='price-param'>Max bid: <strong>$200</strong></span>"
             "<span class='price-param'>Avoid bid: <strong>$72</strong></span>"
             "<span class='price-param'>Higher ranked: <strong>--</strong></span>",
