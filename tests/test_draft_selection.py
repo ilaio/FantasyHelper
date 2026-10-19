@@ -7,8 +7,10 @@ from fantasyhelper.ui.draft import (
     form_changed,
     open_player_after_check,
     ordered_taken,
+    higher_ranked,
     player_price_line,
     roster_table_height,
+    sale_button_was_clicked,
     search_pick_stands,
     taken_title,
     team_buttons,
@@ -26,6 +28,22 @@ class CheckedRowTests(unittest.TestCase):
 
     def test_a_player_outside_the_list_checks_nothing(self) -> None:
         self.assertEqual(checked_row((4, 9, 2), 7), [])
+
+
+class SaleButtonClickTests(unittest.TestCase):
+    def test_an_unmark_click_is_seen(self) -> None:
+        self.assertTrue(sale_button_was_clicked(8, {"sale-unmark-8-4": True}))
+
+    def test_an_add_click_is_seen(self) -> None:
+        self.assertTrue(sale_button_was_clicked(8, {f"sale-{MINE}-8-4": True}))
+
+    def test_another_league_or_a_price_field_is_not_a_click(self) -> None:
+        state = {
+            "sale-unmark-9-4": True,
+            "sale-price-8-4": 12,
+            "sale-type-8-4": "draft",
+        }
+        self.assertFalse(sale_button_was_clicked(8, state))
 
 
 class SearchPickTests(unittest.TestCase):
@@ -102,31 +120,80 @@ class PlayerPriceLineTests(unittest.TestCase):
     def test_the_line_shows_tz_tc_pc_and_the_max_bid(self) -> None:
         row = _price_row(plain_price=14, curved_price=9, personal_curved_price=6)
         self.assertEqual(
-            player_price_line(row, "$40"),
+            player_price_line(row, "$40", 3),
             "<span class='price-param'>TZ Price: <strong>$14</strong></span>"
             "<span class='price-param'>TC Price: <strong>$9</strong></span>"
             "<span class='price-param'>PC Price: <strong>$6</strong></span>"
-            "<span class='price-param'>Max bid: <strong>$40</strong></span>",
+            "<span class='price-param'>Max bid: <strong>$40</strong></span>"
+            "<span class='price-param'>Higher ranked: <strong>3</strong></span>",
         )
 
-    def test_a_missing_pc_price_stays_blank(self) -> None:
+    def test_a_missing_price_reads_as_a_blank_dollar(self) -> None:
         row = _price_row(plain_price=1, curved_price=0, personal_curved_price=None)
         self.assertEqual(
-            player_price_line(row, "No spot left"),
+            player_price_line(row, "No spot left", 0),
             "<span class='price-param'>TZ Price: <strong>$1</strong></span>"
             "<span class='price-param'>TC Price: <strong>$0</strong></span>"
-            "<span class='price-param'>PC Price: <strong></strong></span>"
-            "<span class='price-param'>Max bid: <strong>No spot left</strong></span>",
+            "<span class='price-param'>PC Price: <strong>$--</strong></span>"
+            "<span class='price-param'>Max bid: <strong>No spot left</strong></span>"
+            "<span class='price-param'>Higher ranked: <strong>0</strong></span>",
         )
 
-    def test_no_player_leaves_the_three_prices_blank(self) -> None:
+    def test_no_player_leaves_the_prices_and_the_count_blank(self) -> None:
         self.assertEqual(
-            player_price_line(None, "$200"),
-            "<span class='price-param'>TZ Price: <strong></strong></span>"
-            "<span class='price-param'>TC Price: <strong></strong></span>"
-            "<span class='price-param'>PC Price: <strong></strong></span>"
-            "<span class='price-param'>Max bid: <strong>$200</strong></span>",
+            player_price_line(None, "$200", None),
+            "<span class='price-param'>TZ Price: <strong>$--</strong></span>"
+            "<span class='price-param'>TC Price: <strong>$--</strong></span>"
+            "<span class='price-param'>PC Price: <strong>$--</strong></span>"
+            "<span class='price-param'>Max bid: <strong>$200</strong></span>"
+            "<span class='price-param'>Higher ranked: <strong>--</strong></span>",
         )
+
+
+class HigherRankedTests(unittest.TestCase):
+    def test_no_player_has_no_count(self) -> None:
+        self.assertIsNone(higher_ranked(None, (), frozenset()))
+
+    def test_tc_rank_counts_available_players_ahead(self) -> None:
+        player = _price_row(plain_price=1, curved_price=1, curved_rank=4, player_id=4)
+        available = (
+            _price_row(plain_price=1, curved_price=1, curved_rank=1, player_id=1),
+            _price_row(plain_price=1, curved_price=1, curved_rank=3, player_id=3),
+            player,
+            _price_row(plain_price=1, curved_price=1, curved_rank=8, player_id=8),
+        )
+        self.assertEqual(higher_ranked(player, available, frozenset()), 2)
+
+    def test_a_punt_counts_pc_rank_instead(self) -> None:
+        player = _price_row(
+            plain_price=1,
+            curved_price=1,
+            curved_rank=1,
+            personal_curved_rank=5,
+            player_id=5,
+        )
+        available = (
+            _price_row(
+                plain_price=1,
+                curved_price=1,
+                curved_rank=9,
+                personal_curved_rank=2,
+                player_id=2,
+            ),
+            player,
+            _price_row(
+                plain_price=1,
+                curved_price=1,
+                curved_rank=2,
+                personal_curved_rank=6,
+                player_id=6,
+            ),
+        )
+        self.assertEqual(higher_ranked(player, available, frozenset({"blk"})), 1)
+
+    def test_a_punt_with_no_pc_rank_has_no_count(self) -> None:
+        player = _price_row(plain_price=1, curved_price=1, curved_rank=2)
+        self.assertIsNone(higher_ranked(player, (player,), frozenset({"blk"})))
 
 
 class TeamButtonTests(unittest.TestCase):
@@ -159,15 +226,18 @@ def _price_row(
     *,
     plain_price: int,
     curved_price: int,
-    personal_curved_price: int | None,
+    personal_curved_price: int | None = None,
+    player_id: int = 1,
+    curved_rank: int = 1,
+    personal_curved_rank: int | None = None,
 ) -> PriceRow:
     return PriceRow(
-        player_id=1,
+        player_id=player_id,
         name="A",
         plain_rank=1,
         plain_score=0,
         plain_price=plain_price,
-        curved_rank=1,
+        curved_rank=curved_rank,
         curved_score=0,
         curved_price=curved_price,
         games=70,
@@ -179,6 +249,7 @@ def _price_row(
         counting={},
         plain_categories={},
         curved_categories={},
+        personal_curved_rank=personal_curved_rank,
         personal_curved_price=personal_curved_price,
     )
 

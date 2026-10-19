@@ -6,7 +6,7 @@ from collections.abc import Callable, Sequence
 import streamlit as st
 
 from fantasyhelper.leagues.league import League
-from fantasyhelper.leagues.sales import list_sales, record_sale, update_sale
+from fantasyhelper.leagues.sales import list_sales, record_sale, remove_sale, update_sale
 from fantasyhelper.stats.store import load_baseline_rows
 from fantasyhelper.ui.prices import (
     category_keys,
@@ -220,6 +220,24 @@ def ordered_taken(
     )
 
 
+def sale_button_was_clicked(league_id: int, state: object) -> bool:
+    """A sale button for this league was clicked in this run.
+
+    A list check from an earlier player must not replace the open player then.
+    """
+    items = state.items() if hasattr(state, "items") else ()
+    league = str(league_id)
+    for key, value in items:
+        if value is not True or not isinstance(key, str):
+            continue
+        parts = key.split("-")
+        if len(parts) != 4 or parts[0] != "sale" or parts[2] != league:
+            continue
+        if parts[1] in (MINE, OTHER, "unmark") and parts[3].isdigit():
+            return True
+    return False
+
+
 def search_pick_stands(current: int | None, shown: int | None, *, shown_known: bool) -> bool:
     """A search choice in this interaction stays. A list click still replaces the open player."""
     return shown_known and current != shown
@@ -276,15 +294,43 @@ def _search(league_id: int, rows: tuple[PriceRow, ...]) -> None:
         )
 
 
-def player_price_line(row: PriceRow | None, bid: str) -> str:
-    """TZ, TC, and PC under the open player, then the max bid. PZ stays off this line."""
+def player_price_line(row: PriceRow | None, bid: str, higher: int | None) -> str:
+    """TZ, TC, and PC under the open player, then the max bid and how many rank higher.
+
+    PZ stays off this line. A missing price reads $--.
+    """
     parts = (
         f"TZ Price: {_bold(_dollar(None if row is None else row.plain_price))}",
         f"TC Price: {_bold(_dollar(None if row is None else row.curved_price))}",
         f"PC Price: {_bold(_dollar(None if row is None else row.personal_curved_price))}",
         f"Max bid: {_bold(bid)}",
+        f"Higher ranked: {_bold('--' if higher is None else str(higher))}",
     )
     return "".join(f"<span class='price-param'>{part}</span>" for part in parts)
+
+
+def higher_ranked(
+    row: PriceRow | None,
+    available: tuple[PriceRow, ...],
+    punted: frozenset[str],
+) -> int | None:
+    """How many players still available rank above this one.
+
+    TC Rank is the order with no punt. PC Rank is the order once a punt is on.
+    A lower rank number is better. No player, or no PC Rank, leaves the count blank.
+    """
+    if row is None:
+        return None
+    if punted:
+        rank = row.personal_curved_rank
+        if rank is None:
+            return None
+        return sum(
+            1
+            for other in available
+            if other.personal_curved_rank is not None and other.personal_curved_rank < rank
+        )
+    return sum(1 for other in available if other.curved_rank < row.curved_rank)
 
 
 def team_buttons(sale: Sale | None) -> tuple[tuple[str, str, bool], tuple[str, str, bool]]:
@@ -307,7 +353,7 @@ def form_changed(sale: Sale, sale_type: str | None, price: object) -> bool:
 
 def _dollar(amount: int | None) -> str:
     if amount is None:
-        return ""
+        return "$--"
     return f"${amount}"
 
 
@@ -332,7 +378,7 @@ def _player_view(
     rest = tuple(item for item in sales if item.player_id != player_id)
     bid = _bid(max_bid(league.settings.budget, league.settings.roster_size, rest))
     st.markdown(
-        f"<p class='draft-figure'>{player_price_line(row, bid)}</p>",
+        f"<p class='draft-figure'>{player_price_line(row, bid, higher_ranked(row, available, punted))}</p>",
         unsafe_allow_html=True,
     )
 
@@ -399,6 +445,12 @@ def _sale_actions(
                     price,
                     replacing=sale is not None,
                 )
+        if st.button(
+            "Unmark player",
+            key=f"sale-unmark-{league.id}-{suffix}",
+            disabled=sale is None,
+        ):
+            errors = _unmark(league.id, player_id)
     return errors
 
 
@@ -422,6 +474,16 @@ def _save_sale(
         return errors
     # The sold lists already exist on this run, so their checks reset on the next one.
     st.session_state[_check_reset_key(league.id)] = True
+    st.rerun()
+    return ()
+
+
+def _unmark(league_id: int, player_id: int | None) -> tuple[str, ...]:
+    """Take the player off the team they are on."""
+    if player_id is None:
+        return ("Choose a player.",)
+    remove_sale(league_id, player_id)
+    st.session_state[_check_reset_key(league_id)] = True
     st.rerun()
     return ()
 
@@ -461,6 +523,7 @@ def _suggestions(
                 f"{key_name}-ids-{league_id}",
                 _player_key(league_id),
                 _shown_key(league_id),
+                league_id,
             ),
         )
 
@@ -552,6 +615,7 @@ def _taken(
                 f"{key_name}-ids-{league_id}",
                 _player_key(league_id),
                 _shown_key(league_id),
+                league_id,
             ),
             height=height,
         )
@@ -582,12 +646,21 @@ def _selectable_prices(
             f"{key_name}-ids-{league_id}",
             _player_key(league_id),
             _shown_key(league_id),
+            league_id,
         ),
     )
 
 
-def _open_row(table_key: str, ids_key: str, player_key: str, shown_key: str) -> Callable[[], None]:
+def _open_row(
+    table_key: str,
+    ids_key: str,
+    player_key: str,
+    shown_key: str,
+    league_id: int,
+) -> Callable[[], None]:
     def _open() -> None:
+        if sale_button_was_clicked(league_id, st.session_state):
+            return
         if search_pick_stands(
             st.session_state.get(player_key),
             st.session_state.get(shown_key),

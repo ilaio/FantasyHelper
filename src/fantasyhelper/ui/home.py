@@ -184,7 +184,7 @@ div[data-testid="stCaptionContainer"] p {
     font-weight: 700;
 }
 [data-testid="stMarkdownContainer"] .draft-figure .price-param:not(:last-child) {
-    margin-right: 2rem;
+    margin-right: 4rem;
 }
 [data-testid="stMarkdownContainer"] .list-title {
     font-size: 1rem;
