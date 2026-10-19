@@ -183,6 +183,9 @@ div[data-testid="stCaptionContainer"] p {
 [data-testid="stMarkdownContainer"] .draft-figure strong {
     font-weight: 700;
 }
+[data-testid="stMarkdownContainer"] .draft-figure .price-param:not(:last-child) {
+    margin-right: 2rem;
+}
 [data-testid="stMarkdownContainer"] .list-title {
     font-size: 1rem;
     font-weight: 600;

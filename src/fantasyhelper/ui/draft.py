@@ -41,6 +41,7 @@ _BORDER_PX = 1
 
 
 def render_draft(league: League) -> None:
+    _apply_check_reset(league.id)
     settings = league.settings
     sales = list_sales(league.id)
     players, seasons, projections = load_baseline_rows()
@@ -277,15 +278,13 @@ def _search(league_id: int, rows: tuple[PriceRow, ...]) -> None:
 
 def player_price_line(row: PriceRow | None, bid: str) -> str:
     """TZ, TC, and PC under the open player, then the max bid. PZ stays off this line."""
-    gap = "   -   "
-    return gap.join(
-        (
-            f"TZ Price: {_bold(_dollar(None if row is None else row.plain_price))}",
-            f"TC Price: {_bold(_dollar(None if row is None else row.curved_price))}",
-            f"PC Price: {_bold(_dollar(None if row is None else row.personal_curved_price))}",
-            f"Max bid: {_bold(bid)}",
-        )
+    parts = (
+        f"TZ Price: {_bold(_dollar(None if row is None else row.plain_price))}",
+        f"TC Price: {_bold(_dollar(None if row is None else row.curved_price))}",
+        f"PC Price: {_bold(_dollar(None if row is None else row.personal_curved_price))}",
+        f"Max bid: {_bold(bid)}",
     )
+    return "".join(f"<span class='price-param'>{part}</span>" for part in parts)
 
 
 def team_buttons(sale: Sale | None) -> tuple[tuple[str, str, bool], tuple[str, str, bool]]:
@@ -421,7 +420,8 @@ def _save_sale(
     errors = save(league, player_id, side, whole, sale_type)
     if errors:
         return errors
-    _clear_list_selection(league.id)
+    # The sold lists already exist on this run, so their checks reset on the next one.
+    st.session_state[_check_reset_key(league.id)] = True
     st.rerun()
     return ()
 
@@ -634,6 +634,16 @@ def _selected_rows(state: object) -> list[int]:
 
 def _selection_state(rows: Sequence[int]) -> dict[str, dict[str, list[int]]]:
     return {"selection": {"rows": list(rows), "columns": [], "cells": []}}
+
+
+def _check_reset_key(league_id: int) -> str:
+    return f"draft-reset-checks-{league_id}"
+
+
+def _apply_check_reset(league_id: int) -> None:
+    """Clear list checks before any of those tables are created."""
+    if st.session_state.pop(_check_reset_key(league_id), False):
+        _clear_list_selection(league_id)
 
 
 def _clear_list_selection(league_id: int) -> None:
