@@ -120,32 +120,35 @@ class PlayerPriceLineTests(unittest.TestCase):
     def test_the_line_shows_tz_tc_pc_and_the_max_bid(self) -> None:
         row = _price_row(plain_price=14, curved_price=9, personal_curved_price=6)
         self.assertEqual(
-            player_price_line(row, "$40", 3),
+            player_price_line(row, "$40", "$30", 3),
             "<span class='price-param'>TZ Price: <strong>$14</strong></span>"
             "<span class='price-param'>TC Price: <strong>$9</strong></span>"
             "<span class='price-param'>PC Price: <strong>$6</strong></span>"
             "<span class='price-param'>Max bid: <strong>$40</strong></span>"
+            "<span class='price-param'>Avoid bid: <strong>$30</strong></span>"
             "<span class='price-param'>Higher ranked: <strong>3</strong></span>",
         )
 
     def test_a_missing_price_reads_as_a_blank_dollar(self) -> None:
         row = _price_row(plain_price=1, curved_price=0, personal_curved_price=None)
         self.assertEqual(
-            player_price_line(row, "No spot left", 0),
+            player_price_line(row, "No spot left", "No spot left", 0),
             "<span class='price-param'>TZ Price: <strong>$1</strong></span>"
             "<span class='price-param'>TC Price: <strong>$0</strong></span>"
             "<span class='price-param'>PC Price: <strong>$--</strong></span>"
             "<span class='price-param'>Max bid: <strong>No spot left</strong></span>"
+            "<span class='price-param'>Avoid bid: <strong>No spot left</strong></span>"
             "<span class='price-param'>Higher ranked: <strong>0</strong></span>",
         )
 
     def test_no_player_leaves_the_prices_and_the_count_blank(self) -> None:
         self.assertEqual(
-            player_price_line(None, "$200", None),
+            player_price_line(None, "$200", "$72", None),
             "<span class='price-param'>TZ Price: <strong>$--</strong></span>"
             "<span class='price-param'>TC Price: <strong>$--</strong></span>"
             "<span class='price-param'>PC Price: <strong>$--</strong></span>"
             "<span class='price-param'>Max bid: <strong>$200</strong></span>"
+            "<span class='price-param'>Avoid bid: <strong>$72</strong></span>"
             "<span class='price-param'>Higher ranked: <strong>--</strong></span>",
         )
 

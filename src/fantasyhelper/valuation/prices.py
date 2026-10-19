@@ -526,6 +526,43 @@ def max_bid(budget: int, roster_size: int, sales: tuple[Sale, ...]) -> int | Non
     return money_left - (spots_left - 1)
 
 
+def avoid_bid(budget: int, roster_size: int, sales: tuple[Sale, ...]) -> int | None:
+    """A bid to stay under so the spots after this one keep a rising reserve.
+
+    Those spots keep $2 for each of the last four, then $4, $8, $16, and so on
+    for each earlier pair. The result stays between $1 and the max bid. None
+    means the user has no spot left. The number does not depend on which
+    player is up.
+    """
+    ceiling = max_bid(budget, roster_size, sales)
+    if ceiling is None:
+        return None
+    spots_left = roster_size - sum(1 for sale in sales if sale.side == MINE)
+    money_left = budget - sum(sale.price for sale in sales if sale.side == MINE)
+    bid = money_left - _later_reserve(spots_left - 1)
+    if bid < 1:
+        bid = 1
+    if bid > ceiling:
+        bid = ceiling
+    return bid
+
+
+def _later_reserve(spots: int) -> int:
+    """Dollars to leave for the spots after the current bid.
+
+    Counting from the last spot backward, the last four are $2 each. Each
+    earlier pair doubles: $4, then $8, then $16.
+    """
+    return sum(_reserve_dollar(place) for place in range(1, spots + 1))
+
+
+def _reserve_dollar(place_from_end: int) -> int:
+    if place_from_end <= 4:
+        return 2
+    pair = (place_from_end - 5) // 2
+    return 4 * (2**pair)
+
+
 def sale_errors(
     sales: tuple[Sale, ...],
     player_id: int,

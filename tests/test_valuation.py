@@ -12,6 +12,7 @@ from fantasyhelper.valuation.prices import (
     auction_summary,
     build_price_table,
     category_summary,
+    avoid_bid,
     max_bid,
     reprice_remaining,
     sale_errors,
@@ -304,6 +305,19 @@ class ScoreTests(unittest.TestCase):
         self.assertIsNone(max_bid(200, 13, filled))
         almost = tuple(Sale(index, "mine", 10, "keeper") for index in range(1, 13))
         self.assertEqual(max_bid(200, 13, almost), 80)
+
+    def test_avoid_bid_leaves_a_rising_reserve_for_later_spots(self) -> None:
+        self.assertEqual(avoid_bid(200, 13, ()), 72)
+        kept = (Sale(1, "mine", 40, "keeper"), Sale(2, "other", 15, "draft"))
+        self.assertEqual(avoid_bid(200, 13, kept), 64)
+        self.assertLessEqual(avoid_bid(200, 13, kept), max_bid(200, 13, kept))
+        tight = (Sale(1, "mine", 150, "draft"),)
+        self.assertEqual(avoid_bid(200, 13, tight), 1)
+        self.assertGreaterEqual(avoid_bid(200, 13, tight), 1)
+        filled = tuple(Sale(index, "mine", 1, "draft") for index in range(1, 14))
+        self.assertIsNone(avoid_bid(200, 13, filled))
+        almost = tuple(Sale(index, "mine", 10, "keeper") for index in range(1, 13))
+        self.assertEqual(avoid_bid(200, 13, almost), 80)
 
     def test_auction_summary_splits_the_league_and_the_user(self) -> None:
         sales = (

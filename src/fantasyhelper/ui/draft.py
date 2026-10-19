@@ -27,6 +27,7 @@ from fantasyhelper.valuation.prices import (
     build_price_table,
     category_summary,
     draft_suggestions,
+    avoid_bid,
     max_bid,
     reprice_remaining,
 )
@@ -294,8 +295,8 @@ def _search(league_id: int, rows: tuple[PriceRow, ...]) -> None:
         )
 
 
-def player_price_line(row: PriceRow | None, bid: str, higher: int | None) -> str:
-    """TZ, TC, and PC under the open player, then the max bid and how many rank higher.
+def player_price_line(row: PriceRow | None, bid: str, avoid: str, higher: int | None) -> str:
+    """TZ, TC, and PC under the open player, then the bid guides and how many rank higher.
 
     PZ stays off this line. A missing price reads $--.
     """
@@ -304,6 +305,7 @@ def player_price_line(row: PriceRow | None, bid: str, higher: int | None) -> str
         f"TC Price: {_bold(_dollar(None if row is None else row.curved_price))}",
         f"PC Price: {_bold(_dollar(None if row is None else row.personal_curved_price))}",
         f"Max bid: {_bold(bid)}",
+        f"Avoid bid: {_bold(avoid)}",
         f"Higher ranked: {_bold('--' if higher is None else str(higher))}",
     )
     return "".join(f"<span class='price-param'>{part}</span>" for part in parts)
@@ -377,8 +379,9 @@ def _player_view(
     row = line[0] if line else None
     rest = tuple(item for item in sales if item.player_id != player_id)
     bid = _bid(max_bid(league.settings.budget, league.settings.roster_size, rest))
+    avoid = _bid(avoid_bid(league.settings.budget, league.settings.roster_size, rest))
     st.markdown(
-        f"<p class='draft-figure'>{player_price_line(row, bid, higher_ranked(row, available, punted))}</p>",
+        f"<p class='draft-figure'>{player_price_line(row, bid, avoid, higher_ranked(row, available, punted))}</p>",
         unsafe_allow_html=True,
     )
 
