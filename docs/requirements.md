@@ -140,11 +140,11 @@ The entry records the player, the user's team or another team, the price, and ke
 
 The player leaves the available list. That spot is no longer for sale, and the price comes out of the league pot. Category z-scores stay as they are. The same price rule runs again for the players still available, with the spots and money that are left. A punt uses that same remaining pot.
 
-The user's price cannot exceed the user's max bid. Another team's price cannot exceed that team's budget. A sale that would leave the league short of $1 for every open spot is refused. Unmarking the player or editing the price recalculates the list. The row does not name which other team bought the player.
+The user's price cannot exceed the user's max bid. Another team's price cannot exceed that team's budget. A sale that would leave the league short of $1 for every open spot is refused. Editing the price or moving the player to the other side recalculates the list. The row does not name which other team bought the player.
 
 ### 6.3 Budget tracker
 
-The tracker has four figures for the league and the same four for the user: money left, money spent, spots left, and spots taken. League money starts at teams times the budget. League spots start at teams times the roster size. These figures are the first columns of the summary table in section 6.5.
+The tracker has four figures for the league and the same four for the user: money left, money spent, spots left, and spots taken. League money starts at teams times the budget. League spots start at teams times the roster size. Money left and money spent are the first columns of the summary table in section 6.5. Spots left and spots taken stay in the calculation and are not columns.
 
 The max bid is the most the user can offer for the player currently up for auction and still fill every remaining spot at $1:
 
@@ -160,7 +160,7 @@ The user types each result as it happens: player, price, and “my team” or �
 
 After each entry the app updates the pool, the budget, the price list, and the category picture. Players who are kept or sold no longer appear as targets.
 
-Nominations and targets are two lists of five available players. They sit side by side under the sale line, with targets on the right. Both lists use Name, Pos, TZ Price, TC Price or PC Price, and Category. A row opens that player. A player on the nomination list is left off the targets.
+Nominations and targets are two lists of five available players. They sit side by side under Still available, with targets on the right. Both lists use Name, Pos, TZ Price, TC Price or PC Price, and Category. A row opens that player. A player on the nomination list is left off the targets.
 
 A nomination is ordered by how far TZ Price sits above TC Price. With a punt, TC Price is replaced by PC Price. Only a positive gap qualifies. The same gap is ordered by how far TZ Rank sits above TC Rank, or above PC Rank with a punt. When the user's summary is deep green in a category, a z of 2 or more, players who are green or deep green in one of those categories come first. The row names each of those shared categories. If fewer than five match, the rest of the list is filled by the gap and those categories stay blank. With no deep green category, and before any of the user's players are rostered, every category stays blank.
 
@@ -168,17 +168,17 @@ A target uses the kept category where the user is furthest behind the league. A 
 
 ### 6.5 Category summary
 
-Draft opens with a two-row summary in place of the budget line. The first row is the league. The second row is the user's team. The category switches sit under it.
+Draft opens with a two-row summary in the right column, in place of the budget line. The first row is the league. The second row is the user's team. That label column is 170 pixels wide, the same as Name. The category switches sit above it, in that same column.
 
 The league row is every sold player, including the user's. The user's row is the user's sales only. A player who is still available is on neither row.
 
-The first columns are money left, money spent, spots left, and spots taken. League money and spots count every sale. The user's money and spots count only the user's sales.
+The first columns are money left and money spent. League money counts every sale. The user's money counts only the user's sales. Spots left and spots taken are calculated the same way and are not shown.
 
-Each active category follows, in the same order as the price table. A counting cell is the average per-game rate of the players on that row. FG% and FT% are the attempt-weighted percentage and the average attempts per game, in the same cell as the lists. Each player counts once. A missing percentage is left out of that percentage. A sold player with no projection is left out of the category cells and still counts in the money and spots.
+Each active category follows, in the same order as the price table. A counting cell is the average per-game rate of the players on that row. FG% and FT% are the attempt-weighted percentage and the average attempts per game, in the same cell as the lists. Each player counts once. A missing percentage is left out of that percentage. A sold player with no projection is left out of the category cells and still counts in the money.
 
-The cell color is the average plain z of those same players, using the same six bands as one player. The z-score is not shown. The summary does not mark a punt. The switches under the table are what change the player row and the lists.
+The cell color is the average plain z of those same players, using the same six bands as one player. The z-score is not shown. The summary does not mark a punt. The switches above the table are what change the player row and the lists.
 
-A row with no players leaves the category cells blank. Money and spots still show.
+A row with no players leaves the category cells blank. Money still shows.
 
 Another team's purchase changes the league row. It does not change the user's row.
 
@@ -206,28 +206,27 @@ Not used. The auction reprice already makes the remaining prices add up to the m
 
 ### Price list
 
-- One price table sorted by the plain rank. Headers are Name, Pos, TZ Rank, TZ Price, TC Rank, TC Price, PZ Rank, PZ Price, PC Rank, PC Price, Games, Minutes, then each active category. TZ is the plain total and TC is the curved total. PZ and PC are the personal rank and price. Those four columns stay on the table when nothing is punted, and their cells are empty. A missing price stays blank. Names stay on the left. Every other value is centered. The price columns show a dollar sign in front of the whole-dollar amount. Name is 170 pixels wide. Pos is 80. Rank columns and price columns are 65. Games and minutes are 60. FG% / FGA, FT% / FTA, and each counting category are 100. The table stops at those widths. Each category's projection is colored by its plain z. FG% and FT% share a cell with their attempts. Games under 60 and minutes under 25 are marked. Pos is every position from the projection files, kept when at least one file lists it, written PG/SG/SF/PF/C. A player with no projection leaves Pos blank. The score totals stay in the calculation and are not shown.
-- One line under the summary table and above the player search lists each category the league has turned on, with a switch. A switch starts on. Turning it off punts that category. A third off switch is refused. Turning the last switch off is refused. The choice is not saved.
-- PZ Rank, PZ Price, PC Rank, and PC Price follow TC Price. With a punt, the table sorts by PZ Rank. The base ranks and prices stay. The personal numbers use the same price rule, with the punted categories left out of both totals. With no punt, those four columns stay and their cells are empty. The punted category stays on the table and its header is marked `(p)`. Its cells use gray text and a paler color band. Counting headers are 3pt, Pts, Reb, Ast, Stl, Blk, and Tov.
+- One price table sorted by the plain rank. Headers are Name, Pos, TZ Rank, TC Rank, PC Rank, Games, Minutes, then each active category. PZ Rank and the price columns are not on this table. TZ is the plain total and TC is the curved total. PZ and PC are the personal rank and price. PC Rank stays on the table when nothing is punted, and its cells are empty. A missing price stays blank. Names stay on the left. Every other value is centered. The price columns show a dollar sign in front of the whole-dollar amount. Name is 170 pixels wide. Pos is 80. Rank columns and price columns are 65. Games and minutes are 60. FG% / FGA, FT% / FTA, and each counting category are 100. The table stops at those widths. Each category's projection is colored by its plain z. FG% and FT% share a cell with their attempts. Games under 60 and minutes under 25 are marked. Pos is every position from the projection files, kept when at least one file lists it, written PG/SG/SF/PF/C. A player with no projection leaves Pos blank. The score totals stay in the calculation and are not shown.
+- One line above the summary table, in the right column, lists each category the league has turned on, with a switch. A switch starts on. Turning it off punts that category. A third off switch is refused. Turning the last switch off is refused. The choice is not saved.
+- PC Rank follows TC Rank. PZ Rank and the price columns are not on the table. With a punt, the table sorts by PZ Rank. The base ranks stay. The personal numbers use the same price rule, with the punted categories left out of both totals. With no punt, PC Rank stays and its cells are empty. The punted category stays on the table and its header is marked `(p)`. Its cells use gray text and a paler color band. Counting headers are 3pt, Pts, Reb, Ast, Stl, Blk, and Tov.
 - Leave sold players off the list, and reprice the players still available from the spots and money that are left.
 
 ### Draft
 
 - Keep the league header. Under it, a Players tab for the dataset lists and a Draft tab for the auction. The selected tab has a light filled background.
-- On Draft, a two-row summary replaces the budget line and sits above the category switches. The first row is the league. The second row is the user's team. The columns are money left, money spent, spots left, spots taken, then each active category. Category cells show the average of the players on that row and use the same six color bands as one player. The max bid stays on the player view.
-- Three lists: players still available with the repriced amounts, the user's taken players, and other teams' taken players. Your players and other teams show the name, Pos, the price paid, keeper or draft, then Games, Minutes, and each active category. Those cells use the same colors as the price table, including a paler band on a punt. Ranks and scores stay off those two lists. Name, price, games, minutes, and category widths match the price table. Sale is 80 pixels wide.
-- Search sits above the lists. "Search player" sits to the left of the select, which is about 50 characters wide. One price-table row stays under the search. With no player chosen, the row is empty. Choosing a player, or a row in a list, fills that row. One player is open at a time. The list that contains that player has the row checked, and the other lists are clear. Choosing a row or a name in the search moves the check. Clearing the check clears the player. The lists stay on the page.
-- Under the row, one line holds the sale. My team or Another team, and Draft or Keeper, are each two buttons with one pressed. Price sits to the left of the amount, and the max bid or team budget sits to the right of it. Mark sold follows that, with a small gap, when the player is not sold. Save and Unmark follow it when the player is sold. Save stays off until team, keeper or draft, or price changes.
-- Mark the player sold as a keeper or a draft sale, on the user's team or another team, with a price. Edit those values or unmark the player.
-- The category switches stay on Draft, under the summary table and above the player search.
-- Nominations and targets sit side by side under the sale line, targets on the right. Both lists use Name, Pos, TZ Price, TC Price or PC Price, and Category. Each list has at most five available players. Nominations, Targets, Still available, Your players, and Other teams use a small title close to the list. A nomination is the room's plain price above the curved price, using PC Price when a punt is on. The same gap uses TZ Rank above TC Rank, or above PC Rank with a punt. A target is green in the category where the user is furthest behind, ordered by TC Price or PC Price, and by that curved rank when the price matches, and within the max bid. A nomination is not also a target.
+- On Draft, two columns sit under the league header. The right column holds the category switches, then a two-row summary, then the player section. The first row is the league. The second row is the user's team. That label column is 170 pixels wide, the same as Name. The columns after it are money left, money spent, then each active category. Category cells show the average of the players on that row and use the same six color bands as one player. The max bid stays on the player view.
+- The left column holds Your players, then Other teams. Each list shows the select checkbox, Name, Pos, and Price, and is the height of one roster. Your players are ordered PG, SG, SF, PF, C, and fewer positions come first. Other teams are newest first. The title counts the players in that list out of that side's spots. Still available sits under the player section in the right column, with the repriced amounts.
+- The player section sits in the right column under the summary. One price-table row comes first, without the rank columns or the price columns. Under that row, one line reads TZ Price, TC Price, PC Price, and Max bid. Each value is bold, and a spaced dash separates the values. PZ Price is not on that line. Under that line, "Search player" sits to the left of the select, which is about 50 characters wide. On that same line, the sale form keeps Draft or Keeper, a price, and two buttons. A player who is not sold can be added with Add to my team or Add to another. A player already on the user's team gets Edit my team and Switch to another. A player already on another team gets Switch to my team and Edit in another. An edit stays off until keeper or draft, or the price, changes. With no player chosen, the row is empty and those three prices are blank. Choosing a player, or a row in a list, fills that row. One player is open at a time. The list that contains that player has the row checked, and the other lists are clear. Choosing a row or a name in the search moves the check. Clearing the check clears the player. The lists stay on the page.
+- Mark the player sold as a keeper or a draft sale, on the user's team or another team, with a price. Edit those values, or move the player to the other side.
+- The category switches stay on Draft, above the summary table in the right column.
+- Nominations and targets sit side by side under Still available, targets on the right. Both lists use Name, Pos, TZ Price, TC Price or PC Price, and Category. Each list has at most five available players. Nominations, Targets, Still available, Your players, and Other teams use a small title close to the list. Your players and Other teams sit in the left column, show Name, Pos, and Price, and are the height of one roster. Your players are ordered PG, SG, SF, PF, C, with fewer positions first. Other teams are newest first. Each title counts its players out of that side's spots. A nomination is the room's plain price above the curved price, using PC Price when a punt is on. The same gap uses TZ Rank above TC Rank, or above PC Rank with a punt. A target is green in the category where the user is furthest behind, ordered by TC Price or PC Price, and by that curved rank when the price matches, and within the max bid. A nomination is not also a target.
 
 ### Category summary
 
-- Two rows at the top of Draft: the league, then the user's team.
-- Money left, money spent, spots left, and spots taken, then each active category.
+- Two rows in the right column of Draft: the league, then the user's team. That label column is 170 pixels wide, the same as Name. The category switches sit above that table.
+- Money left and money spent, then each active category. Spots left and spots taken are not columns.
 - The league row averages every sold player. The user's row averages the user's players. The color is the average plain z, in the same six bands as one player.
-- The summary does not mark a punt. The switches under it change the player row and the lists.
+- The summary does not mark a punt. The switches above it change the player row and the lists.
 
 ### Inflation
 
@@ -258,7 +257,7 @@ Not used. The auction reprice already makes the remaining prices add up to the m
 
 ### A mistype
 
-1. User edits the price or unmarks the player.
+1. User edits the price or moves the player to the other side.
 2. The list and the money match the sales that remain.
 
 ## 9. What “done” means for this stage

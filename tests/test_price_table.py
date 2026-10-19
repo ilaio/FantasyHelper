@@ -78,20 +78,40 @@ class ColorTests(unittest.TestCase):
         self.assertNotIn("Blk", columns)
         self.assertEqual(column_label("Blk", False), "Blk")
 
-    def test_a_taken_list_keeps_the_projection_and_drops_ranks(self) -> None:
-        active = frozenset({"pts", "reb", "blk", "fg_pct"})
-        columns = roster_columns(active, frozenset({"blk"}))
-        self.assertEqual(columns[:6], ["Name", "Pos", "Price", "Sale", "Games", "Minutes"])
-        self.assertEqual(columns[6], "FG% / FGA")
-        self.assertIn("Blk (p)", columns)
-        self.assertNotIn("TZ Rank", columns)
-        self.assertNotIn("PZ Price", columns)
+    def test_the_open_player_row_omits_rank_and_price_columns(self) -> None:
+        active = frozenset({"pts", "blk"})
+        columns = table_columns(active, ranks=False, prices=False)
+        self.assertEqual(columns[:4], ["Name", "Pos", "Games", "Minutes"])
+        self.assertEqual(columns[4:], ["Pts", "Blk"])
+        for name in ("TZ Rank", "TC Rank", "PZ Rank", "PC Rank", "TZ Price", "TC Price", "PZ Price", "PC Price"):
+            self.assertNotIn(name, columns)
+        marked = table_columns(active, frozenset({"blk"}), ranks=False, prices=False)
+        self.assertIn("Blk (p)", marked)
+
+    def test_still_available_omits_pz_rank_and_price_columns(self) -> None:
+        active = frozenset({"pts", "blk"})
+        columns = table_columns(active, prices=False, pz_rank=False)
+        self.assertEqual(
+            columns[:7],
+            ["Name", "Pos", "TZ Rank", "TC Rank", "PC Rank", "Games", "Minutes"],
+        )
+        self.assertEqual(columns[7:], ["Pts", "Blk"])
+        for name in ("PZ Rank", "TZ Price", "TC Price", "PZ Price", "PC Price"):
+            self.assertNotIn(name, columns)
+        marked = table_columns(active, frozenset({"blk"}), prices=False, pz_rank=False)
+        self.assertIn("Blk (p)", marked)
+
+    def test_a_taken_list_shows_name_position_and_price(self) -> None:
+        columns = roster_columns()
+        self.assertEqual(columns, ["Name", "Pos", "Price"])
         self.assertEqual(price_format("Price"), "$%d")
 
     def test_the_summary_has_money_then_categories_and_no_punt_mark(self) -> None:
         columns = summary_columns(frozenset({"pts", "blk", "fg_pct"}))
-        self.assertEqual(columns[:5], [" ", "Money left", "Spent", "Spots left", "Taken"])
-        self.assertEqual(columns[5:], ["FG% / FGA", "Pts", "Blk"])
+        self.assertEqual(columns[:3], [" ", "Money left", "Spent"])
+        self.assertEqual(columns[3:], ["FG% / FGA", "Pts", "Blk"])
+        self.assertNotIn("Spots left", columns)
+        self.assertNotIn("Taken", columns)
         self.assertNotIn("Blk (p)", columns)
 
     def test_nominations_and_targets_share_columns(self) -> None:
