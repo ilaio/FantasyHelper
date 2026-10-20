@@ -6,8 +6,6 @@ import pandas as pd
 import streamlit as st
 
 from fantasyhelper.valuation.prices import (
-    DRAFT,
-    KEEPER,
     CategoryAverage,
     PriceRow,
     Sale,
@@ -65,18 +63,13 @@ _STEALS_WIDTH = 100
 _BLOCKS_WIDTH = 100
 _TURNOVERS_WIDTH = 100
 _SALE_WIDTH = 80
-_SUMMARY_LABEL_WIDTH = 120
 _MONEY_LEFT_WIDTH = 110
 _SPENT_WIDTH = 80
-_SPOTS_LEFT_WIDTH = 100
-_TAKEN_WIDTH = 80
 _SUMMARY_LABEL = " "
 _SUGGESTION_CATEGORY_WIDTH = 180
 _SUMMARY_MONEY = {"Money left": _MONEY_LEFT_WIDTH, "Spent": _SPENT_WIDTH}
-_SUMMARY_SPOTS = {"Spots left": _SPOTS_LEFT_WIDTH, "Taken": _TAKEN_WIDTH}
 _RANK_HEADERS = frozenset({"TZ Rank", "TC Rank", "PZ Rank", "PC Rank"})
 _PRICE_HEADERS = frozenset({"TZ Price", "TC Price", "PZ Price", "PC Price", "Price"})
-_SALE_LABELS = {DRAFT: "Draft", KEEPER: "Keeper"}
 _CATEGORY_WIDTHS = {
     "3pt": _THREES_WIDTH,
     "Pts": _POINTS_WIDTH,
@@ -110,11 +103,20 @@ def show_price_table(
     selection_key: str | None = None,
     on_select=None,
     height: int | str = "auto",
+    ranks: bool = True,
+    prices: bool = True,
+    pz_rank: bool = True,
 ) -> None:
     """Draw the price table. No rows draws one blank row in the same columns."""
-    columns = table_columns(active, punted)
+    columns = table_columns(active, punted, ranks=ranks, prices=prices, pz_rank=pz_rank)
     if rows:
         frame = _frame(rows, active, punted)
+        if not ranks:
+            frame = frame.drop(columns=[name for name in frame.columns if name in _RANK_HEADERS])
+        if not prices:
+            frame = frame.drop(columns=[name for name in frame.columns if name in _PRICE_HEADERS])
+        if not pz_rank:
+            frame = frame.drop(columns=[name for name in frame.columns if name == "PZ Rank"])
         data = _styled(frame, rows, active, punted)
     else:
         data = pd.DataFrame([{name: "" for name in columns}])
@@ -138,32 +140,25 @@ def show_roster_table(
     sales: tuple[Sale, ...],
     rows_by_id: dict[int, PriceRow],
     names: dict[int, str],
-    active: frozenset[str],
-    punted: frozenset[str],
     *,
     selection_key: str,
     on_select,
+    height: int,
 ) -> None:
-    """Your players or other teams: the paid price, the sale, and the colored projection."""
-    columns = roster_columns(active, punted)
+    """Your players or other teams: name, position, and the price paid."""
+    columns = roster_columns()
     records = []
-    colors = []
     for sale in sales:
         row = rows_by_id.get(sale.player_id)
         name = row.name if row is not None else names.get(sale.player_id, "Unknown player")
         positions = row.positions if row is not None else ""
-        records.append(
-            [name, positions, sale.price, _SALE_LABELS[sale.sale_type], *_projection_values(row, active)]
-        )
-        if row is None:
-            colors.append([""] * len(columns))
-        else:
-            colors.append(_row_colors(row, active, punted, columns))
+        records.append([name, positions, sale.price])
     frame = pd.DataFrame(records, columns=columns)
     st.dataframe(
-        _apply_style(frame, colors),
+        frame,
         hide_index=True,
         width="content",
+        height=height,
         column_config={name: _column_config(name) for name in columns},
         placeholder="",
         key=selection_key,
@@ -202,8 +197,6 @@ def _summary_record(label: str, side: SideSummary, active: frozenset[str]) -> di
         _SUMMARY_LABEL: label,
         "Money left": side.money_left,
         "Spent": side.money_spent,
-        "Spots left": side.spots_left,
-        "Taken": side.spots_taken,
     }
     for key, name in _STAT_COLUMNS:
         if key not in active:
@@ -237,18 +230,12 @@ def _summary_colors(
 
 def _summary_column_config(name: str) -> dict:
     if name == _SUMMARY_LABEL:
-        return st.column_config.Column(alignment="left", width=_SUMMARY_LABEL_WIDTH)
+        return st.column_config.Column(alignment="left", width=_NAME_WIDTH)
     if name in _SUMMARY_MONEY:
         return st.column_config.NumberColumn(
             alignment="center",
             format="$%d",
             width=_SUMMARY_MONEY[name],
-        )
-    if name in _SUMMARY_SPOTS:
-        return st.column_config.NumberColumn(
-            alignment="center",
-            format="%d",
-            width=_SUMMARY_SPOTS[name],
         )
     return st.column_config.Column(alignment="center", width=_column_width(name))
 
@@ -399,26 +386,36 @@ def _column_width(name: str) -> int:
     return _CATEGORY_WIDTHS[base]
 
 
-def table_columns(active: frozenset[str], punted: frozenset[str] = frozenset()) -> list[str]:
+def table_columns(
+    active: frozenset[str],
+    punted: frozenset[str] = frozenset(),
+    *,
+    ranks: bool = True,
+    prices: bool = True,
+    pz_rank: bool = True,
+) -> list[str]:
     lead = ["Name", "Pos", *_IDENTITY[1:], *_PERSONAL, *_USAGE]
+    if not ranks:
+        lead = [name for name in lead if name not in _RANK_HEADERS]
+    if not prices:
+        lead = [name for name in lead if name not in _PRICE_HEADERS]
+    if not pz_rank:
+        lead = [name for name in lead if name != "PZ Rank"]
     stats = [
         column_label(label, key in punted) for key, label in _STAT_COLUMNS if key in active
     ]
     return [*lead, *stats]
 
 
-def roster_columns(active: frozenset[str], punted: frozenset[str] = frozenset()) -> list[str]:
-    """Taken lists keep the paid price and the sale, then the same projection columns."""
-    stats = [
-        column_label(label, key in punted) for key, label in _STAT_COLUMNS if key in active
-    ]
-    return ["Name", "Pos", "Price", "Sale", *_USAGE, *stats]
+def roster_columns() -> list[str]:
+    """Taken lists show who was bought and for how much."""
+    return ["Name", "Pos", "Price"]
 
 
 def summary_columns(active: frozenset[str]) -> list[str]:
-    """Money and spots, then each active category. A punt is not marked here."""
+    """Money, then each active category. A punt is not marked here."""
     stats = [label for key, label in _STAT_COLUMNS if key in active]
-    return [_SUMMARY_LABEL, *_SUMMARY_MONEY, *_SUMMARY_SPOTS, *stats]
+    return [_SUMMARY_LABEL, *_SUMMARY_MONEY, *stats]
 
 
 def category_keys(active: frozenset[str]) -> tuple[str, ...]:

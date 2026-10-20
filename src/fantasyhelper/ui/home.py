@@ -119,18 +119,18 @@ header[data-testid="stHeader"] {
 [data-testid="stHorizontalBlock"]:has(.league-name):has(.league-details) > div:nth-child(2) {
     align-self: flex-end;
 }
-[data-testid="stHorizontalBlock"]:has(.draft-figure) {
+[data-testid="stHorizontalBlock"]:has(> [data-testid="stElementContainer"] .draft-figure) {
     width: fit-content;
     align-items: center;
 }
-[data-testid="stHorizontalBlock"]:has(.sale-price) > div:last-child {
+[data-testid="stHorizontalBlock"]:has(> [data-testid="stElementContainer"] .sale-price) > div:last-child {
     margin-left: 0.75rem;
 }
-[data-testid="stHorizontalBlock"]:has(.draft-figure) > div {
+[data-testid="stHorizontalBlock"]:has(> [data-testid="stElementContainer"] .draft-figure) > div {
     width: auto;
     flex: 0 0 auto;
 }
-[data-testid="stHorizontalBlock"]:has(.search-player) > div:has([data-testid="stSelectbox"]) {
+[data-testid="stHorizontalBlock"]:has(> [data-testid="stElementContainer"] .search-player) > div:has([data-testid="stSelectbox"]) {
     width: 50ch;
     flex: 0 0 50ch;
 }
@@ -182,6 +182,9 @@ div[data-testid="stCaptionContainer"] p {
 }
 [data-testid="stMarkdownContainer"] .draft-figure strong {
     font-weight: 700;
+}
+[data-testid="stMarkdownContainer"] .draft-figure .price-param:not(:last-child) {
+    margin-right: 4rem;
 }
 [data-testid="stMarkdownContainer"] .list-title {
     font-size: 1rem;

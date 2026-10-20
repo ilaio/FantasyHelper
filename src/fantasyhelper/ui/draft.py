@@ -5,7 +5,7 @@ from collections.abc import Callable, Sequence
 
 import streamlit as st
 
-from fantasyhelper.leagues.league import League, LeagueSettings
+from fantasyhelper.leagues.league import League
 from fantasyhelper.leagues.sales import list_sales, record_sale, remove_sale, update_sale
 from fantasyhelper.stats.store import load_baseline_rows
 from fantasyhelper.ui.prices import (
@@ -27,16 +27,23 @@ from fantasyhelper.valuation.prices import (
     build_price_table,
     category_summary,
     draft_suggestions,
+    apply_punt,
+    avoid_bid,
     max_bid,
     reprice_remaining,
 )
 from fantasyhelper.valuation.projection import lines_from_rows
 
-_SIDE_LABELS = {MINE: "My team", OTHER: "Another team"}
 _TYPE_LABELS = {DRAFT: "Draft", KEEPER: "Keeper"}
+_POSITIONS = ("PG", "SG", "SF", "PF", "C")
+# One text line, matching the dataframe's default row and header, plus its border.
+_ROW_PX = 35
+_HEADER_PX = 35
+_BORDER_PX = 1
 
 
 def render_draft(league: League) -> None:
+    _apply_check_reset(league.id)
     settings = league.settings
     sales = list_sales(league.id)
     players, seasons, projections = load_baseline_rows()
@@ -48,6 +55,7 @@ def render_draft(league: League) -> None:
         settings.roster_size,
     )
     by_id = {row.player_id: row for row in table.rows}
+    names = {int(player["id"]): str(player["name"]) for player in players}
     league_side, user_side = category_summary(
         by_id,
         sales,
@@ -56,55 +64,96 @@ def render_draft(league: League) -> None:
         settings.budget,
         settings.roster_size,
     )
-    show_summary_table(league_side, user_side, settings.categories)
+    punted: frozenset[str] = frozenset()
+    priced = None
+    can_pick = table.error is None and bool(table.rows)
+    with st.container(horizontal=True, vertical_alignment="top", gap="medium", wrap=False):
+        _sold_lists(league.id, sales, names, by_id, settings.team_count, settings.roster_size)
+        with st.container(gap="medium"):
+            if can_pick:
+                punted = punt_switches(league.id, settings.categories)
+            show_summary_table(league_side, user_side, settings.categories)
+            if can_pick:
+                with st.container(gap="xsmall"):
+                    chosen = st.session_state.get(_player_key(league.id))
+                    if chosen is not None and chosen not in {row.player_id for row in table.rows}:
+                        st.session_state.pop(_player_key(league.id), None)
+                        chosen = None
+                    player_id = chosen if isinstance(chosen, int) else None
+                    sale = None
+                    if player_id is not None:
+                        sale = next(
+                            (item for item in sales if item.player_id == player_id),
+                            None,
+                        )
+                    priced = reprice_remaining(
+                        table.rows,
+                        sales,
+                        settings.team_count,
+                        settings.budget,
+                        settings.roster_size,
+                        punted,
+                    )
+                    st.session_state[_shown_key(league.id)] = player_id
+                    _player_view(
+                        league,
+                        player_id,
+                        by_id.get(player_id) if player_id is not None else None,
+                        _opening_row(
+                            table.rows,
+                            player_id,
+                            punted,
+                            settings.team_count,
+                            settings.budget,
+                            settings.roster_size,
+                        ),
+                        priced.rows,
+                        sales,
+                        punted,
+                    )
+                    with st.container(
+                        horizontal=True,
+                        vertical_alignment="center",
+                        gap="medium",
+                        wrap=False,
+                        width="content",
+                    ):
+                        _search(league.id, table.rows)
+                        errors = _sale_form(league, player_id, sale)
+                    for message in errors:
+                        st.error(message)
+                _available(league.id, priced.error, priced.rows, settings.categories, punted)
+                if priced.error is None:
+                    nominations, targets = draft_suggestions(
+                        priced.rows,
+                        user_side,
+                        league_side,
+                        category_keys(settings.categories),
+                        punted,
+                        max_bid(settings.budget, settings.roster_size, sales),
+                    )
+                    with st.container(
+                        horizontal=True, vertical_alignment="top", gap="medium", width="content"
+                    ):
+                        with st.container(width="content"):
+                            _suggestions(
+                                league.id,
+                                "Nominations",
+                                "draft-nominations",
+                                nominations,
+                                punted,
+                                target=False,
+                            )
+                        with st.container(width="content"):
+                            _suggestions(
+                                league.id, "Targets", "draft-targets", targets, punted, target=True
+                            )
     if table.error:
         st.error(table.error)
         return
-    if not table.rows:
+    if not table.rows or priced is None:
         st.write("No players are in the projection yet.")
         return
-
-    names = {int(player["id"]): str(player["name"]) for player in players}
-    punted = punt_switches(league.id, settings.categories)
-    with st.container(gap="xsmall"):
-        _search(league.id, table.rows)
-        chosen = st.session_state.get(_player_key(league.id))
-        priced = reprice_remaining(
-            table.rows,
-            sales,
-            settings.team_count,
-            settings.budget,
-            settings.roster_size,
-            punted,
-        )
-        player_id = chosen if isinstance(chosen, int) else None
-        _player_view(
-            league,
-            player_id,
-            by_id.get(player_id) if player_id is not None else None,
-            priced.rows,
-            sales,
-            punted,
-        )
-    if priced.error is None:
-        nominations, targets = draft_suggestions(
-            priced.rows,
-            user_side,
-            league_side,
-            category_keys(settings.categories),
-            punted,
-            max_bid(settings.budget, settings.roster_size, sales),
-        )
-        with st.container(horizontal=True, vertical_alignment="top", gap="medium", width="content"):
-            with st.container(width="content"):
-                _suggestions(
-                    league.id, "Nominations", "draft-nominations", nominations, punted, target=False
-                )
-            with st.container(width="content"):
-                _suggestions(league.id, "Targets", "draft-targets", targets, punted, target=True)
-    _available(league.id, priced.error, priced.rows, settings.categories, punted)
-    _taken(league.id, "Your players", "draft-yours", sales, MINE, names, by_id, settings.categories, punted)
-    _taken(league.id, "Other teams", "draft-others", sales, OTHER, names, by_id, settings.categories, punted)
 
 
 def _figure(markup: str) -> None:
@@ -129,6 +178,93 @@ def _bid(amount: int | None) -> str:
 
 def _player_key(league_id: int) -> str:
     return f"draft-player-{league_id}"
+
+
+def _shown_key(league_id: int) -> str:
+    return f"draft-player-shown-{league_id}"
+
+
+def roster_position_key(positions: str, name: str) -> tuple[int, int, str, str]:
+    """PG through C, then fewer positions, then the name."""
+    codes = tuple(part for part in positions.split("/") if part)
+    indexes = [_POSITIONS.index(code) for code in codes if code in _POSITIONS]
+    if not codes:
+        earliest = len(_POSITIONS) + 1
+    elif not indexes:
+        earliest = len(_POSITIONS)
+    else:
+        earliest = min(indexes)
+    return (earliest, len(codes), name.casefold(), name)
+
+
+def taken_title(label: str, count: int, spots: int) -> str:
+    """How many players are on that side, out of that side's spots."""
+    return f"{label} ({count}/{spots})"
+
+
+def roster_table_height(roster_size: int) -> int:
+    """Pixel height for the header plus one row per roster spot."""
+    return roster_size * _ROW_PX + _HEADER_PX + 2 * _BORDER_PX
+
+
+def ordered_taken(
+    sales: Sequence[Sale],
+    side: str,
+    positions: dict[int, str],
+    names: dict[int, str],
+    *,
+    newest_first: bool,
+) -> tuple[Sale, ...]:
+    """Your players follow position. Other teams follow entry, newest first."""
+    chosen = tuple(sale for sale in sales if sale.side == side)
+    if newest_first:
+        return tuple(reversed(chosen))
+    return tuple(
+        sorted(
+            chosen,
+            key=lambda sale: roster_position_key(
+                positions.get(sale.player_id, ""),
+                names.get(sale.player_id, ""),
+            ),
+        )
+    )
+
+
+def sale_button_was_clicked(league_id: int, state: object) -> bool:
+    """A sale button for this league was clicked in this run.
+
+    A list check from an earlier player must not replace the open player then.
+    """
+    items = state.items() if hasattr(state, "items") else ()
+    league = str(league_id)
+    for key, value in items:
+        if value is not True or not isinstance(key, str):
+            continue
+        parts = key.split("-")
+        if len(parts) != 4 or parts[0] != "sale" or parts[2] != league:
+            continue
+        if parts[1] in (MINE, OTHER, "unmark") and parts[3].isdigit():
+            return True
+    return False
+
+
+def search_pick_stands(current: int | None, shown: int | None, *, shown_known: bool) -> bool:
+    """A search choice in this interaction stays. A list click still replaces the open player."""
+    return shown_known and current != shown
+
+
+def open_player_after_check(
+    current: int | None, ids: Sequence[int], picked: Sequence[int]
+) -> int | None:
+    """The player a list check leaves open. Clearing that player's row clears the search."""
+    if not picked:
+        if current in ids:
+            return None
+        return current
+    index = picked[0]
+    if index < 0 or index >= len(ids):
+        return current
+    return ids[index]
 
 
 def checked_row(ids: Sequence[int], player_id: int | None) -> list[int]:
@@ -168,53 +304,147 @@ def _search(league_id: int, rows: tuple[PriceRow, ...]) -> None:
         )
 
 
+def _opening_row(
+    rows: tuple[PriceRow, ...],
+    player_id: int | None,
+    punted: frozenset[str],
+    team_count: int,
+    budget: int,
+    roster_size: int,
+) -> PriceRow | None:
+    """This player's prices from before any sale. A punt uses the full pool."""
+    if player_id is None:
+        return None
+    pool = rows
+    if punted:
+        pool = apply_punt(rows, punted, team_count, budget, roster_size)
+    return next((row for row in pool if row.player_id == player_id), None)
+
+
+def _price_pair(current: int | None, opening: int | None) -> str:
+    """The price now, then the price from before any sale."""
+    return f"{_dollar(current)} / {_dollar(opening)}"
+
+
+def player_price_line(
+    row: PriceRow | None,
+    opening: PriceRow | None,
+    bid: str,
+    avoid: str,
+    higher: int | None,
+) -> str:
+    """TZ, TC, and PC under the open player, then the bid guides and how many rank higher.
+
+    Each price shows the amount now, then the amount from before any sale.
+    PZ stays off this line. A missing price reads $--.
+    """
+    parts = (
+        f"TZ Price: {_bold(_price_pair(_amount(row, 'plain_price'), _amount(opening, 'plain_price')))}",
+        f"TC Price: {_bold(_price_pair(_amount(row, 'curved_price'), _amount(opening, 'curved_price')))}",
+        f"PC Price: {_bold(_price_pair(_amount(row, 'personal_curved_price'), _amount(opening, 'personal_curved_price')))}",
+        f"Max bid: {_bold(bid)}",
+        f"Avoid bid: {_bold(avoid)}",
+        f"Higher ranked: {_bold('--' if higher is None else str(higher))}",
+    )
+    return "".join(f"<span class='price-param'>{part}</span>" for part in parts)
+
+
+def higher_ranked(
+    row: PriceRow | None,
+    available: tuple[PriceRow, ...],
+    punted: frozenset[str],
+) -> int | None:
+    """How many players still available rank above this one.
+
+    TC Rank is the order with no punt. PC Rank is the order once a punt is on.
+    A lower rank number is better. No player, or no PC Rank, leaves the count blank.
+    """
+    if row is None:
+        return None
+    if punted:
+        rank = row.personal_curved_rank
+        if rank is None:
+            return None
+        return sum(
+            1
+            for other in available
+            if other.personal_curved_rank is not None and other.personal_curved_rank < rank
+        )
+    return sum(1 for other in available if other.curved_rank < row.curved_rank)
+
+
+def team_buttons(sale: Sale | None) -> tuple[tuple[str, str, bool], tuple[str, str, bool]]:
+    """The my-team button, then the other-team button.
+
+    Each entry is the label, the side it writes, and whether it edits the current sale.
+    An edit stays off until keeper or draft, or the price, changes.
+    """
+    if sale is None:
+        return (("Add to my team", MINE, False), ("Add to another", OTHER, False))
+    if sale.side == MINE:
+        return (("Edit my team", MINE, True), ("Switch to another", OTHER, False))
+    return (("Switch to my team", MINE, False), ("Edit in another", OTHER, True))
+
+
+def form_changed(sale: Sale, sale_type: str | None, price: object) -> bool:
+    """Keeper or draft, or the price, differs from the saved sale."""
+    return not (sale_type == sale.sale_type and _whole_dollars(price) == sale.price)
+
+
+def _amount(row: PriceRow | None, name: str) -> int | None:
+    if row is None:
+        return None
+    return getattr(row, name)
+
+
+def _dollar(amount: int | None) -> str:
+    if amount is None:
+        return "$--"
+    return f"${amount}"
+
+
+def _bold(value: str) -> str:
+    return f"<strong>{html.escape(value)}</strong>"
+
+
 def _player_view(
     league: League,
     player_id: int | None,
     base: PriceRow | None,
+    opening: PriceRow | None,
     available: tuple[PriceRow, ...],
     sales: tuple[Sale, ...],
     punted: frozenset[str],
 ) -> None:
-    sale = None
-    if player_id is not None:
-        sale = next((item for item in sales if item.player_id == player_id), None)
     shown = None
     if player_id is not None:
         shown = next((row for row in available if row.player_id == player_id), None)
     line = (shown,) if shown is not None else ((base,) if base is not None else ())
-    show_price_table(line, league.settings.categories, punted)
-    _sale_form(league, player_id, sale, sales)
+    show_price_table(line, league.settings.categories, punted, ranks=False, prices=False)
+    row = line[0] if line else None
+    rest = tuple(item for item in sales if item.player_id != player_id)
+    bid = _bid(max_bid(league.settings.budget, league.settings.roster_size, rest))
+    avoid = _bid(avoid_bid(league.settings.budget, league.settings.roster_size, rest))
+    st.markdown(
+        f"<p class='draft-figure'>{player_price_line(row, opening, bid, avoid, higher_ranked(row, available, punted))}</p>",
+        unsafe_allow_html=True,
+    )
 
 
 def _sale_form(
     league: League,
     player_id: int | None,
     sale: Sale | None,
-    sales: tuple[Sale, ...],
-) -> None:
+) -> tuple[str, ...]:
     suffix = str(player_id) if player_id is not None else "none"
-    side_key = f"sale-side-{league.id}-{suffix}"
     type_key = f"sale-type-{league.id}-{suffix}"
     price_key = f"sale-price-{league.id}-{suffix}"
-    if side_key not in st.session_state:
-        st.session_state[side_key] = sale.side if sale is not None else MINE
     if type_key not in st.session_state:
         st.session_state[type_key] = sale.sale_type if sale is not None else DRAFT
     if price_key not in st.session_state:
         st.session_state[price_key] = sale.price if sale is not None else None
     open_player = player_id is not None
-    with st.container(horizontal=True, vertical_alignment="center", gap="small", width="stretch"):
-        side = st.segmented_control(
-            "Team",
-            (MINE, OTHER),
-            format_func=lambda item: _SIDE_LABELS[item],
-            key=side_key,
-            required=True,
-            label_visibility="collapsed",
-            width="content",
-            disabled=not open_player,
-        )
+    with st.container(horizontal=True, vertical_alignment="center", gap="small", width="content"):
         sale_type = st.segmented_control(
             "Keeper or draft",
             (DRAFT, KEEPER),
@@ -235,63 +465,41 @@ def _sale_form(
             label_visibility="collapsed",
             disabled=not open_player,
         )
-        st.markdown(
-            f"<p class='draft-figure'>{html.escape(_cap_text(league.settings, sales, player_id, side))}</p>",
-            unsafe_allow_html=True,
-        )
-        errors = _sale_actions(league, player_id, sale, side, sale_type, price)
-    for message in errors:
-        st.error(message)
+        return _sale_actions(league, player_id, sale, sale_type, price)
 
 
 def _sale_actions(
     league: League,
     player_id: int | None,
     sale: Sale | None,
-    side: str | None,
     sale_type: str | None,
     price: object,
 ) -> tuple[str, ...]:
     errors: tuple[str, ...] = ()
     suffix = str(player_id) if player_id is not None else "none"
+    changed = sale is not None and form_changed(sale, sale_type, price)
     with st.container(horizontal=True, vertical_alignment="center", gap="small", width="content"):
-        if sale is None:
+        for label, side, edits in team_buttons(sale):
             if st.button(
-                "Mark sold",
-                key=f"sale-mark-{league.id}-{suffix}",
-                disabled=player_id is None,
+                label,
+                key=f"sale-{side}-{league.id}-{suffix}",
+                disabled=player_id is None or (edits and not changed),
             ):
-                errors = _save_sale(league, player_id, side, sale_type, price, replacing=False)
-            return errors
+                errors = _save_sale(
+                    league,
+                    player_id,
+                    side,
+                    sale_type,
+                    price,
+                    replacing=sale is not None,
+                )
         if st.button(
-            "Save",
-            key=f"sale-save-{league.id}-{suffix}",
-            disabled=not _sale_changed(sale, side, sale_type, price),
+            "Unmark player",
+            key=f"sale-unmark-{league.id}-{suffix}",
+            disabled=sale is None,
         ):
-            errors = _save_sale(league, player_id, side, sale_type, price, replacing=True)
-        if st.button("Unmark", key=f"sale-clear-{league.id}-{suffix}"):
-            _unmark(league.id, player_id)
+            errors = _unmark(league.id, player_id)
     return errors
-
-
-def _sale_changed(sale: Sale, side: str | None, sale_type: str | None, price: object) -> bool:
-    return not (
-        side == sale.side
-        and sale_type == sale.sale_type
-        and _whole_dollars(price) == sale.price
-    )
-
-
-def _cap_text(
-    settings: LeagueSettings,
-    sales: tuple[Sale, ...],
-    player_id: int | None,
-    side: str | None,
-) -> str:
-    if side == OTHER:
-        return f"Team budget: ${settings.budget}"
-    rest = tuple(sale for sale in sales if sale.player_id != player_id)
-    return f"Max bid: {_bid(max_bid(settings.budget, settings.roster_size, rest))}"
 
 
 def _save_sale(
@@ -312,19 +520,20 @@ def _save_sale(
     errors = save(league, player_id, side, whole, sale_type)
     if errors:
         return errors
-    _clear_list_selection(league.id)
+    # The sold lists already exist on this run, so their checks reset on the next one.
+    st.session_state[_check_reset_key(league.id)] = True
     st.rerun()
     return ()
 
 
-def _unmark(league_id: int, player_id: int | None) -> None:
+def _unmark(league_id: int, player_id: int | None) -> tuple[str, ...]:
+    """Take the player off the team they are on."""
     if player_id is None:
-        return
+        return ("Choose a player.",)
     remove_sale(league_id, player_id)
-    for name in ("side", "type", "price"):
-        st.session_state.pop(f"sale-{name}-{league_id}-{player_id}", None)
-    _clear_list_selection(league_id)
+    st.session_state[_check_reset_key(league_id)] = True
     st.rerun()
+    return ()
 
 
 def _whole_dollars(price: object) -> int | None:
@@ -361,6 +570,8 @@ def _suggestions(
                 f"{key_name}-{league_id}",
                 f"{key_name}-ids-{league_id}",
                 _player_key(league_id),
+                _shown_key(league_id),
+                league_id,
             ),
         )
 
@@ -382,7 +593,45 @@ def _available(
             _drop_list_check(f"draft-available-{league_id}")
             st.write("No players are still available.")
             return
-        _selectable_prices(league_id, "draft-available", rows, active, punted)
+        _selectable_prices(
+            league_id, "draft-available", rows, active, punted, prices=False, pz_rank=False
+        )
+
+
+def _sold_lists(
+    league_id: int,
+    sales: tuple[Sale, ...],
+    names: dict[int, str],
+    rows_by_id: dict[int, PriceRow],
+    team_count: int,
+    roster_size: int,
+) -> None:
+    """The left column: Your players, then Other teams."""
+    positions = {
+        player_id: row.positions for player_id, row in rows_by_id.items()
+    }
+    height = roster_table_height(roster_size)
+    with st.container(width="content", gap="medium"):
+        _taken(
+            league_id,
+            "Your players",
+            "draft-yours",
+            ordered_taken(sales, MINE, positions, names, newest_first=False),
+            names,
+            rows_by_id,
+            roster_size,
+            height,
+        )
+        _taken(
+            league_id,
+            "Other teams",
+            "draft-others",
+            ordered_taken(sales, OTHER, positions, names, newest_first=True),
+            names,
+            rows_by_id,
+            (team_count - 1) * roster_size,
+            height,
+        )
 
 
 def _taken(
@@ -390,30 +639,33 @@ def _taken(
     title: str,
     key_name: str,
     sales: tuple[Sale, ...],
-    side: str,
     names: dict[int, str],
     rows_by_id: dict[int, PriceRow],
-    active: frozenset[str],
-    punted: frozenset[str],
+    spots: int,
+    height: int,
 ) -> None:
     with st.container(gap="xxsmall"):
-        _list_title(title)
-        chosen = tuple(sale for sale in sales if sale.side == side)
-        if not chosen:
-            _drop_list_check(f"{key_name}-{league_id}")
-            st.write("No players yet.")
-            return
-        ids = tuple(sale.player_id for sale in chosen)
-        st.session_state[f"{key_name}-ids-{league_id}"] = ids
-        _sync_list_check(f"{key_name}-{league_id}", ids, st.session_state.get(_player_key(league_id)))
+        _list_title(taken_title(title, len(sales), spots))
+        table_key = f"{key_name}-{league_id}"
+        if not sales:
+            _drop_list_check(table_key)
+        else:
+            ids = tuple(sale.player_id for sale in sales)
+            st.session_state[f"{key_name}-ids-{league_id}"] = ids
+            _sync_list_check(table_key, ids, st.session_state.get(_player_key(league_id)))
         show_roster_table(
-            chosen,
+            sales,
             rows_by_id,
             names,
-            active,
-            punted,
-            selection_key=f"{key_name}-{league_id}",
-            on_select=_open_row(f"{key_name}-{league_id}", f"{key_name}-ids-{league_id}", _player_key(league_id)),
+            selection_key=table_key,
+            on_select=_open_row(
+                table_key,
+                f"{key_name}-ids-{league_id}",
+                _player_key(league_id),
+                _shown_key(league_id),
+                league_id,
+            ),
+            height=height,
         )
 
 
@@ -423,6 +675,9 @@ def _selectable_prices(
     rows: tuple[PriceRow, ...],
     active: frozenset[str],
     punted: frozenset[str],
+    *,
+    prices: bool = True,
+    pz_rank: bool = True,
 ) -> None:
     ids = tuple(row.player_id for row in rows)
     st.session_state[f"{key_name}-ids-{league_id}"] = ids
@@ -431,30 +686,49 @@ def _selectable_prices(
         rows,
         active,
         punted,
+        prices=prices,
+        pz_rank=pz_rank,
         selection_key=f"{key_name}-{league_id}",
         on_select=_open_row(
             f"{key_name}-{league_id}",
             f"{key_name}-ids-{league_id}",
             _player_key(league_id),
+            _shown_key(league_id),
+            league_id,
         ),
     )
 
 
-def _open_row(table_key: str, ids_key: str, player_key: str) -> Callable[[], None]:
+def _open_row(
+    table_key: str,
+    ids_key: str,
+    player_key: str,
+    shown_key: str,
+    league_id: int,
+) -> Callable[[], None]:
     def _open() -> None:
+        if sale_button_was_clicked(league_id, st.session_state):
+            return
+        if search_pick_stands(
+            st.session_state.get(player_key),
+            st.session_state.get(shown_key),
+            shown_known=shown_key in st.session_state,
+        ):
+            return
         state = st.session_state.get(table_key)
         ids: Sequence[int] = st.session_state.get(ids_key) or ()
         if state is None or not ids:
             return
         picked = _selected_rows(state)
         if not picked:
-            if st.session_state.get(player_key) in ids:
-                st.session_state.pop(player_key, None)
-            return
-        index = picked[0]
-        if index < 0 or index >= len(ids):
-            return
-        st.session_state[player_key] = ids[index]
+            # An uncheck does not replace the stored selection on its own.
+            st.session_state[table_key] = _selection_state(())
+        current = st.session_state.get(player_key)
+        current_id = current if isinstance(current, int) else None
+        remembered = open_player_after_check(current_id, ids, picked)
+        if remembered != current:
+            # None is stored on purpose. Dropping the key lets the search keep the old player.
+            st.session_state[player_key] = remembered
 
     return _open
 
@@ -464,9 +738,7 @@ def _sync_list_check(table_key: str, ids: Sequence[int], player_id: int | None) 
     wanted = checked_row(ids, player_id)
     if _selected_rows(st.session_state.get(table_key)) == wanted:
         return
-    st.session_state[table_key] = {
-        "selection": {"rows": wanted, "columns": [], "cells": []},
-    }
+    st.session_state[table_key] = _selection_state(wanted)
 
 
 def _drop_list_check(table_key: str) -> None:
@@ -481,6 +753,22 @@ def _selected_rows(state: object) -> list[int]:
     return list(rows)
 
 
+def _selection_state(rows: Sequence[int]) -> dict[str, dict[str, list[int]]]:
+    return {"selection": {"rows": list(rows), "columns": [], "cells": []}}
+
+
+def _check_reset_key(league_id: int) -> str:
+    return f"draft-reset-checks-{league_id}"
+
+
+def _apply_check_reset(league_id: int) -> None:
+    """Clear list checks before any of those tables are created."""
+    if st.session_state.pop(_check_reset_key(league_id), False):
+        _clear_list_selection(league_id)
+
+
 def _clear_list_selection(league_id: int) -> None:
+    """Drop every list check. An empty selection is sent so a removed row cannot stay checked."""
+    empty = _selection_state(())
     for name in ("draft-nominations", "draft-targets", "draft-available", "draft-yours", "draft-others"):
-        st.session_state.pop(f"{name}-{league_id}", None)
+        st.session_state[f"{name}-{league_id}"] = empty

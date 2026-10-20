@@ -82,10 +82,10 @@ In particular:
 - Percentages use the stored percentage, attempts, and volume-aware impact. Makes are not a stored column.
 - Turnovers are reversed so fewer is better.
 - A punt recomputes the total and the dollar scale. It does not subtract from a finished price.
-- Max bid leaves $1 for each spot that remains after the current player. The final spot can use the last dollar.
+- Max bid leaves $1 for each spot that remains after the current player. The final spot can use the last dollar. Avoid bid leaves $2 for each of the last four of those spots, then doubles every two spots, and stays between $1 and the max bid.
 - Another team’s purchase changes the pool, the auction prices, and the league row of the summary. It does not change the user's row.
-- The summary table does not mark a punt. A punt fades on the price table and the taken lists.
-- A nomination is ordered by the plain price above the curved price. A target has to be green in the category the roster is behind, and a nomination is not repeated there. The two lists sit side by side and show the same columns: name, Pos, TZ Price, TC Price or PC Price, and the category. Pos is every projection position, kept when at least one file lists it.
+- The summary table does not mark a punt. A punt fades on the price table.
+- A nomination is ordered by the plain price above the curved price, and a tied gap by how far the plain rank sits above the curved rank. A target is ordered by the curved price, and a tied price by that curved rank. A target has to be green in the category the roster is behind, and a nomination is not repeated there. The two lists sit side by side and show the same columns: name, Pos, TZ Price, TC Price or PC Price, and the category. Pos is every projection position, kept when at least one file lists it.
 
 Show the punt prices beside the base prices. The auction reprice replaces both dollar scales for the players still available. Do not keep a second inflation scale.
 
