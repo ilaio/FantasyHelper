@@ -99,9 +99,15 @@ _TEAM_COLUMN = "Team"
 _TEAM_WIDTH = 200
 
 
+_PLACEMENT_OMIT = frozenset({"TC Price", "PZ Price", "PC Price"})
+
+
 def placement_columns(active: frozenset[str]) -> list[str]:
-    """Price-table columns with Team after Name. A punt is not marked."""
-    base = table_columns(active, frozenset())
+    """Team after Name, TZ Price before TZ Rank, and no TC, PZ, or PC price."""
+    base = [name for name in table_columns(active, frozenset()) if name not in _PLACEMENT_OMIT]
+    rank_at = base.index("TZ Rank")
+    price_at = base.index("TZ Price")
+    base[rank_at], base[price_at] = base[price_at], base[rank_at]
     return [base[0], _TEAM_COLUMN, *base[1:]]
 
 
@@ -113,10 +119,12 @@ def placement_frame(
 ) -> pd.DataFrame:
     """One row per player. blanks are a name and a team label with no projection."""
     columns = placement_columns(active)
+    base_columns = table_columns(active, frozenset())
     records = []
     for row, label in zip(rows, labels, strict=True):
-        values = _values(row, active)
-        records.append([values[0], label, *values[1:]])
+        values = dict(zip(base_columns, _values(row, active), strict=True))
+        values[_TEAM_COLUMN] = label
+        records.append([values[column] for column in columns])
     for name, label in blanks:
         records.append(_blank_placement(columns, name, label))
     frame = pd.DataFrame(records, columns=columns)
@@ -143,8 +151,8 @@ def show_placement_table(
     colors = []
     base_columns = table_columns(active, frozenset())
     for row in rows:
-        base = _row_colors(row, active, frozenset(), base_columns)
-        colors.append([base[0], "", *base[1:]])
+        painted = dict(zip(base_columns, _row_colors(row, active, frozenset(), base_columns), strict=True))
+        colors.append([painted.get(column, "") for column in columns])
     colors.extend([""] * len(columns) for _blank in blanks)
     data: pd.DataFrame | pd.io.formats.style.Styler
     if frame.empty:

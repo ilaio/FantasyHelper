@@ -175,7 +175,12 @@ class PlacementTableTests(unittest.TestCase):
     def test_team_follows_name_and_a_punt_is_not_marked(self) -> None:
         active = frozenset({"pts", "to"})
         columns = placement_columns(active)
-        self.assertEqual(columns[:6], ["Name", "Team", "Pos", "TZ Rank", "TZ Price", "TC Rank"])
+        self.assertEqual(
+            columns[:8],
+            ["Name", "Team", "Pos", "TZ Price", "TZ Rank", "TC Rank", "PZ Rank", "PC Rank"],
+        )
+        for name in ("TC Price", "PZ Price", "PC Price"):
+            self.assertNotIn(name, columns)
         self.assertNotIn("Pts (p)", columns)
         self.assertIn("Pts", columns)
         frame = placement_frame(

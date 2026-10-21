@@ -206,9 +206,9 @@ A league starts with no teams. The league's team count does not create them. The
 
 The Players list is every player on the price table who is not on a team. A player who is on a team and not on that table stays on the team, and the price cells stay blank. Each team has its own list. A player is in one of those places. Every player row has a Team choice. The choice shows where that player is now, Players or a team name. Picking another place moves the player there.
 
-Both lists use the full price-table columns: Name, Pos, TZ Rank, TZ Price, TC Rank, TC Price, PZ Rank, PZ Price, PC Rank, PC Price, Games, Minutes, then each active category. Team follows Name. The ranks and prices are the full pool from before any sale. Placing a player does not reprice anyone. With no punt, the PZ and PC cells are empty. The lists are sorted by TZ Rank. A punt does not change that sort.
+Both lists use Name, Team, Pos, TZ Price, TZ Rank, TC Rank, PZ Rank, PC Rank, Games, Minutes, then each active category. Team follows Name. TZ Price is the full-pool price from before any sale. Placing a player does not reprice anyone. With no punt, PZ Rank and PC Rank are empty. The lists are sorted by TZ Rank. A punt does not change that sort.
 
-The category switches on this tab are the same unsaved punt choice as Draft. A switch starts on, at most two are off, and at least one stays on. On this tab a punt changes only PZ Rank, PZ Price, PC Rank, and PC Price, on the Players list and on every team list. It does not change the category columns, the averages, the scores, or the sort. A punted category is not faded on this tab. Draft keeps the display rules in section 6.1.
+The category switches on this tab are the same unsaved punt choice as Draft. A switch starts on, at most two are off, and at least one stays on. On this tab a punt changes only PZ Rank and PC Rank, on the Players list and on every team list. It does not change the category columns, the averages, the scores, or the sort. A punted category is not faded on this tab. Draft keeps the display rules in section 6.1.
 
 Each team list ends with an Average row. The name cell reads Average. Pos, the ranks, the prices, Games, and Minutes are empty, and that row has no Team choice. The category cells use the same averages as the draft summary in section 6.5. A counting stat is the per-game average. FG% and FT% are the attempt-weighted percentage and the average attempts. Each counted player counts once. A missing percentage is left out of that percentage. A player with no projection stays on the list and is left out of the category cells.
 
@@ -267,8 +267,8 @@ Under the team lists, two tables cover every team in the order the teams were ad
 - A Teams tab beside Players and Draft. The category switches sit at the top. Under them, the user adds a team by name. The Players list follows, then one section per team, then the averages table, then the scores table.
 - The Players list is everyone on the price table who is not on a team. A player on a team who is not on that table stays on the team, with the price cells blank. Each team section shows that team's name, which can be renamed in place, and that team's players. A league starts with no teams. The team count does not create them. A name is unique among that league's teams, ignoring case, and Players is reserved.
 - A Team choice on the player row shows Players or a team name. Changing it moves the player. One player is in one place.
-- The columns are the full price table, with Team after Name. Ranks and prices are the full pool from before any sale. The sort is TZ Rank. With no punt, the PZ and PC cells are empty.
-- The switches are the same unsaved punt as Draft. On this tab they change only PZ Rank, PZ Price, PC Rank, and PC Price. The category columns stay, the sort stays, and a punted category is not faded.
+- The columns are Name, Team, Pos, TZ Price, TZ Rank, TC Rank, PZ Rank, PC Rank, Games, Minutes, then each active category. TZ Price is the full pool from before any sale. The sort is TZ Rank. With no punt, PZ Rank and PC Rank are empty.
+- The switches are the same unsaved punt as Draft. On this tab they change only PZ Rank and PC Rank. The category columns stay, the sort stays, and a punted category is not faded.
 - Each team list ends with an Average row for the players whose Count is on. Count sits beside Team, starts on, and is not saved. A refresh turns every Count back on. Turning it off keeps the player visible. Moving a player onto a team starts them counted.
 - The averages table and the score table follow the teams, in the order the teams were added. The score gives the best team as many points as there are teams with an average in that category, then one less per place. A tie splits those places. Fewer turnovers rank higher. The total adds the categories. A team with nobody counted is blank and is not ranked.
 - Placements are separate from sales. Hiding a league leaves the teams and the placements.
@@ -342,5 +342,5 @@ These are product decisions, so implementation should follow them unless we chan
 - The auction reprice replaces a separate inflation factor.
 - The league host is not integrated. Draft results are manual.
 - Teams and placements are entered by hand and stored apart from draft sales. One player is on one team or on the Players list.
-- The Teams tab shows the full-pool prices from before any sale. A punt on that tab changes only the personal rank and price columns.
+- The Teams tab shows TZ Price from before any sale, then TZ Rank, TC Rank, PZ Rank, and PC Rank. A punt on that tab changes only PZ Rank and PC Rank.
 - A team's average counts the players whose Count is on. Count is not saved. The score ranks those averages, splits a tie, and treats fewer turnovers as better.

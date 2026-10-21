@@ -252,7 +252,7 @@ The two lists sit side by side under Still available, targets on the right. Both
 
 The product rules are in requirements section 6.7. This section is the storage and the score math. `leagues/` stores `teams` and `team_players`. `valuation/` returns the full-pool price table, the team average, and the score. `ui/` adds the Teams tab beside Players and Draft. Draft's punt display, reprice, and sales stay as they are.
 
-The lists show the price table from before any sale. PZ Rank, PZ Price, PC Rank, and PC Price come from that same full pool with the punted categories left out. With no punt those four cells are empty. Sorting is TZ Rank on every list. A punt does not change the sort, the category columns, the averages, or the scores, and it does not fade a category on this tab.
+The lists show Name, Team, Pos, TZ Price, TZ Rank, TC Rank, PZ Rank, PC Rank, Games, Minutes, then each active category. TZ Price is the full pool from before any sale. PZ Rank and PC Rank come from that same full pool with the punted categories left out. With no punt those two cells are empty. Sorting is TZ Rank on every list. A punt does not change the sort, the category columns, the averages, or the scores, and it does not fade a category on this tab.
 
 The Team column is an editable choice on an otherwise read-only grid. Its options are Players and each team name. The current value is where the player is now. Changing it writes or clears that player's team_players row and reruns. Count is a checkbox column on a team list only. It starts on, it is not saved, and a refresh turns every Count back on. The Average row is not an editable player. It sits under that team's rows, with no Team choice and no Count checkbox.
 
@@ -410,10 +410,10 @@ The Teams tab, without averages or scores. The rules are in section 5b and in re
 - Store `teams` and `team_players` for the open league. A league starts empty. Add a team by name, and rename it in place. The name is unique among that league's teams, ignoring case, and Players is reserved. Hiding a league leaves the rows. Count is not stored.
 - The tab order is the category switches, add a team, the Players list, then one section per team in the order added. The Players list is the price table minus anyone with a team_players row. A placed player who is not on that table stays on the team with blank price cells. A team section is that team's players.
 - Each player row has a Team choice after Name. The options are Players and the team names. Changing it moves the player. One player is in one place. A sale does not write a team_players row, and a team_players row does not write a sale.
-- The other columns are the full price table from before any sale: Pos, TZ Rank, TZ Price, TC Rank, TC Price, PZ Rank, PZ Price, PC Rank, PC Price, Games, Minutes, then the active categories. The sort is TZ Rank. With no punt, the PZ and PC cells are empty.
-- The switches are the same unsaved punt as Draft. On this tab a punt changes only those four personal columns. The sort stays. Categories do not fade. Draft's own display stays as it is.
+- The other columns are Pos, TZ Price, TZ Rank, TC Rank, PZ Rank, PC Rank, Games, Minutes, then the active categories. TZ Price is the full pool from before any sale. The sort is TZ Rank. With no punt, PZ Rank and PC Rank are empty.
+- The switches are the same unsaved punt as Draft. On this tab a punt changes only PZ Rank and PC Rank. The sort stays. Categories do not fade. Draft's own display stays as it is.
 
-Done when: two teams survive a restart, a renamed team keeps its players, a player moved from the Players list onto a team leaves that list, a move to the other team and a move back to Players land in the right list, a draft sale does not move them, and a punt changes only the four personal columns.
+Done when: two teams survive a restart, a renamed team keeps its players, a player moved from the Players list onto a team leaves that list, a move to the other team and a move back to Players land in the right list, a draft sale does not move them, and a punt changes only PZ Rank and PC Rank.
 
 Status: on the screen.
 
