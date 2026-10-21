@@ -123,7 +123,7 @@ Names can change when we create the schema. The contents should not grow beyond 
 
 **teams** — one row per named team in a league. `league_id`, `name`. The name is unique among that league's teams. A league starts with no rows. The league's team count does not insert them. Rows stay when the league is hidden. There is no remove in this scope. The order on screen is the order the rows were added.
 
-**assignments** — one row per player who has been placed on a team. `league_id`, `player_id`, `team_id`, `counted`. A player appears once in a league. No row means the player is on the Players list. `counted` starts on. Rows stay when the league is hidden. These rows are independent of `sales`: a sale does not write an assignment, and an assignment does not write a sale.
+**team_players** — one row per player who has been placed on a team. `league_id`, `player_id`, `team_id`. A player appears once in a league. No row means the player is on the Players list. Rows stay when the league is hidden. These rows are independent of `sales`: a sale does not write a team_players row, and a team_players row does not write a sale. Count is not a column. It lasts until the browser page is refreshed or the app stops, the same way a punt does.
 
 Derived facts are calculated, not stored: our projection, z-scores, prices, dollars left, spots left, max bid, category balance, team averages, and team scores. Storing them would create a second source of truth that can drift from the inputs.
 
@@ -250,13 +250,13 @@ The two lists sit side by side under Still available, targets on the right. Both
 
 ## 5b. Teams tab
 
-The product rules are in requirements section 6.7. This section is the storage and the score math. `leagues/` stores `teams` and `assignments`. `valuation/` returns the full-pool price table, the team average, and the score. `ui/` adds the Teams tab beside Players and Draft. Draft's punt display, reprice, and sales stay as they are.
+The product rules are in requirements section 6.7. This section is the storage and the score math. `leagues/` stores `teams` and `team_players`. `valuation/` returns the full-pool price table, the team average, and the score. `ui/` adds the Teams tab beside Players and Draft. Draft's punt display, reprice, and sales stay as they are.
 
 The lists show the price table from before any sale. PZ Rank, PZ Price, PC Rank, and PC Price come from that same full pool with the punted categories left out. With no punt those four cells are empty. Sorting is TZ Rank on every list. A punt does not change the sort, the category columns, the averages, or the scores, and it does not fade a category on this tab.
 
-The Team column is an editable choice on an otherwise read-only grid. Its options are Players and each team name. The current value is where the player is now. Changing it writes or clears that player's assignment and reruns. Count is a checkbox column on a team list only. The Average row is not an editable player. It sits under that team's rows, with no Team choice and no Count checkbox.
+The Team column is an editable choice on an otherwise read-only grid. Its options are Players and each team name. The current value is where the player is now. Changing it writes or clears that player's team_players row and reruns. Count is a checkbox column on a team list only. It starts on, it is not saved, and a refresh turns every Count back on. The Average row is not an editable player. It sits under that team's rows, with no Team choice and no Count checkbox.
 
-**Team average** — the same average as one row of the draft summary, using the players on that team whose `counted` is on. A counting cell is the per-game average. FG% and FT% are the attempt-weighted percentage and the average attempts per game. Each of those players counts once. A missing percentage is left out of that percentage. A player with no projection is left out of the category cells and still appears on the team. A team with no counted players leaves the category cells blank.
+**Team average** — the same average as one row of the draft summary, using the players on that team whose Count is on. A counting cell is the per-game average. FG% and FT% are the attempt-weighted percentage and the average attempts per game. Each of those players counts once. A missing percentage is left out of that percentage. A player with no projection is left out of the category cells and still appears on the team. A team with no counted players leaves the category cells blank.
 
 **Team score** — for one category, rank the teams that have an average. Let `n` be how many teams that is. First place receives `n` points, and each next place receives one point less, down to 1. Fewer turnovers rank first. Teams that tie share the places they occupy: each receives the mean of the points for those places. A team with a blank average is left out of `n` and stays blank. The total is the sum of the category points. A blank category adds nothing.
 
@@ -407,9 +407,9 @@ Retired. The auction reprice in section 4 already assigns the money still in the
 
 The Teams tab, without averages or scores. The rules are in section 5b and in requirements section 6.7.
 
-- Store `teams` and `assignments` for the open league. A league starts empty. Add a team by name, and rename it in place. The name is unique among that league's teams. Hiding a league leaves the rows.
-- The tab order is the category switches, add a team, the Players list, then one section per team in the order added. The Players list is everyone with no assignment. A team section is that team's players.
-- Each player row has a Team choice after Name. The options are Players and the team names. Changing it moves the player. One player is in one place. A sale does not write an assignment, and an assignment does not write a sale.
+- Store `teams` and `team_players` for the open league. A league starts empty. Add a team by name, and rename it in place. The name is unique among that league's teams. Hiding a league leaves the rows. Count is not stored.
+- The tab order is the category switches, add a team, the Players list, then one section per team in the order added. The Players list is everyone with no team_players row. A team section is that team's players.
+- Each player row has a Team choice after Name. The options are Players and the team names. Changing it moves the player. One player is in one place. A sale does not write a team_players row, and a team_players row does not write a sale.
 - The other columns are the full price table from before any sale: Pos, TZ Rank, TZ Price, TC Rank, TC Price, PZ Rank, PZ Price, PC Rank, PC Price, Games, Minutes, then the active categories. The sort is TZ Rank. With no punt, the PZ and PC cells are empty.
 - The switches are the same unsaved punt as Draft. On this tab a punt changes only those four personal columns. The sort stays. Categories do not fade. Draft's own display stays as it is.
 
@@ -422,7 +422,7 @@ Status: not started.
 The Average row, the Count checkbox, and the two summary tables. The math is in section 5b.
 
 - Each team list ends with an Average row named Average. Pos, ranks, prices, Games, and Minutes are empty. The category cells are the team average of the counted players.
-- Count sits beside Team on a team row. It starts on and is stored. Off keeps the player on the team and leaves them out of the average and the score. A player who moves onto a team starts counted.
+- Count sits beside Team on a team row. It starts on and is not saved. A refresh turns every Count back on. Off keeps the player on the team and leaves them out of the average and the score. A player who moves onto a team starts counted.
 - Under the teams, an averages table and a score table list every team in the order added. The score uses the place points in section 5b, splits a tie by the mean of those places, ranks fewer turnovers higher, and totals the categories. A team with no counted players is blank and is not ranked.
 
 Done when: a hand example matches the average and the 2.5 / 1 split, turning Count off removes that player from both tables and leaves them on the team, a team with nobody counted is blank, and fewer turnovers rank first.
@@ -450,4 +450,4 @@ We do not need a large automated suite before there is logic. Once valuation and
 - **Preseason emptiness.** When a current-season file returns with day-to-day work, an empty season has to import cleanly. This stage does not use that file as the price baseline.
 - **CSV shape.** Task 2 imports the inbox files described in section 2. A file with a different header is refused instead of guessing columns.
 - **Name match.** Normalization plus the alias list will miss spellings that are not on it. Those players import as separate people. Merging them is a later feature, and a merge recalculates prices. A key clash inside one file refuses that file.
-- **Streamlit reruns.** Widgets rerun the script often. Draft writes must be idempotent: saving the same sale twice must not double-charge. The same rule applies to a Team choice and a Count checkbox: one change writes one placement. The database is the source of truth, not widget state.
+- **Streamlit reruns.** Widgets rerun the script often. Draft writes must be idempotent: saving the same sale twice must not double-charge. The same rule applies to a Team choice: one change writes one team_players row. Count is not stored. The database is the source of truth for a placement, not widget state.
