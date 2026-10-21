@@ -1,6 +1,6 @@
 # Planning — Fantasy NBA Draft Assistant
 
-Status: The draft is on the screen. The next scope is the Teams tab, Tasks 12 and 13. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
+Status: Task 12, the Teams tab, is on the screen. Task 13 is the averages and scores. Living document. Update the task list as work moves. Product behavior is defined in `docs/requirements.md`. Working rules are in `docs/development-guidelines.md`.
 
 ## 1. Architecture
 
@@ -121,7 +121,7 @@ Names can change when we create the schema. The contents should not grow beyond 
 
 **sales** — one row per player in a league. `league_id`, `player_id`, `side` (`mine` or `other`), `price` (whole dollars, at least $1), `sale_type` (`keeper` or `draft`). A keeper is a sale entered before the draft. The mark does not change the math. A player appears once. Rows stay when the league is hidden.
 
-**teams** — one row per named team in a league. `league_id`, `name`. The name is unique among that league's teams. A league starts with no rows. The league's team count does not insert them. Rows stay when the league is hidden. There is no remove in this scope. The order on screen is the order the rows were added.
+**teams** — one row per named team in a league. `league_id`, `name`. The name is unique among that league's teams, ignoring case. `Players` is reserved for the unassigned list. A league starts with no rows. The league's team count does not insert them. Rows stay when the league is hidden. There is no remove in this scope. The order on screen is the order the rows were added.
 
 **team_players** — one row per player who has been placed on a team. `league_id`, `player_id`, `team_id`. A player appears once in a league. No row means the player is on the Players list. Rows stay when the league is hidden. These rows are independent of `sales`: a sale does not write a team_players row, and a team_players row does not write a sale. Count is not a column. It lasts until the browser page is refreshed or the app stops, the same way a punt does.
 
@@ -407,15 +407,15 @@ Retired. The auction reprice in section 4 already assigns the money still in the
 
 The Teams tab, without averages or scores. The rules are in section 5b and in requirements section 6.7.
 
-- Store `teams` and `team_players` for the open league. A league starts empty. Add a team by name, and rename it in place. The name is unique among that league's teams. Hiding a league leaves the rows. Count is not stored.
-- The tab order is the category switches, add a team, the Players list, then one section per team in the order added. The Players list is everyone with no team_players row. A team section is that team's players.
+- Store `teams` and `team_players` for the open league. A league starts empty. Add a team by name, and rename it in place. The name is unique among that league's teams, ignoring case, and Players is reserved. Hiding a league leaves the rows. Count is not stored.
+- The tab order is the category switches, add a team, the Players list, then one section per team in the order added. The Players list is the price table minus anyone with a team_players row. A placed player who is not on that table stays on the team with blank price cells. A team section is that team's players.
 - Each player row has a Team choice after Name. The options are Players and the team names. Changing it moves the player. One player is in one place. A sale does not write a team_players row, and a team_players row does not write a sale.
 - The other columns are the full price table from before any sale: Pos, TZ Rank, TZ Price, TC Rank, TC Price, PZ Rank, PZ Price, PC Rank, PC Price, Games, Minutes, then the active categories. The sort is TZ Rank. With no punt, the PZ and PC cells are empty.
 - The switches are the same unsaved punt as Draft. On this tab a punt changes only those four personal columns. The sort stays. Categories do not fade. Draft's own display stays as it is.
 
 Done when: two teams survive a restart, a renamed team keeps its players, a player moved from the Players list onto a team leaves that list, a move to the other team and a move back to Players land in the right list, a draft sale does not move them, and a punt changes only the four personal columns.
 
-Status: not started.
+Status: on the screen.
 
 ### Task 13 — Averages and scores
 

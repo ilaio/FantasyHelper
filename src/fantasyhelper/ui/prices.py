@@ -95,6 +95,94 @@ _SWITCH_LABELS = {
 }
 
 
+_TEAM_COLUMN = "Team"
+_TEAM_WIDTH = 200
+
+
+def placement_columns(active: frozenset[str]) -> list[str]:
+    """Price-table columns with Team after Name. A punt is not marked."""
+    base = table_columns(active, frozenset())
+    return [base[0], _TEAM_COLUMN, *base[1:]]
+
+
+def placement_frame(
+    rows: tuple[PriceRow, ...],
+    labels: tuple[str, ...],
+    active: frozenset[str],
+    blanks: tuple[tuple[str, str], ...] = (),
+) -> pd.DataFrame:
+    """One row per player. blanks are a name and a team label with no projection."""
+    columns = placement_columns(active)
+    records = []
+    for row, label in zip(rows, labels, strict=True):
+        values = _values(row, active)
+        records.append([values[0], label, *values[1:]])
+    for name, label in blanks:
+        records.append(_blank_placement(columns, name, label))
+    frame = pd.DataFrame(records, columns=columns)
+    for column in frame.columns:
+        if column in _RANK_HEADERS or column in _PRICE_HEADERS:
+            frame[column] = pd.to_numeric(frame[column], errors="coerce").astype("Int64")
+    return frame
+
+
+def show_placement_table(
+    rows: tuple[PriceRow, ...],
+    labels: tuple[str, ...],
+    active: frozenset[str],
+    destinations: tuple[str, ...],
+    *,
+    key: str,
+    on_change,
+    args: tuple[object, ...],
+    blanks: tuple[tuple[str, str], ...] = (),
+) -> None:
+    """The price list with one editable Team choice. Other columns stay read-only."""
+    columns = placement_columns(active)
+    frame = placement_frame(rows, labels, active, blanks)
+    colors = []
+    base_columns = table_columns(active, frozenset())
+    for row in rows:
+        base = _row_colors(row, active, frozenset(), base_columns)
+        colors.append([base[0], "", *base[1:]])
+    colors.extend([""] * len(columns) for _blank in blanks)
+    data: pd.DataFrame | pd.io.formats.style.Styler
+    if frame.empty:
+        data = frame
+    else:
+        data = _apply_style(frame, colors)
+    st.data_editor(
+        data,
+        hide_index=True,
+        width="content",
+        column_config={
+            **{name: _column_config(name) for name in columns if name != _TEAM_COLUMN},
+            _TEAM_COLUMN: st.column_config.SelectboxColumn(
+                options=list(destinations),
+                required=True,
+                width=_TEAM_WIDTH,
+            ),
+        },
+        disabled=[name for name in columns if name != _TEAM_COLUMN],
+        num_rows="fixed",
+        placeholder="",
+        key=key,
+        on_change=on_change,
+        args=args,
+    )
+
+
+def _blank_placement(columns: list[str], name: str, label: str) -> list[object]:
+    record: list[object] = [None] * len(columns)
+    record[columns.index("Name")] = name
+    record[columns.index("Pos")] = ""
+    record[columns.index(_TEAM_COLUMN)] = label
+    for column in columns:
+        if column in ("FG% / FGA", "FT% / FTA"):
+            record[columns.index(column)] = ""
+    return record
+
+
 def show_price_table(
     rows: tuple[PriceRow, ...],
     active: frozenset[str],
@@ -454,6 +542,50 @@ def current_punts(league_id: int, active: frozenset[str]) -> frozenset[str]:
     return frozenset(
         key for key in keys if st.session_state.get(_switch_key(league_id, key)) is False
     )
+
+
+def mirror_punt_switches(league_id: int, active: frozenset[str]) -> frozenset[str]:
+    """Draw the Draft punt choice on another tab. The switches do not share a widget key."""
+    options = [(key, _SWITCH_LABELS[key]) for key in _active_switch_keys(active)]
+    if punt_limit(len(options)) == 0:
+        return frozenset()
+    active_keys = tuple(key for key, _label in options)
+    message_key = f"punt-note-{league_id}"
+    for key, _label in options:
+        shared = _switch_key(league_id, key)
+        if shared not in st.session_state:
+            st.session_state[shared] = True
+        st.session_state[_teams_switch_key(league_id, key)] = st.session_state[shared]
+    with st.container(horizontal=True, wrap=False, gap="medium"):
+        for key, label in options:
+            local = _teams_switch_key(league_id, key)
+            st.toggle(
+                label,
+                key=local,
+                width="content",
+                on_change=_sync_punt_switch,
+                args=(local, _switch_key(league_id, key), message_key, league_id, active_keys),
+            )
+    message = st.session_state.get(message_key, "")
+    if message:
+        st.caption(message)
+    return current_punts(league_id, active)
+
+
+def _teams_switch_key(league_id: int, category: str) -> str:
+    return f"teams-{_switch_key(league_id, category)}"
+
+
+def _sync_punt_switch(
+    local_key: str,
+    shared_key: str,
+    message_key: str,
+    league_id: int,
+    active_keys: tuple[str, ...],
+) -> None:
+    st.session_state[shared_key] = st.session_state[local_key]
+    _guard_category_switch(shared_key, message_key, league_id, active_keys)
+    st.session_state[local_key] = st.session_state[shared_key]
 
 
 def punt_switches(league_id: int, active: frozenset[str]) -> frozenset[str]:

@@ -202,9 +202,9 @@ The Teams tab sits beside Players and Draft. It is the screen for the season aft
 
 Teams and placements are stored for the open league, apart from draft sales. A sale, an edit, or an unmark does not place or remove a player here. Placing a player does not create a sale. Hiding a league leaves these rows, the same way it leaves sales.
 
-A league starts with no teams. The league's team count does not create them. The user adds a team by name and renames that team in place. The name is unique among that league's teams. Removing a team is outside this tab.
+A league starts with no teams. The league's team count does not create them. The user adds a team by name and renames that team in place. The name is unique among that league's teams, ignoring case. Players is reserved for the unassigned list. Removing a team is outside this tab.
 
-The Players list is every player who is not on a team. Each team has its own list. A player is in one of those places. Every player row has a Team choice. The choice shows where that player is now, Players or a team name. Picking another place moves the player there.
+The Players list is every player on the price table who is not on a team. A player who is on a team and not on that table stays on the team, and the price cells stay blank. Each team has its own list. A player is in one of those places. Every player row has a Team choice. The choice shows where that player is now, Players or a team name. Picking another place moves the player there.
 
 Both lists use the full price-table columns: Name, Pos, TZ Rank, TZ Price, TC Rank, TC Price, PZ Rank, PZ Price, PC Rank, PC Price, Games, Minutes, then each active category. Team follows Name. The ranks and prices are the full pool from before any sale. Placing a player does not reprice anyone. With no punt, the PZ and PC cells are empty. The lists are sorted by TZ Rank. A punt does not change that sort.
 
@@ -265,7 +265,7 @@ Under the team lists, two tables cover every team in the order the teams were ad
 ### Teams
 
 - A Teams tab beside Players and Draft. The category switches sit at the top. Under them, the user adds a team by name. The Players list follows, then one section per team, then the averages table, then the scores table.
-- The Players list is everyone not on a team. Each team section shows that team's name, which can be renamed in place, and that team's players. A league starts with no teams. The team count does not create them. A name is unique among that league's teams.
+- The Players list is everyone on the price table who is not on a team. A player on a team who is not on that table stays on the team, with the price cells blank. Each team section shows that team's name, which can be renamed in place, and that team's players. A league starts with no teams. The team count does not create them. A name is unique among that league's teams, ignoring case, and Players is reserved.
 - A Team choice on the player row shows Players or a team name. Changing it moves the player. One player is in one place.
 - The columns are the full price table, with Team after Name. Ranks and prices are the full pool from before any sale. The sort is TZ Rank. With no punt, the PZ and PC cells are empty.
 - The switches are the same unsaved punt as Draft. On this tab they change only PZ Rank, PZ Price, PC Rank, and PC Price. The category columns stay, the sort stays, and a punted category is not faded.

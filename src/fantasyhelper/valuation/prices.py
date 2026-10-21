@@ -156,6 +156,32 @@ def apply_punt(
     return tuple(updated)
 
 
+def with_personal_prices(
+    rows: tuple[PriceRow, ...],
+    punted: frozenset[str],
+    team_count: int,
+    budget: int,
+    roster_size: int,
+) -> tuple[PriceRow, ...]:
+    """Keep this order. A punt fills the personal rank and price from the full pool."""
+    if not punted:
+        return rows
+    personal = {
+        row.player_id: row
+        for row in apply_punt(rows, punted, team_count, budget, roster_size)
+    }
+    return tuple(
+        replace(
+            row,
+            personal_plain_rank=personal[row.player_id].personal_plain_rank,
+            personal_plain_price=personal[row.player_id].personal_plain_price,
+            personal_curved_rank=personal[row.player_id].personal_curved_rank,
+            personal_curved_price=personal[row.player_id].personal_curved_price,
+        )
+        for row in rows
+    )
+
+
 @dataclass(frozen=True)
 class AuctionSummary:
     """League and user money and spots, plus the user's max bid."""
