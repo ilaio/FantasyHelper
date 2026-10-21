@@ -1,4 +1,4 @@
-"""Home screen: the open league, then Players and Draft."""
+"""Home screen: the open league, then Players, Draft, and Teams."""
 
 import streamlit as st
 
@@ -6,6 +6,7 @@ from fantasyhelper.stats.inbox import ImportReport, import_inbox
 from fantasyhelper.stats.store import Dataset, list_datasets, load_player_rows
 from fantasyhelper.ui.draft import render_draft
 from fantasyhelper.ui.league import render_league
+from fantasyhelper.ui.teams import render_teams
 
 _SOURCE_LABELS = {
     "bonus": "Bonus",
@@ -222,7 +223,7 @@ def render() -> None:
     st.markdown(_LAYOUT, unsafe_allow_html=True)
     league = render_league()
     report = import_inbox()
-    players, draft = st.tabs(["Players", "Draft"], key="main-tab")
+    players, draft, teams = st.tabs(["Players", "Draft", "Teams"], key="main-tab")
     with players:
         _render_datasets(report)
     with draft:
@@ -230,6 +231,11 @@ def render() -> None:
             st.write("No league is loaded yet.")
         else:
             render_draft(league)
+    with teams:
+        if league is None:
+            st.write("No league is loaded yet.")
+        else:
+            render_teams(league)
 
 
 def _render_datasets(report: ImportReport) -> None:

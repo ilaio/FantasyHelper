@@ -1,1 +1,1 @@
-"""League settings and sales. A keeper is a sale entered before the draft."""
+"""League settings, sales, and the teams a league's players are on."""
