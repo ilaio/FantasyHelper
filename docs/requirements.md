@@ -8,7 +8,7 @@ This file describes the product. It explains what we are building, who it is for
 
 FantasyHelper is a local draft assistant for one person’s NBA fantasy team.
 
-The first release helps that person prepare a price list and run an auction draft. It turns last season’s stats into category values, adjusts those values when the manager chooses categories to punt, accounts for keepers, and tracks the draft as players are sold.
+The first release helps that person prepare a price list and run an auction draft. It turns last season’s stats into category values, adjusts those values when the manager chooses categories to punt, accounts for keepers, and tracks the draft as players are sold. After the draft, a Teams tab is where that person names the league’s teams, places players by hand, and reads each team’s averages and scores.
 
 The person using it is already in their league on draft day. The app does not replace the league site. It sits beside it and answers four questions:
 
@@ -17,7 +17,7 @@ The person using it is already in their league on draft day. The app does not re
 - Who should I nominate, and who is left that fits my roster?
 - Which categories am I actually winning or giving up?
 
-Day-to-day lineup, waiver, and trade tools are later work. They are outside this stage.
+Lineups, waivers, and trades are later work. They are outside the Teams tab.
 
 ## 2. Who uses it
 
@@ -33,6 +33,7 @@ What they do:
 - Enter their keepers and locked prices before the draft. Enter other teams’ keepers so those players leave the pool.
 - During the draft, record each sale: player, price, and whether the player went to them or to someone else.
 - Read the updated prices, budget, max bid, category balance, and nomination ideas after each sale.
+- After the draft, name the teams in the league, place each player on one team, and read the averages and scores.
 
 What they do not do:
 
@@ -50,6 +51,13 @@ If the project is later opened up to other people, accounts, hosting, and shared
 - Auction draft, including a keeper auction.
 - Draft day: prices, budget, nominations, and category balance.
 - Local, single-user, free tooling. No hosting.
+
+### Teams tab
+
+- Named teams for the open league, entered by hand.
+- One player on one team, or still on the Players list.
+- Each team's category average, and a score that ranks those averages.
+- Stored apart from draft sales. Hiding a league leaves the teams and the placements.
 
 ### Later
 
@@ -188,6 +196,26 @@ Another team's purchase changes the league row. It does not change the user's ro
 
 Not used. The auction reprice already makes the remaining prices add up to the money still in the league, so a second scale would be 1.
 
+### 6.7 Teams
+
+The Teams tab sits beside Players and Draft. It is the screen for the season after the auction. The user names the teams, places each player, and reads each team's category average and rotisserie score. Nothing on this tab comes from a league host.
+
+Teams and placements are stored for the open league, apart from draft sales. A sale, an edit, or an unmark does not place or remove a player here. Placing a player does not create a sale. Hiding a league leaves these rows, the same way it leaves sales.
+
+A league starts with no teams. The league's team count does not create them. The user adds a team by name and renames that team in place. The name is unique among that league's teams. Removing a team is outside this tab.
+
+The Players list is every player who is not on a team. Each team has its own list. A player is in one of those places. Every player row has a Team choice. The choice shows where that player is now, Players or a team name. Picking another place moves the player there.
+
+Both lists use the full price-table columns: Name, Pos, TZ Rank, TZ Price, TC Rank, TC Price, PZ Rank, PZ Price, PC Rank, PC Price, Games, Minutes, then each active category. Team follows Name. The ranks and prices are the full pool from before any sale. Placing a player does not reprice anyone. With no punt, the PZ and PC cells are empty. The lists are sorted by TZ Rank. A punt does not change that sort.
+
+The category switches on this tab are the same unsaved punt choice as Draft. A switch starts on, at most two are off, and at least one stays on. On this tab a punt changes only PZ Rank, PZ Price, PC Rank, and PC Price, on the Players list and on every team list. It does not change the category columns, the averages, the scores, or the sort. A punted category is not faded on this tab. Draft keeps the display rules in section 6.1.
+
+Each team list ends with an Average row. The name cell reads Average. Pos, the ranks, the prices, Games, and Minutes are empty, and that row has no Team choice. The category cells use the same averages as the draft summary in section 6.5. A counting stat is the per-game average. FG% and FT% are the attempt-weighted percentage and the average attempts. Each counted player counts once. A missing percentage is left out of that percentage. A player with no projection stays on the list and is left out of the category cells.
+
+A team row has a Count checkbox beside Team. It starts on. Turning it off keeps the player on the team and leaves them out of that team's average and out of the scores. A player who moves onto a team starts counted.
+
+Under the team lists, two tables cover every team in the order the teams were added. The first table is each team's category averages. The second is the score. For each category, the teams that have an average are ranked. The best gets as many points as there are teams in that ranking, and each next place gets one point less. Fewer turnovers rank higher. Teams that tie split the points for the places they share. The total is the sum of the category points. A team with no counted players is blank in that category and is not ranked there.
+
 ## 7. Feature breakdown
 
 ### League setup
@@ -195,7 +223,7 @@ Not used. The auction reprice already makes the remaining prices add up to the m
 - Create, edit, and remove local leagues. One league is open during a visit.
 - Each league has a name, season, team count, budget, roster size, and active categories.
 - Save the leagues on this machine. Choosing a league or a dataset holds until the browser page is refreshed or the app stops. A browser refresh or a new visit starts on the first active league and the first dataset.
-- Removing a league hides it. That league’s draft entries stay.
+- Removing a league hides it. That league’s draft entries, teams, and placements stay.
 - Changing a setting that affects money or categories refreshes the price list.
 
 ### Prepared data
@@ -234,6 +262,17 @@ Not used. The auction reprice already makes the remaining prices add up to the m
 
 - Not used. The auction reprice is the price list during the draft.
 
+### Teams
+
+- A Teams tab beside Players and Draft. The category switches sit at the top. Under them, the user adds a team by name. The Players list follows, then one section per team, then the averages table, then the scores table.
+- The Players list is everyone not on a team. Each team section shows that team's name, which can be renamed in place, and that team's players. A league starts with no teams. The team count does not create them. A name is unique among that league's teams.
+- A Team choice on the player row shows Players or a team name. Changing it moves the player. One player is in one place.
+- The columns are the full price table, with Team after Name. Ranks and prices are the full pool from before any sale. The sort is TZ Rank. With no punt, the PZ and PC cells are empty.
+- The switches are the same unsaved punt as Draft. On this tab they change only PZ Rank, PZ Price, PC Rank, and PC Price. The category columns stay, the sort stays, and a punted category is not faded.
+- Each team list ends with an Average row for the players whose Count is on. Count sits beside Team, starts on, and keeps the player visible when it is off. Moving a player onto a team starts them counted.
+- The averages table and the score table follow the teams, in the order the teams were added. The score gives the best team as many points as there are teams with an average in that category, then one less per place. A tie splits those places. Fewer turnovers rank higher. The total adds the categories. A team with nobody counted is blank and is not ranked.
+- Placements are separate from sales. Hiding a league leaves the teams and the placements.
+
 ## 8. Main flows
 
 ### First launch of a season
@@ -262,6 +301,13 @@ Not used. The auction reprice already makes the remaining prices add up to the m
 1. User edits the price or moves the player to the other side.
 2. The list and the money match the sales that remain.
 
+### During the season
+
+1. User adds each team and names it.
+2. User places players with the Team choice on the row.
+3. User turns Count off for a player who should stay on the team and stay out of the average.
+4. User reads the averages and the scores. A punt changes only the personal rank and price columns.
+
 ## 9. What “done” means for this stage
 
 A user can, on one machine, with instructions from the README:
@@ -273,8 +319,10 @@ A user can, on one machine, with instructions from the README:
 - Run through a mock or real draft by typing sales.
 - See max bid and category balance change after each of their own buys.
 - See the repriced list for the players still available.
+- Name the teams, place each player on one team, and see the same teams and placements after a restart.
+- Read each team's average and a score that ranks the teams by those averages.
 
-They cannot manage the season after the draft in this stage. That is a later scope.
+Lineups, waivers, and trades stay later. The Teams tab does not set a lineup or talk to a league host.
 
 ## 10. Decisions already made
 
@@ -293,3 +341,6 @@ These are product decisions, so implementation should follow them unless we chan
 - A keeper and a draft sale are the same row. Both require a price of at least $1.
 - The auction reprice replaces a separate inflation factor.
 - The league host is not integrated. Draft results are manual.
+- Teams and placements are entered by hand and stored apart from draft sales. One player is on one team or on the Players list.
+- The Teams tab shows the full-pool prices from before any sale. A punt on that tab changes only the personal rank and price columns.
+- A team's average counts the players whose Count is on. The score ranks those averages, splits a tie, and treats fewer turnovers as better.
